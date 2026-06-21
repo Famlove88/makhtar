@@ -1237,6 +1237,12 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 var _fbDoc=null;
 try{
+  // فحص: هل تحمّل سكريبت Firebase أصلاً؟
+  if(typeof firebase === 'undefined'){
+    console.error('❌ سكريبت Firebase لم يتحمّل! تحقق من الاتصال بالإنترنت');
+    throw new Error('Firebase script not loaded');
+  }
+  
   // Firebase Compat API — يعمل بدون ES6 imports
   firebase.initializeApp({
     apiKey:'AIzaSyBfDJB9x8MF-7qQigmzanTMlwqm3jWlqcU',
@@ -1244,7 +1250,7 @@ try{
     projectId:'financemkhotar',
     storageBucket:'financemkhotar.firebasestorage.app',
     messagingSenderId:'84012838970',
-    appId:'1:84012838970:web:17fb858604520c88704503'
+    appId:'1:84012838970:web:e41927cea865a4aa704503'
   });
   var db=firebase.firestore();
   _fbDoc=db.collection('makhtar').doc('v4');
