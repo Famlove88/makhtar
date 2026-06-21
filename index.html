@@ -1263,6 +1263,8 @@ try{
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
+var TABS=['dash','op','pend','wallets','stmt','recon','pdf'];
+var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',pdf:'vPdf'};
 var USERS={'admin':'1234','مختار':'0000'};
 var DB=[];var GW=[];
 var PROFITS={total:0,daily:{},monthly:{},log:[]};
@@ -1420,11 +1422,20 @@ function loadCloud(){
         
         console.log('✅ تم تحديث البيانات');
         
-        // أعد رسم الواجهة
+        // أعد رسم الواجهة مع الحفاظ على العميل المختار
+        var keepId = activeId;
         buildSidebar();
-        if(DB.length && !activeId) pickClient(DB[0].id);
-        else if(activeId) refreshDash();
+        if(keepId && client()){
+          // العميل المختار ما زال موجوداً — حدّث شاشته فقط
+          activeId = keepId;
+          refreshDash();
+        } else if(DB.length){
+          // العميل المختار حُذف أو لا يوجد اختيار — اختر الأول
+          pickClient(DB[0].id);
+        }
         renderWallets();
+        try{ if(typeof renderPend==='function')renderPend(); }catch(e){}
+        try{ if(typeof renderStmt==='function')renderStmt(); }catch(e){}
         
       }catch(e){console.error('❌ خطأ في معالجة التحديث:', e);}
     }, function(error){
@@ -1610,8 +1621,6 @@ document.addEventListener('click',function(e){
 // ══════════════════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
-var TABS=['dash','op','pend','wallets','stmt','recon','pdf'];
-var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',pdf:'vPdf'};
 function showView(id){document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});var e=$id(id);if(e)e.classList.add('on');}
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(function(b){b.classList.remove('on');});
