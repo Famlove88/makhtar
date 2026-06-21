@@ -1307,7 +1307,9 @@ function save(){
   clearTimeout(saveTimer);
   saveTimer=setTimeout(function(){
     if(!_fbDoc)return;
-    try{_fbDoc.set({data:JSON.stringify(DB),gw:JSON.stringify(GW),pr:JSON.stringify(PROFITS),updatedAt:Date.now()})
+    var ts=Date.now();
+    try{localStorage.setItem('makhtar_ts',ts);}catch(e){}
+    try{_fbDoc.set({data:JSON.stringify(DB),gw:JSON.stringify(GW),pr:JSON.stringify(PROFITS),updatedAt:ts})
       .catch(function(e){console.warn('cloud save failed');});}catch(e){}
   },600);
 }
@@ -1318,18 +1320,31 @@ function loadLocal(){
 }
 function loadCloud(){
   if(!_fbDoc)return;
-  try{_fbDoc.get().then(function(snap){
-    if(snap&&snap.exists&&snap.data()){
+  try{
+    // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
+    _fbDoc.onSnapshot(function(snap){
+      if(!snap||!snap.exists||!snap.data())return;
       try{
-        if(snap.data().data)DB=JSON.parse(snap.data().data);
-        if(snap.data().gw)GW=JSON.parse(snap.data().gw);
-        if(snap.data().pr)PROFITS=JSON.parse(snap.data().pr);
-        save();buildSidebar();
-        if(DB.length&&!activeId)pickClient(DB[0].id);
-        else if(activeId)refreshDash();
-      }catch(e){}
-    }
-  }).catch(function(e){console.warn('cloud load failed');});}catch(e){}
+        var d=snap.data();
+        var remoteTime=d.updatedAt||0;
+        var localTime=parseInt(localStorage.getItem('makhtar_ts')||'0');
+        // نحدّث فقط إذا البيانات السحابية أحدث من المحلية
+        if(remoteTime>localTime){
+          if(d.data)DB=JSON.parse(d.data);
+          if(d.gw)GW=JSON.parse(d.gw);
+          if(d.pr)PROFITS=JSON.parse(d.pr);
+          localStorage.setItem('makhtar_ts',remoteTime);
+          try{localStorage.setItem('makhtar_v4',d.data||'[]');}catch(e){}
+          try{localStorage.setItem('makhtar_gw',d.gw||'[]');}catch(e){}
+          try{localStorage.setItem('makhtar_pr',d.pr||'{}');}catch(e){}
+          buildSidebar();
+          if(DB.length&&!activeId)pickClient(DB[0].id);
+          else if(activeId)refreshDash();
+          renderWallets();
+        }
+      }catch(e){console.warn('snapshot parse error',e);}
+    },function(e){console.warn('onSnapshot error',e);});
+  }catch(e){console.warn('cloud load failed',e);}
 }
 
 // ══════════════════════════════════════════════════════
