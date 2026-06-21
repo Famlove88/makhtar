@@ -1520,13 +1520,16 @@ function doLogin(){
     $id('appWrap').style.display='block';
     // حفظ الجلسة
     try{localStorage.setItem('makhtar_session',u);}catch(e){}
-    loadLocal();
-    buildSidebar();
-    if(DB.length)pickClient(DB[0].id);
+    
+    // ✅ ابدأ المزامنة أولاً وبشكل مستقل (مهم جداً)
+    try{ loadCloud(); }catch(e){ console.error('❌ فشل بدء المزامنة:', e); }
+    
+    try{ loadLocal(); }catch(e){ console.error('loadLocal:', e); }
+    try{ buildSidebar(); }catch(e){ console.error('buildSidebar:', e); }
+    try{ if(DB.length)pickClient(DB[0].id); }catch(e){ console.error('pickClient:', e); }
     var td=dateStr(new Date());
     ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
     var ot=$id('opTime');if(ot)ot.value=nowTime();
-    loadCloud();
   }else{
     if(err)err.style.display='block';
     var lp=$id('lp');if(lp)lp.value='';
@@ -1537,20 +1540,24 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
 
 // ── تسجيل الدخول التلقائي عند الـ Refresh ──
 (function autoLogin(){
-  try{
-    var saved=localStorage.getItem('makhtar_session');
-    if(saved&&USERS[saved]!==undefined){
-      $id('loginWrap').style.display='none';
-      $id('appWrap').style.display='block';
-      loadLocal();
-      buildSidebar();
-      if(DB.length)pickClient(DB[0].id);
+  var saved=null;
+  try{ saved=localStorage.getItem('makhtar_session'); }catch(e){}
+  if(saved && USERS[saved]!==undefined){
+    try{ $id('loginWrap').style.display='none'; }catch(e){}
+    try{ $id('appWrap').style.display='block'; }catch(e){}
+    
+    // ✅ ابدأ المزامنة أولاً وبشكل مستقل (مهم جداً)
+    try{ loadCloud(); }catch(e){ console.error('❌ فشل بدء المزامنة:', e); }
+    
+    try{ loadLocal(); }catch(e){ console.error('loadLocal:', e); }
+    try{ buildSidebar(); }catch(e){ console.error('buildSidebar:', e); }
+    try{ if(DB.length)pickClient(DB[0].id); }catch(e){ console.error('pickClient:', e); }
+    try{
       var td=dateStr(new Date());
       ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
       var ot=$id('opTime');if(ot)ot.value=nowTime();
-      loadCloud();
-    }
-  }catch(e){}
+    }catch(e){ console.error('dates:', e); }
+  }
 })();
 function doLogout(){
   try{localStorage.removeItem('makhtar_session');}catch(e){}
