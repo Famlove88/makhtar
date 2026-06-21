@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>مكتب المختار للصيرفة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
-<!-- Firebase SDK -->
+<!-- Firebase SDK (Compat) -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
@@ -1237,7 +1237,7 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 var _fbDoc=null;
 try{
-  // Firebase تم تحميله عبر CDN في رأس الصفحة
+  // Firebase Compat API — يعمل بدون ES6 imports
   firebase.initializeApp({
     apiKey:'AIzaSyBfDJB9x8MF-7qQigmzanTMlwqm3jWlqcU',
     authDomain:'financemkhotar.firebaseapp.com',
@@ -1247,19 +1247,11 @@ try{
     appId:'1:84012838970:web:17fb858604520c88704503'
   });
   var db=firebase.firestore();
-  // تفعيل الحفظ المحلي التلقائي (offline persistence)
-  db.enablePersistence({synchronizeTabs:true}).catch(function(e){
-    if(e.code==='failed-precondition'){
-      // أكثر من تبويب مفتوح — يعمل بدون persistence
-    } else if(e.code==='unimplemented'){
-      // المتصفح لا يدعم persistence
-    }
-  });
   _fbDoc=db.collection('makhtar').doc('v4');
-  
-  // ── بدء المزامنة الحية (Real-time Sync) ──────────────────────
-  // تم إصلاح loadCloud() لتطبيق كل تحديث فوراً
-}catch(e){console.warn('Firebase N/A — offline mode');}
+  console.log('✅ Firebase متصل بنجاح');
+}catch(e){
+  console.warn('⚠️ Firebase N/A — offline mode:', e.message);
+}
 
 
 // ══════════════════════════════════════════════════════
@@ -1319,11 +1311,32 @@ function save(){
   try{localStorage.setItem('makhtar_pr',JSON.stringify(PROFITS));}catch(e){}
   clearTimeout(saveTimer);
   saveTimer=setTimeout(function(){
-    if(!_fbDoc)return;
+    if(!_fbDoc){
+      console.warn('⚠️ Firebase غير متاح - سيتم الحفظ محليًا فقط');
+      return;
+    }
     var ts=Date.now();
     try{localStorage.setItem('makhtar_ts',ts);}catch(e){}
-    try{_fbDoc.set({data:JSON.stringify(DB),gw:JSON.stringify(GW),pr:JSON.stringify(PROFITS),updatedAt:ts})
-      .catch(function(e){console.warn('cloud save failed');});}catch(e){}
+    try{
+      console.log('💾 حفظ البيانات في Firebase...', {
+        clientsCount: DB.length,
+        walletsCount: GW.length
+      });
+      _fbDoc.set({
+        data:JSON.stringify(DB),
+        gw:JSON.stringify(GW),
+        pr:JSON.stringify(PROFITS),
+        updatedAt:ts
+      })
+      .then(function(){
+        console.log('✅ تم الحفظ في Firebase بنجاح');
+      })
+      .catch(function(e){
+        console.error('❌ خطأ في الحفظ السحابي:', e.code, e.message);
+      });
+    }catch(e){
+      console.error('❌ استثناء في الحفظ:', e);
+    }
   },600);
 }
 function loadLocal(){
@@ -1331,24 +1344,67 @@ function loadLocal(){
   try{var g=localStorage.getItem('makhtar_gw');if(g)GW=JSON.parse(g);}catch(e){GW=[];}
   try{var p=localStorage.getItem('makhtar_pr');if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
 }
+var _fbListener = null; // حفظ الـ listener لتجنب التكرار
+
 function loadCloud(){
-  if(!_fbDoc)return;
+  if(!_fbDoc){
+    console.warn('⚠️ Firebase غير متاح - المزامنة معطلة');
+    return;
+  }
+  
+  // إيقاف الـ listener القديم إذا وجد
+  if(_fbListener){
+    console.log('🛑 إيقاف الـ listener القديم');
+    _fbListener();
+    _fbListener = null;
+  }
+  
   try{
+    console.log('🔄 بدء الاستماع لتحديثات Firebase...');
+    
     // onSnapshot = مزامنة فورية — استقبل كل تحديث وطبقه فوراً
-    _fbDoc.onSnapshot(function(snap){
-      if(!snap||!snap.exists||!snap.data())return;
+    _fbListener = _fbDoc.onSnapshot(function(snap){
+      if(!snap || !snap.exists){
+        console.warn('⚠️ لا توجد بيانات في Firebase');
+        return;
+      }
+      
+      var d = snap.data();
+      if(!d){
+        console.warn('⚠️ البيانات فارغة');
+        return;
+      }
+      
+      console.log('📡 استقبال تحديث من Firebase');
+      
       try{
-        var d=snap.data();
-        
         // ✅ طبّق التحديث مباشرة (بدون فحص timestamp)
         if(d.data){
-          try{ DB=JSON.parse(d.data); }catch(e){}
+          try{ 
+            var newDB = JSON.parse(d.data);
+            console.log('📥 تحديث DB:', newDB.length, 'عميل');
+            DB = newDB;
+          }catch(parseErr){
+            console.error('❌ خطأ في parse DB:', parseErr);
+          }
         }
         if(d.gw){
-          try{ GW=JSON.parse(d.gw); }catch(e){}
+          try{ 
+            var newGW = JSON.parse(d.gw);
+            console.log('📥 تحديث GW');
+            GW = newGW;
+          }catch(parseErr){
+            console.error('❌ خطأ في parse GW:', parseErr);
+          }
         }
         if(d.pr){
-          try{ PROFITS=JSON.parse(d.pr); }catch(e){}
+          try{ 
+            var newPR = JSON.parse(d.pr);
+            console.log('📥 تحديث PROFITS');
+            PROFITS = newPR;
+          }catch(parseErr){
+            console.error('❌ خطأ في parse PROFITS:', parseErr);
+          }
         }
         
         // حدّث LocalStorage
@@ -1356,7 +1412,7 @@ function loadCloud(){
         try{ localStorage.setItem('makhtar_gw', d.gw||'[]'); }catch(e){}
         try{ localStorage.setItem('makhtar_pr', d.pr||'{}'); }catch(e){}
         
-        console.log('🔄 تحديث فوري من Firebase متلقى وتم تطبيقه');
+        console.log('✅ تم تحديث البيانات');
         
         // أعد رسم الواجهة
         buildSidebar();
@@ -1364,9 +1420,16 @@ function loadCloud(){
         else if(activeId) refreshDash();
         renderWallets();
         
-      }catch(e){console.warn('❌ خطأ في معالجة التحديث:', e);}
-    },function(e){console.warn('❌ خطأ في الاستماع:', e);});
-  }catch(e){console.warn('❌ فشل بدء المزامنة:', e);}
+      }catch(e){console.error('❌ خطأ في معالجة التحديث:', e);}
+    }, function(error){
+      console.error('❌ خطأ في الاستماع:', error.code, error.message);
+    });
+    
+    console.log('✅ تم بدء الاستماع بنجاح');
+    
+  }catch(e){
+    console.error('❌ فشل بدء المزامنة:', e);
+  }
 }
 
 // ══════════════════════════════════════════════════════
