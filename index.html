@@ -1256,7 +1256,11 @@ try{
     }
   });
   _fbDoc=db.collection('makhtar').doc('v4');
+  
+  // ── بدء المزامنة الحية (Real-time Sync) ──────────────────────
+  // تم إصلاح loadCloud() لتطبيق كل تحديث فوراً
 }catch(e){console.warn('Firebase N/A — offline mode');}
+
 
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -1330,30 +1334,39 @@ function loadLocal(){
 function loadCloud(){
   if(!_fbDoc)return;
   try{
-    // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
+    // onSnapshot = مزامنة فورية — استقبل كل تحديث وطبقه فوراً
     _fbDoc.onSnapshot(function(snap){
       if(!snap||!snap.exists||!snap.data())return;
       try{
         var d=snap.data();
-        var remoteTime=d.updatedAt||0;
-        var localTime=parseInt(localStorage.getItem('makhtar_ts')||'0');
-        // نحدّث فقط إذا البيانات السحابية أحدث من المحلية
-        if(remoteTime>localTime){
-          if(d.data)DB=JSON.parse(d.data);
-          if(d.gw)GW=JSON.parse(d.gw);
-          if(d.pr)PROFITS=JSON.parse(d.pr);
-          localStorage.setItem('makhtar_ts',remoteTime);
-          try{localStorage.setItem('makhtar_v4',d.data||'[]');}catch(e){}
-          try{localStorage.setItem('makhtar_gw',d.gw||'[]');}catch(e){}
-          try{localStorage.setItem('makhtar_pr',d.pr||'{}');}catch(e){}
-          buildSidebar();
-          if(DB.length&&!activeId)pickClient(DB[0].id);
-          else if(activeId)refreshDash();
-          renderWallets();
+        
+        // ✅ طبّق التحديث مباشرة (بدون فحص timestamp)
+        if(d.data){
+          try{ DB=JSON.parse(d.data); }catch(e){}
         }
-      }catch(e){console.warn('snapshot parse error',e);}
-    },function(e){console.warn('onSnapshot error',e);});
-  }catch(e){console.warn('cloud load failed',e);}
+        if(d.gw){
+          try{ GW=JSON.parse(d.gw); }catch(e){}
+        }
+        if(d.pr){
+          try{ PROFITS=JSON.parse(d.pr); }catch(e){}
+        }
+        
+        // حدّث LocalStorage
+        try{ localStorage.setItem('makhtar_v4', d.data||'[]'); }catch(e){}
+        try{ localStorage.setItem('makhtar_gw', d.gw||'[]'); }catch(e){}
+        try{ localStorage.setItem('makhtar_pr', d.pr||'{}'); }catch(e){}
+        
+        console.log('🔄 تحديث فوري من Firebase متلقى وتم تطبيقه');
+        
+        // أعد رسم الواجهة
+        buildSidebar();
+        if(DB.length && !activeId) pickClient(DB[0].id);
+        else if(activeId) refreshDash();
+        renderWallets();
+        
+      }catch(e){console.warn('❌ خطأ في معالجة التحديث:', e);}
+    },function(e){console.warn('❌ خطأ في الاستماع:', e);});
+  }catch(e){console.warn('❌ فشل بدء المزامنة:', e);}
 }
 
 // ══════════════════════════════════════════════════════
