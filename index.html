@@ -1246,7 +1246,16 @@ try{
     messagingSenderId:'84012838970',
     appId:'1:84012838970:web:17fb858604520c88704503'
   });
-  _fbDoc=firebase.firestore().collection('makhtar').doc('v4');
+  var db=firebase.firestore();
+  // تفعيل الحفظ المحلي التلقائي (offline persistence)
+  db.enablePersistence({synchronizeTabs:true}).catch(function(e){
+    if(e.code==='failed-precondition'){
+      // أكثر من تبويب مفتوح — يعمل بدون persistence
+    } else if(e.code==='unimplemented'){
+      // المتصفح لا يدعم persistence
+    }
+  });
+  _fbDoc=db.collection('makhtar').doc('v4');
 }catch(e){console.warn('Firebase N/A — offline mode');}
 
 // ══════════════════════════════════════════════════════
@@ -1427,6 +1436,8 @@ function doLogin(){
     if(err)err.style.display='none';
     $id('loginWrap').style.display='none';
     $id('appWrap').style.display='block';
+    // حفظ الجلسة
+    try{localStorage.setItem('makhtar_session',u);}catch(e){}
     loadLocal();
     buildSidebar();
     if(DB.length)pickClient(DB[0].id);
@@ -1441,7 +1452,26 @@ function doLogin(){
 }
 $id('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
 $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').focus();});
+
+// ── تسجيل الدخول التلقائي عند الـ Refresh ──
+(function autoLogin(){
+  try{
+    var saved=localStorage.getItem('makhtar_session');
+    if(saved&&USERS[saved]!==undefined){
+      $id('loginWrap').style.display='none';
+      $id('appWrap').style.display='block';
+      loadLocal();
+      buildSidebar();
+      if(DB.length)pickClient(DB[0].id);
+      var td=dateStr(new Date());
+      ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
+      var ot=$id('opTime');if(ot)ot.value=nowTime();
+      loadCloud();
+    }
+  }catch(e){}
+})();
 function doLogout(){
+  try{localStorage.removeItem('makhtar_session');}catch(e){}
   $id('appWrap').style.display='none';
   $id('loginWrap').style.display='flex';
   var lu=$id('lu');if(lu)lu.value='';
