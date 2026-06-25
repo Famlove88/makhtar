@@ -1270,16 +1270,14 @@ try{
     appId:'1:84012838970:web:17fb858604520c88704503'
   });
   var db=firebase.firestore();
-  // الحفظ المحلي offline — الطريقة الجديدة (تشيل تحذير الـ deprecation تبع enablePersistence)
-  try{
-    var _cache=firebase.firestore.persistentLocalCache({
-      tabManager:firebase.firestore.persistentMultipleTabManager()
-    });
-    db.settings({cache:_cache,localCache:_cache});
-  }catch(e){
-    // نسخة/متصفح قديم لا يدعم الـ cache الجديد — رجوع للطريقة القديمة (بتشتغل بس بتطلع تحذير)
-    try{db.enablePersistence({synchronizeTabs:true});}catch(_){}
-  }
+  // تفعيل الحفظ المحلي التلقائي (offline persistence)
+  db.enablePersistence({synchronizeTabs:true}).catch(function(e){
+    if(e.code==='failed-precondition'){
+      // أكثر من تبويب مفتوح — يعمل بدون persistence
+    } else if(e.code==='unimplemented'){
+      // المتصفح لا يدعم persistence
+    }
+  });
   _fbDoc=db.collection('makhtar').doc('v4');
 }catch(e){console.warn('Firebase N/A — offline mode');}
 
@@ -1373,6 +1371,7 @@ function loadCloud(){
           try{localStorage.setItem('makhtar_gw',d.gw||'[]');}catch(e){}
           try{localStorage.setItem('makhtar_pr',d.pr||'{}');}catch(e){}
           ensureOpCodes(false);
+          migrateWalletApplied(false);
           buildSidebar();
           if(DB.length&&!activeId)pickClient(DB[0].id);
           else if(activeId)refreshDash();
@@ -1423,7 +1422,7 @@ function ensureOpCodes(persist){
 }
 // ضبط علم "applied" للعمليات القديمة مرة واحدة (آمن — لا يغيّر الأرصدة):
 // المؤكدة سابقاً كانت مطبّقة على المحفظة، والمعلّقة لم تكن مطبّقة بعد.
-function migrateWalletApplied(){
+function migrateWalletApplied(persist){
   var changed=false;
   DB.forEach(function(c){(c.ops||[]).forEach(function(o){
     if(o.walletId && o.applied===undefined){
@@ -1431,7 +1430,7 @@ function migrateWalletApplied(){
       changed=true;
     }
   });});
-  if(changed)save();
+  if(changed&&persist)save();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1517,8 +1516,8 @@ function doLogin(){
     // حفظ الجلسة
     try{localStorage.setItem('makhtar_session',u);}catch(e){}
     loadLocal();
-    ensureOpCodes(true);
-    migrateWalletApplied();
+    ensureOpCodes(false);
+    migrateWalletApplied(false);
     buildSidebar();
     if(DB.length)pickClient(DB[0].id);
     var td=dateStr(new Date());
@@ -1541,8 +1540,8 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
       $id('loginWrap').style.display='none';
       $id('appWrap').style.display='block';
       loadLocal();
-      ensureOpCodes(true);
-      migrateWalletApplied();
+      ensureOpCodes(false);
+      migrateWalletApplied(false);
       buildSidebar();
       if(DB.length)pickClient(DB[0].id);
       var td=dateStr(new Date());
