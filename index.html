@@ -1279,7 +1279,8 @@ try{
     }
   });
   _fbDoc=db.collection('makhtar').doc('v4');
-}catch(e){console.warn('Firebase N/A — offline mode');}
+  console.log('🔥 Firebase: متصل — المزامنة جاهزة');
+}catch(e){console.warn('🔥 Firebase N/A — offline mode',e);}
 
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -1294,7 +1295,6 @@ var fType='all';var fStatus='all';
 var wlType='all';
 var selColor='#0B1F3A';
 var saveTimer=null;
-var syncDirty=false;var dirtyTimer=null;
 var COMMISSION=0.5;
 var ACC={usd:{lbl:'دولار $',sym:'$',icon:'💵'},lbp:{lbl:'ليرة ل.ل',sym:'ل.ل',icon:'🇱🇧'},wsh:{lbl:'Whish',sym:'$',icon:'💳'}};
 
@@ -1335,10 +1335,6 @@ function confirm2(title,msg,cb){
 //  STORAGE
 // ══════════════════════════════════════════════════════
 function save(){
-  // علم مؤقت: عنا تعديل محلي طازة — لا تدع تحديث لايف يدعس عليه خلال ثوانٍ قليلة
-  syncDirty=true;
-  clearTimeout(dirtyTimer);
-  dirtyTimer=setTimeout(function(){syncDirty=false;},2500);
   try{localStorage.setItem('makhtar_v4',JSON.stringify(DB));}catch(e){}
   try{localStorage.setItem('makhtar_gw',JSON.stringify(GW));}catch(e){}
   try{localStorage.setItem('makhtar_pr',JSON.stringify(PROFITS));}catch(e){}
@@ -1348,7 +1344,8 @@ function save(){
     var ts=Date.now();
     try{localStorage.setItem('makhtar_ts',ts);}catch(e){}
     try{_fbDoc.set({data:JSON.stringify(DB),gw:JSON.stringify(GW),pr:JSON.stringify(PROFITS),updatedAt:ts})
-      .catch(function(e){console.warn('cloud save failed');});}catch(e){}
+      .then(function(){console.log('⬆️ المزامنة: تم رفع التعديل عالكلاود');})
+      .catch(function(e){console.warn('❌ فشل رفع التعديل',e);});}catch(e){}
   },600);
 }
 function loadLocal(){
@@ -1357,22 +1354,25 @@ function loadLocal(){
   try{var p=localStorage.getItem('makhtar_pr');if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
 }
 function loadCloud(){
-  if(!_fbDoc)return;
+  if(!_fbDoc){console.warn('⚠️ المزامنة معطّلة — Firebase مش متصل');return;}
   try{
+    console.log('☁️ المزامنة: تم تفعيل المستمع (listener)');
     // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
     _fbDoc.onSnapshot(function(snap){
-      if(!snap||!snap.exists)return;
-      // تجاهل الصدى تبع كتاباتنا المحلية (لسا ما تأكدت من السيرفر)
-      if(snap.metadata&&snap.metadata.hasPendingWrites)return;
-      // عنا تعديل محلي طازة لسا عم ينرفع — لا تدعس عليه
-      if(syncDirty)return;
+      if(!snap||!snap.exists||!snap.data())return;
       try{
-        var d=snap.data();if(!d)return;
-        var newData=d.data||'[]', newGw=d.gw||'[]', newPr=d.pr||'{}';
+        var d=snap.data();
+        var fromCache=snap.metadata&&snap.metadata.fromCache;
+        var pending=snap.metadata&&snap.metadata.hasPendingWrites;
+        // قارن المحتوى الفعلي بدل وقت الجهاز (الساعات بتختلف بين الأجهزة)
+        var newData=(d.data!=null?d.data:'[]');
+        var newGw=(d.gw!=null?d.gw:'[]');
+        var newPr=(d.pr!=null?d.pr:'{}');
         var curData=localStorage.getItem('makhtar_v4')||'[]';
         var curGw=localStorage.getItem('makhtar_gw')||'[]';
         var curPr=localStorage.getItem('makhtar_pr')||'{}';
-        // إذا ما تغيّر شي فعلياً — لا تعمل شي (تجنّب رسم بلا داعي)
+        console.log('☁️ snapshot وصل',{fromCache:fromCache,pending:pending,changed:(newData!==curData||newGw!==curGw||newPr!==curPr)});
+        // نفس البيانات (أو صدى كتابتنا) → لا تعمل شي
         if(newData===curData&&newGw===curGw&&newPr===curPr)return;
         DB=JSON.parse(newData);
         GW=JSON.parse(newGw);
@@ -1383,14 +1383,14 @@ function loadCloud(){
         if(d.updatedAt){try{localStorage.setItem('makhtar_ts',d.updatedAt);}catch(e){}}
         ensureOpCodes(false);
         migrateWalletApplied(false);
-        // إعادة رسم كل شي + الشاشة الحالية المفتوحة
         buildSidebar();
         if(DB.length&&!activeId)pickClient(DB[0].id);
         else if(activeId)refreshActiveView();
         renderWallets();
         updatePendDot();
+        console.log('✅ المزامنة: تم تطبيق تحديث وارد ورسم الشاشة');
       }catch(e){console.warn('snapshot parse error',e);}
-    },function(e){console.warn('onSnapshot error',e);});
+    },function(e){console.warn('❌ onSnapshot error',e);});
   }catch(e){console.warn('cloud load failed',e);}
 }
 
