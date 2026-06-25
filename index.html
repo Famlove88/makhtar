@@ -1294,6 +1294,7 @@ var fType='all';var fStatus='all';
 var wlType='all';
 var selColor='#0B1F3A';
 var saveTimer=null;
+var syncDirty=false;var dirtyTimer=null;
 var COMMISSION=0.5;
 var ACC={usd:{lbl:'دولار $',sym:'$',icon:'💵'},lbp:{lbl:'ليرة ل.ل',sym:'ل.ل',icon:'🇱🇧'},wsh:{lbl:'Whish',sym:'$',icon:'💳'}};
 
@@ -1334,6 +1335,10 @@ function confirm2(title,msg,cb){
 //  STORAGE
 // ══════════════════════════════════════════════════════
 function save(){
+  // علم مؤقت: عنا تعديل محلي طازة — لا تدع تحديث لايف يدعس عليه خلال ثوانٍ قليلة
+  syncDirty=true;
+  clearTimeout(dirtyTimer);
+  dirtyTimer=setTimeout(function(){syncDirty=false;},2500);
   try{localStorage.setItem('makhtar_v4',JSON.stringify(DB));}catch(e){}
   try{localStorage.setItem('makhtar_gw',JSON.stringify(GW));}catch(e){}
   try{localStorage.setItem('makhtar_pr',JSON.stringify(PROFITS));}catch(e){}
@@ -1356,27 +1361,34 @@ function loadCloud(){
   try{
     // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
     _fbDoc.onSnapshot(function(snap){
-      if(!snap||!snap.exists||!snap.data())return;
+      if(!snap||!snap.exists)return;
+      // تجاهل الصدى تبع كتاباتنا المحلية (لسا ما تأكدت من السيرفر)
+      if(snap.metadata&&snap.metadata.hasPendingWrites)return;
+      // عنا تعديل محلي طازة لسا عم ينرفع — لا تدعس عليه
+      if(syncDirty)return;
       try{
-        var d=snap.data();
-        var remoteTime=d.updatedAt||0;
-        var localTime=parseInt(localStorage.getItem('makhtar_ts')||'0');
-        // نحدّث فقط إذا البيانات السحابية أحدث من المحلية
-        if(remoteTime>localTime){
-          if(d.data)DB=JSON.parse(d.data);
-          if(d.gw)GW=JSON.parse(d.gw);
-          if(d.pr)PROFITS=JSON.parse(d.pr);
-          localStorage.setItem('makhtar_ts',remoteTime);
-          try{localStorage.setItem('makhtar_v4',d.data||'[]');}catch(e){}
-          try{localStorage.setItem('makhtar_gw',d.gw||'[]');}catch(e){}
-          try{localStorage.setItem('makhtar_pr',d.pr||'{}');}catch(e){}
-          ensureOpCodes(false);
-          migrateWalletApplied(false);
-          buildSidebar();
-          if(DB.length&&!activeId)pickClient(DB[0].id);
-          else if(activeId)refreshDash();
-          renderWallets();
-        }
+        var d=snap.data();if(!d)return;
+        var newData=d.data||'[]', newGw=d.gw||'[]', newPr=d.pr||'{}';
+        var curData=localStorage.getItem('makhtar_v4')||'[]';
+        var curGw=localStorage.getItem('makhtar_gw')||'[]';
+        var curPr=localStorage.getItem('makhtar_pr')||'{}';
+        // إذا ما تغيّر شي فعلياً — لا تعمل شي (تجنّب رسم بلا داعي)
+        if(newData===curData&&newGw===curGw&&newPr===curPr)return;
+        DB=JSON.parse(newData);
+        GW=JSON.parse(newGw);
+        PROFITS=JSON.parse(newPr);
+        localStorage.setItem('makhtar_v4',newData);
+        localStorage.setItem('makhtar_gw',newGw);
+        localStorage.setItem('makhtar_pr',newPr);
+        if(d.updatedAt){try{localStorage.setItem('makhtar_ts',d.updatedAt);}catch(e){}}
+        ensureOpCodes(false);
+        migrateWalletApplied(false);
+        // إعادة رسم كل شي + الشاشة الحالية المفتوحة
+        buildSidebar();
+        if(DB.length&&!activeId)pickClient(DB[0].id);
+        else if(activeId)refreshActiveView();
+        renderWallets();
+        updatePendDot();
       }catch(e){console.warn('snapshot parse error',e);}
     },function(e){console.warn('onSnapshot error',e);});
   }catch(e){console.warn('cloud load failed',e);}
@@ -1621,6 +1633,16 @@ function goTab(tab){
   if(tab==='recon')renderRecon();
   if(tab==='stmt')renderStmt();
   if(tab==='wallets')renderWallets();
+}
+// إعادة رسم الشاشة المفتوحة حالياً (تُستخدم وقت تصل تحديثات لايف من جهاز تاني)
+function refreshActiveView(){
+  refreshDash();
+  var onView=document.querySelector('.view.on');
+  var vid=onView?onView.id:'';
+  if(vid==='vPend')renderPend();
+  else if(vid==='vStmt')renderStmt();
+  else if(vid==='vRecon')renderRecon();
+  else if(vid==='vWallets')renderWallets();
 }
 function pickClient(id){
   activeId=id;var c=client();if(!c)return;
