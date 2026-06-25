@@ -724,7 +724,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.2 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.3 • مزامنة لايف ✓</div>
   </div>
 </div>
 
@@ -1262,7 +1262,7 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 5.2 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 5.3 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
 try{
   // Firebase تم تحميله عبر CDN في رأس الصفحة
@@ -1276,7 +1276,7 @@ try{
   });
   var db=firebase.firestore();
   // إعداد للتوافق مع شبكات الموبايل — بعض الشبكات بتكسر الاتصال الافتراضي (WebChannel)
-  try{ db.settings({experimentalAutoDetectLongPolling:true}); }catch(e){ console.warn('fs settings:',e); }
+  try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(e){ console.warn('fs settings:',e); }
   // تفعيل الحفظ المحلي offline — معزول تماماً حتى لو فشل عالموبايل ما يكسر المزامنة
   try{
     db.enablePersistence({synchronizeTabs:true}).catch(function(e){
