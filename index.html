@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0"/>
 <title>مكتب المختار للصيرفة</title>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
-<!-- Firebase SDK (Compat) -->
+<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <style>
@@ -300,6 +300,11 @@ tbody tr:last-child td{border-bottom:none}
   display:inline-flex;align-items:center;gap:.2rem;padding:.18rem .5rem;
   border-radius:6px;font-size:.66rem;font-weight:800;
   background:var(--teal2);color:var(--teal);border:1px solid rgba(14,116,144,.2)
+}
+.code-badge{
+  display:inline-flex;align-items:center;font-size:.68rem;font-weight:900;
+  background:var(--navy);color:#fff;padding:.14rem .5rem;border-radius:6px;
+  letter-spacing:.04em;white-space:nowrap;direction:ltr
 }
 
 /* ════════════════════ FORMS ════════════════════ */
@@ -841,8 +846,8 @@ tbody tr:last-child td{border-bottom:none}
         <div class="box">
           <div class="box-hd"><div class="box-title">⏳ عمليات تنتظر التأكيد</div></div>
           <div class="tbl-wrap">
-            <table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>ملاحظة</th><th>إجراء</th></tr></thead>
-            <tbody id="pendTbody"><tr class="empty-row"><td colspan="7">✅ لا توجد معلقة</td></tr></tbody></table>
+            <table><thead><tr><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>ملاحظة</th><th>إجراء</th></tr></thead>
+            <tbody id="pendTbody"><tr class="empty-row"><td colspan="8">✅ لا توجد معلقة</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -855,7 +860,7 @@ tbody tr:last-child td{border-bottom:none}
           <div class="wtot wt-o"><div class="wtot-lbl">خرج من المحافظ</div><div class="wtot-val neg" id="wtOut">$0.00</div></div>
           <div class="wtot wt-p"><div class="wtot-lbl">عمولات</div><div class="wtot-val amb" id="wtProfit">$0.00</div></div>
         </div>
-        <div class="comm-note">💡 عند تأكيد خروج مرتبط بمحفظة — تُضاف عمولة 0.5$ تلقائياً لحساب الأرباح</div>
+        <div class="comm-note">💡 رصيد المحفظة يتأثّر فوراً عند تسجيل أي عملية مرتبطة بها (قبل تأكيد العميل) — وتُضاف عمولة 0.5$ لحساب الأرباح عند الخروج</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:.8rem">
           <div style="font-size:.9rem;font-weight:900;color:var(--navy)">💳 المحافظ الإلكترونية</div>
           <button class="btn btn-teal btn-sm" onclick="openModal('mAddWallet')">+ محفظة جديدة</button>
@@ -867,14 +872,29 @@ tbody tr:last-child td{border-bottom:none}
             <div style="font-size:.8rem;margin-top:.3rem">اضغط + محفظة جديدة للبدء</div>
           </div>
         </div>
-        <div class="box" id="wOpsBox" style="display:none">
+        <div class="box" id="wLedgerBox" style="display:none">
           <div class="box-hd">
-            <div class="box-title" id="wOpsTitle">سجل العمليات</div>
-            <button class="link-btn" onclick="$id('wOpsBox').style.display='none'">إخفاء ✕</button>
+            <div class="box-title">📋 كشف المحافظ — كل الحركات</div>
+            <span id="wLedgerInfo" style="font-size:.72rem;color:var(--teal);font-weight:700"></span>
+          </div>
+          <div style="padding:.9rem 1.2rem;border-bottom:1px solid var(--g2)">
+            <div class="filter-row">
+              <div class="fg" style="min-width:130px"><label>المحفظة</label>
+                <select id="wlWallet" onchange="renderWalletLedger()"><option value="all">كل المحافظ</option></select></div>
+              <div class="fg" style="min-width:120px"><label>من</label><input type="date" id="wlFrom" oninput="renderWalletLedger()"/></div>
+              <div class="fg" style="min-width:120px"><label>إلى</label><input type="date" id="wlTo" oninput="renderWalletLedger()"/></div>
+              <div class="fg"><label>النوع</label><div class="chips">
+                <button class="chip on" data-wlt="all" onclick="setWLType('all',this)">الكل</button>
+                <button class="chip" data-wlt="in" onclick="setWLType('in',this)">دخول</button>
+                <button class="chip" data-wlt="out" onclick="setWLType('out',this)">خروج</button>
+              </div></div>
+              <div class="fg" style="min-width:150px"><label>بحث شامل</label><input type="text" id="wlSearch" placeholder="كود، مبلغ، عميل، ملاحظة..." oninput="renderWalletLedger()"/></div>
+              <button class="btn btn-ghost btn-sm" onclick="clearWLFilters()">× مسح</button>
+            </div>
           </div>
           <div class="tbl-wrap">
-            <table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>العميل</th><th>ملاحظة</th></tr></thead>
-            <tbody id="wOpsTbody"></tbody></table>
+            <table><thead><tr><th>التاريخ</th><th>الكود</th><th>المحفظة</th><th>النوع</th><th>المبلغ</th><th>العميل / المصدر</th><th>ملاحظة</th></tr></thead>
+            <tbody id="wLedgerTbody"><tr class="empty-row"><td colspan="7">لا توجد حركات</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -895,7 +915,9 @@ tbody tr:last-child td{border-bottom:none}
               <button class="chip" data-fs="confirmed" onclick="setF('fs','confirmed',this)">مؤكد</button>
               <button class="chip" data-fs="pending" onclick="setF('fs','pending',this)">معلق</button>
             </div></div>
-            <div class="fg"><label>بحث</label><input type="text" id="fSearch" placeholder="ابحث..." oninput="renderStmt()"/></div>
+            <div class="fg" style="min-width:90px"><label>مبلغ من</label><input type="number" id="fAmtMin" placeholder="0" step="0.01" inputmode="decimal" oninput="renderStmt()"/></div>
+            <div class="fg" style="min-width:90px"><label>مبلغ إلى</label><input type="number" id="fAmtMax" placeholder="∞" step="0.01" inputmode="decimal" oninput="renderStmt()"/></div>
+            <div class="fg" style="min-width:150px"><label>بحث شامل</label><input type="text" id="fSearch" placeholder="كود، مبلغ، هاتف، ملاحظة، محفظة..." oninput="renderStmt()"/></div>
             <button class="btn btn-ghost btn-sm" onclick="clearFilters()">× مسح</button>
           </div>
           <div class="filter-info" id="fInfo"></div>
@@ -906,8 +928,8 @@ tbody tr:last-child td{border-bottom:none}
             <button class="btn btn-wa btn-sm" onclick="sendWA()">📤 واتساب</button>
           </div>
           <div class="tbl-wrap">
-            <table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th><th>الرصيد</th></tr></thead>
-            <tbody id="stmtTbody"><tr class="empty-row"><td colspan="8">لا توجد نتائج</td></tr></tbody></table>
+            <table><thead><tr><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th><th>الرصيد</th></tr></thead>
+            <tbody id="stmtTbody"><tr class="empty-row"><td colspan="9">لا توجد نتائج</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -1035,6 +1057,7 @@ tbody tr:last-child td{border-bottom:none}
   <div class="modal"><div class="modal-hd"><h3>✏️ تعديل العملية</h3><button class="modal-x" onclick="closeModal('mEdit')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="eId"/>
+      <div style="display:flex;justify-content:flex-end;margin-bottom:.7rem"><span class="code-badge" id="eCode">—</span></div>
 
       <!-- نوع العملية -->
       <div class="fg">
@@ -1237,34 +1260,30 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 var _fbDoc=null;
 try{
-  // فحص: هل تحمّل سكريبت Firebase أصلاً؟
-  if(typeof firebase === 'undefined'){
-    console.error('❌ سكريبت Firebase لم يتحمّل! تحقق من الاتصال بالإنترنت');
-    throw new Error('Firebase script not loaded');
-  }
-  
-  // Firebase Compat API — يعمل بدون ES6 imports
+  // Firebase تم تحميله عبر CDN في رأس الصفحة
   firebase.initializeApp({
     apiKey:'AIzaSyBfDJB9x8MF-7qQigmzanTMlwqm3jWlqcU',
     authDomain:'financemkhotar.firebaseapp.com',
     projectId:'financemkhotar',
     storageBucket:'financemkhotar.firebasestorage.app',
     messagingSenderId:'84012838970',
-    appId:'1:84012838970:web:e41927cea865a4aa704503'
+    appId:'1:84012838970:web:17fb858604520c88704503'
   });
   var db=firebase.firestore();
+  // تفعيل الحفظ المحلي التلقائي (offline persistence)
+  db.enablePersistence({synchronizeTabs:true}).catch(function(e){
+    if(e.code==='failed-precondition'){
+      // أكثر من تبويب مفتوح — يعمل بدون persistence
+    } else if(e.code==='unimplemented'){
+      // المتصفح لا يدعم persistence
+    }
+  });
   _fbDoc=db.collection('makhtar').doc('v4');
-  console.log('✅ Firebase متصل بنجاح');
-}catch(e){
-  console.warn('⚠️ Firebase N/A — offline mode:', e.message);
-}
-
+}catch(e){console.warn('Firebase N/A — offline mode');}
 
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-var TABS=['dash','op','pend','wallets','stmt','recon','pdf'];
-var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',pdf:'vPdf'};
 var USERS={'admin':'1234','مختار':'0000'};
 var DB=[];var GW=[];
 var PROFITS={total:0,daily:{},monthly:{},log:[]};
@@ -1272,6 +1291,7 @@ var activeId=null;
 var opType='in';var opAcc='gen';var opWid='';
 var eStatus='confirmed';
 var fType='all';var fStatus='all';
+var wlType='all';
 var selColor='#0B1F3A';
 var saveTimer=null;
 var COMMISSION=0.5;
@@ -1319,32 +1339,11 @@ function save(){
   try{localStorage.setItem('makhtar_pr',JSON.stringify(PROFITS));}catch(e){}
   clearTimeout(saveTimer);
   saveTimer=setTimeout(function(){
-    if(!_fbDoc){
-      console.warn('⚠️ Firebase غير متاح - سيتم الحفظ محليًا فقط');
-      return;
-    }
+    if(!_fbDoc)return;
     var ts=Date.now();
     try{localStorage.setItem('makhtar_ts',ts);}catch(e){}
-    try{
-      console.log('💾 حفظ البيانات في Firebase...', {
-        clientsCount: DB.length,
-        walletsCount: GW.length
-      });
-      _fbDoc.set({
-        data:JSON.stringify(DB),
-        gw:JSON.stringify(GW),
-        pr:JSON.stringify(PROFITS),
-        updatedAt:ts
-      })
-      .then(function(){
-        console.log('✅ تم الحفظ في Firebase بنجاح');
-      })
-      .catch(function(e){
-        console.error('❌ خطأ في الحفظ السحابي:', e.code, e.message);
-      });
-    }catch(e){
-      console.error('❌ استثناء في الحفظ:', e);
-    }
+    try{_fbDoc.set({data:JSON.stringify(DB),gw:JSON.stringify(GW),pr:JSON.stringify(PROFITS),updatedAt:ts})
+      .catch(function(e){console.warn('cloud save failed');});}catch(e){}
   },600);
 }
 function loadLocal(){
@@ -1352,101 +1351,85 @@ function loadLocal(){
   try{var g=localStorage.getItem('makhtar_gw');if(g)GW=JSON.parse(g);}catch(e){GW=[];}
   try{var p=localStorage.getItem('makhtar_pr');if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
 }
-var _fbListener = null; // حفظ الـ listener لتجنب التكرار
-
 function loadCloud(){
-  if(!_fbDoc){
-    console.warn('⚠️ Firebase غير متاح - المزامنة معطلة');
-    return;
-  }
-  
-  // إيقاف الـ listener القديم إذا وجد
-  if(_fbListener){
-    console.log('🛑 إيقاف الـ listener القديم');
-    _fbListener();
-    _fbListener = null;
-  }
-  
+  if(!_fbDoc)return;
   try{
-    console.log('🔄 بدء الاستماع لتحديثات Firebase...');
-    
-    // onSnapshot = مزامنة فورية — استقبل كل تحديث وطبقه فوراً
-    _fbListener = _fbDoc.onSnapshot(function(snap){
-      if(!snap || !snap.exists){
-        console.warn('⚠️ لا توجد بيانات في Firebase');
-        return;
-      }
-      
-      var d = snap.data();
-      if(!d){
-        console.warn('⚠️ البيانات فارغة');
-        return;
-      }
-      
-      console.log('📡 استقبال تحديث من Firebase');
-      
+    // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
+    _fbDoc.onSnapshot(function(snap){
+      if(!snap||!snap.exists||!snap.data())return;
       try{
-        // ✅ طبّق التحديث مباشرة (بدون فحص timestamp)
-        if(d.data){
-          try{ 
-            var newDB = JSON.parse(d.data);
-            console.log('📥 تحديث DB:', newDB.length, 'عميل');
-            DB = newDB;
-          }catch(parseErr){
-            console.error('❌ خطأ في parse DB:', parseErr);
-          }
+        var d=snap.data();
+        var remoteTime=d.updatedAt||0;
+        var localTime=parseInt(localStorage.getItem('makhtar_ts')||'0');
+        // نحدّث فقط إذا البيانات السحابية أحدث من المحلية
+        if(remoteTime>localTime){
+          if(d.data)DB=JSON.parse(d.data);
+          if(d.gw)GW=JSON.parse(d.gw);
+          if(d.pr)PROFITS=JSON.parse(d.pr);
+          localStorage.setItem('makhtar_ts',remoteTime);
+          try{localStorage.setItem('makhtar_v4',d.data||'[]');}catch(e){}
+          try{localStorage.setItem('makhtar_gw',d.gw||'[]');}catch(e){}
+          try{localStorage.setItem('makhtar_pr',d.pr||'{}');}catch(e){}
+          ensureOpCodes(false);
+          buildSidebar();
+          if(DB.length&&!activeId)pickClient(DB[0].id);
+          else if(activeId)refreshDash();
+          renderWallets();
         }
-        if(d.gw){
-          try{ 
-            var newGW = JSON.parse(d.gw);
-            console.log('📥 تحديث GW');
-            GW = newGW;
-          }catch(parseErr){
-            console.error('❌ خطأ في parse GW:', parseErr);
-          }
-        }
-        if(d.pr){
-          try{ 
-            var newPR = JSON.parse(d.pr);
-            console.log('📥 تحديث PROFITS');
-            PROFITS = newPR;
-          }catch(parseErr){
-            console.error('❌ خطأ في parse PROFITS:', parseErr);
-          }
-        }
-        
-        // حدّث LocalStorage
-        try{ localStorage.setItem('makhtar_v4', d.data||'[]'); }catch(e){}
-        try{ localStorage.setItem('makhtar_gw', d.gw||'[]'); }catch(e){}
-        try{ localStorage.setItem('makhtar_pr', d.pr||'{}'); }catch(e){}
-        
-        console.log('✅ تم تحديث البيانات');
-        
-        // أعد رسم الواجهة مع الحفاظ على العميل المختار
-        var keepId = activeId;
-        buildSidebar();
-        if(keepId && client()){
-          // العميل المختار ما زال موجوداً — حدّث شاشته فقط
-          activeId = keepId;
-          refreshDash();
-        } else if(DB.length){
-          // العميل المختار حُذف أو لا يوجد اختيار — اختر الأول
-          pickClient(DB[0].id);
-        }
-        renderWallets();
-        try{ if(typeof renderPend==='function')renderPend(); }catch(e){}
-        try{ if(typeof renderStmt==='function')renderStmt(); }catch(e){}
-        
-      }catch(e){console.error('❌ خطأ في معالجة التحديث:', e);}
-    }, function(error){
-      console.error('❌ خطأ في الاستماع:', error.code, error.message);
-    });
-    
-    console.log('✅ تم بدء الاستماع بنجاح');
-    
-  }catch(e){
-    console.error('❌ فشل بدء المزامنة:', e);
+      }catch(e){console.warn('snapshot parse error',e);}
+    },function(e){console.warn('onSnapshot error',e);});
+  }catch(e){console.warn('cloud load failed',e);}
+}
+
+// ══════════════════════════════════════════════════════
+//  OP CODES — كود تسلسلي لكل عملية
+// ══════════════════════════════════════════════════════
+function padCode(n){ return n ? '#'+String(n).padStart(4,'0') : '—'; }
+function maxOpCode(){
+  var max=0;
+  DB.forEach(function(c){(c.ops||[]).forEach(function(o){ if(o.code&&o.code>max)max=o.code; });});
+  GW.forEach(function(w){(w.hist||[]).forEach(function(h){ if(h.code&&h.code>max)max=h.code; });});
+  return max;
+}
+function nextOpCode(){ return maxOpCode()+1; }
+// يُعطي كل عملية قديمة كوداً (مرة واحدة) ويملأ أكواد سجلات المحافظ
+function ensureOpCodes(persist){
+  var changed=false;
+  // 1) عمليات العملاء بدون كود
+  var missing=[];
+  DB.forEach(function(c){(c.ops||[]).forEach(function(o){ if(!o.code) missing.push(o); });});
+  if(missing.length){
+    missing.sort(function(a,b){return((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));});
+    var m=maxOpCode();
+    missing.forEach(function(o){ m++; o.code=m; changed=true; });
   }
+  // 2) سجلات المحافظ: انسخ الكود من العملية الأصلية حسب oid
+  var opByOid={};
+  DB.forEach(function(c){(c.ops||[]).forEach(function(o){ opByOid[o.id]=o; });});
+  GW.forEach(function(w){(w.hist||[]).forEach(function(h){
+    if(!h.code && h.oid && opByOid[h.oid] && opByOid[h.oid].code){ h.code=opByOid[h.oid].code; changed=true; }
+  });});
+  // 3) حركات مباشرة قديمة بلا كود → كود جديد
+  var missH=[];
+  GW.forEach(function(w){(w.hist||[]).forEach(function(h){ if(!h.code) missH.push(h); });});
+  if(missH.length){
+    missH.sort(function(a,b){return((a.date||'')+(a.time||'')).localeCompare((b.date||'')+(b.time||''));});
+    var m2=maxOpCode();
+    missH.forEach(function(h){ m2++; h.code=m2; changed=true; });
+  }
+  if(changed&&persist)save();
+}
+// ضبط علم "applied" للعمليات القديمة مرة واحدة (آمن — لا يغيّر الأرصدة):
+// المؤكدة سابقاً كانت مطبّقة على المحفظة، والمعلّقة لم تكن مطبّقة بعد.
+function migrateWalletApplied(){
+  var changed=false;
+  DB.forEach(function(c){(c.ops||[]).forEach(function(o){
+    if(o.walletId && o.applied===undefined){
+      o.applied=(o.status==='confirmed');
+      changed=true;
+    }
+  });});
+  if(changed)save();
 }
 
 // ══════════════════════════════════════════════════════
@@ -1531,16 +1514,15 @@ function doLogin(){
     $id('appWrap').style.display='block';
     // حفظ الجلسة
     try{localStorage.setItem('makhtar_session',u);}catch(e){}
-    
-    // ✅ ابدأ المزامنة أولاً وبشكل مستقل (مهم جداً)
-    try{ loadCloud(); }catch(e){ console.error('❌ فشل بدء المزامنة:', e); }
-    
-    try{ loadLocal(); }catch(e){ console.error('loadLocal:', e); }
-    try{ buildSidebar(); }catch(e){ console.error('buildSidebar:', e); }
-    try{ if(DB.length)pickClient(DB[0].id); }catch(e){ console.error('pickClient:', e); }
+    loadLocal();
+    ensureOpCodes(true);
+    migrateWalletApplied();
+    buildSidebar();
+    if(DB.length)pickClient(DB[0].id);
     var td=dateStr(new Date());
     ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
     var ot=$id('opTime');if(ot)ot.value=nowTime();
+    loadCloud();
   }else{
     if(err)err.style.display='block';
     var lp=$id('lp');if(lp)lp.value='';
@@ -1551,24 +1533,22 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
 
 // ── تسجيل الدخول التلقائي عند الـ Refresh ──
 (function autoLogin(){
-  var saved=null;
-  try{ saved=localStorage.getItem('makhtar_session'); }catch(e){}
-  if(saved && USERS[saved]!==undefined){
-    try{ $id('loginWrap').style.display='none'; }catch(e){}
-    try{ $id('appWrap').style.display='block'; }catch(e){}
-    
-    // ✅ ابدأ المزامنة أولاً وبشكل مستقل (مهم جداً)
-    try{ loadCloud(); }catch(e){ console.error('❌ فشل بدء المزامنة:', e); }
-    
-    try{ loadLocal(); }catch(e){ console.error('loadLocal:', e); }
-    try{ buildSidebar(); }catch(e){ console.error('buildSidebar:', e); }
-    try{ if(DB.length)pickClient(DB[0].id); }catch(e){ console.error('pickClient:', e); }
-    try{
+  try{
+    var saved=localStorage.getItem('makhtar_session');
+    if(saved&&USERS[saved]!==undefined){
+      $id('loginWrap').style.display='none';
+      $id('appWrap').style.display='block';
+      loadLocal();
+      ensureOpCodes(true);
+      migrateWalletApplied();
+      buildSidebar();
+      if(DB.length)pickClient(DB[0].id);
       var td=dateStr(new Date());
       ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
       var ot=$id('opTime');if(ot)ot.value=nowTime();
-    }catch(e){ console.error('dates:', e); }
-  }
+      loadCloud();
+    }
+  }catch(e){}
 })();
 function doLogout(){
   try{localStorage.removeItem('makhtar_session');}catch(e){}
@@ -1621,6 +1601,8 @@ document.addEventListener('click',function(e){
 // ══════════════════════════════════════════════════════
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
+var TABS=['dash','op','pend','wallets','stmt','recon','pdf'];
+var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',pdf:'vPdf'};
 function showView(id){document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});var e=$id(id);if(e)e.classList.add('on');}
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(function(b){b.classList.remove('on');});
@@ -1664,7 +1646,7 @@ function refreshDash(){
   var rec=$id('dashRecent');
   if(rec){rec.innerHTML=sorted.length?sorted.map(function(o){
     return '<tr data-oid="'+o.id+'">'
-      +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(o.time||'')+'</span></td>'
+      +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(o.time||'')+'</span><div style="font-size:.6rem;color:var(--g3);direction:ltr;text-align:right;margin-top:.1rem">'+padCode(o.code)+'</div></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'">'+fmt(o.amount)+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'<span style="color:var(--g3)">—</span>')+'</td>'
@@ -1749,6 +1731,7 @@ function pickType(t){
 // ══════════════════════════════════════════════════════
 function applyWallet(op){
   if(!op.walletId)return;
+  if(op.applied)return;            // أُطبّقت مسبقاً — لا تُكرّر
   var w=GW.find(function(x){return x.id===op.walletId;});if(!w)return;
   if(op.type==='in'){
     w.balance=(w.balance||0)+op.amount;
@@ -1759,10 +1742,11 @@ function applyWallet(op){
     addProfit(COMMISSION,op.date,'عمولة خروج — '+(op.walletName||'محفظة'));
   }
   if(!w.hist)w.hist=[];
-  w.hist.push({oid:op.id,cid:activeId,cname:client()?client().name:'',type:op.type,amount:op.amount,date:op.date,time:op.time||'',note:op.note||''});
+  w.hist.push({oid:op.id,cid:activeId,cname:client()?client().name:'',type:op.type,amount:op.amount,date:op.date,time:op.time||'',note:op.note||'',code:op.code});
+  op.applied=true;
 }
 function reverseWallet(op){
-  if(!op.walletId||op.status!=='confirmed')return;
+  if(!op.walletId||!op.applied)return;   // اعكس فقط إذا كانت مطبّقة فعلاً
   var w=GW.find(function(x){return x.id===op.walletId;});if(!w)return;
   if(op.type==='in'){
     w.balance=(w.balance||0)-op.amount;
@@ -1773,6 +1757,7 @@ function reverseWallet(op){
     reverseProfit(COMMISSION,op.date);
   }
   w.hist=(w.hist||[]).filter(function(h){return h.oid!==op.id;});
+  op.applied=false;
 }
 
 // ══════════════════════════════════════════════════════
@@ -1793,6 +1778,7 @@ function openOpConfirm(){
   var isOut=opType==='out';
   var symb=opAcc==='lbp'?'ل.ل':'$';
   var rows=[
+    ['🔢 رقم العملية', '<span class="code-badge">'+padCode(nextOpCode())+'</span> <span style="color:var(--g3);font-size:.72rem">(تلقائي)</span>'],
     ['🔄 النوع', isOut?'<span class="badge b-out">↗ خروج — له</span>':'<span class="badge b-in">↙ دخول — لنا</span>'],
     ['💵 المبلغ', '<b class="'+(isOut?'v-out':'v-in')+'">'+amt.toFixed(2)+' '+symb+'</b>'],
     ['📅 التاريخ', '<b>'+fmtD(date)+'</b> <span style="color:var(--g3)">'+(($v('opTime'))||nowTime())+'</span>'],
@@ -1830,8 +1816,8 @@ function doSaveOp(){
   var wName='';
   if(opWid){var ww=GW.find(function(w){return w.id===opWid;});if(ww)wName=ww.name;}
   var opComm = (opType==='out' && opWid) ? COMMISSION : 0;
-  c.ops.push({
-    id:uid(),type:opType,amount:amt,date:date,
+  var op={
+    id:uid(),code:nextOpCode(),type:opType,amount:amt,date:date,
     time:$v('opTime')||nowTime(),
     phone:$v('opPhone').trim(),
     note:$v('opNote').trim(),
@@ -1839,13 +1825,18 @@ function doSaveOp(){
     account:opAcc||'gen',
     walletId:opWid,
     walletName:wName,
-    commission:opComm  // العمولة المسجلة على العميل
-  });
+    commission:opComm,  // العمولة المسجلة على العميل
+    applied:false
+  };
+  c.ops.push(op);
+  applyWallet(op);            // ← الرصيد يدخل على المحفظة فوراً (قبل تأكيد العميل)
   save();
   closeModal('mOpConfirm'); // ← إغلاق شاشة المراجعة
-  toast('✅ تم الحفظ — غير مؤكدة ⏳','inf');
+  toast(op.walletId
+    ? '✅ '+padCode(op.code)+' — دخلت على المحفظة فوراً ⏳ بانتظار تأكيد العميل'
+    : '✅ '+padCode(op.code)+' — غير مؤكدة ⏳','inf');
   clearOpForm();buildSidebar();
-  showView('vDash');setTabActive('dash');refreshDash();
+  showView('vDash');setTabActive('dash');refreshDash();renderWallets();
 }
 function clearOpForm(){
   ['opAmt','opPhone','opNote'].forEach(function(id){var e=$id(id);if(e)e.value='';});
@@ -1866,9 +1857,10 @@ function renderPend(){
     .sort(function(a,b){return(b.date+(b.time||'')).localeCompare(a.date+(a.time||''));});
   var tb=$id('pendTbody');if(!tb)return;
   tb.innerHTML=pend.length?pend.map(function(o){
-    var comm=o.type==='out'&&o.walletId?'<div style="font-size:.63rem;color:var(--amber);margin-top:.15rem">+0.5$ ربح عند التأكيد</div>':'';
+    var comm=o.type==='out'&&o.walletId?'<div style="font-size:.63rem;color:var(--amber);margin-top:.15rem">+0.5$ ربح (مُسجّل)</div>':'';
     return '<tr data-oid="'+o.id+'">'
       +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3)">'+(o.time||'')+'</span></td>'
+      +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
@@ -1876,7 +1868,7 @@ function renderPend(){
       +'<td style="color:var(--g3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.note||'—')+'</td>'
       +'<td><button class="btn btn-green btn-xs" data-qc="'+o.id+'" onclick="event.stopPropagation()">✅ تأكيد</button>'+comm+'</td>'
       +'</tr>';}).join('')
-    :'<tr class="empty-row"><td colspan="7">✅ لا توجد معلقة — كل العمليات مؤكدة</td></tr>';
+    :'<tr class="empty-row"><td colspan="8">✅ لا توجد معلقة — كل العمليات مؤكدة</td></tr>';
 }
 function doQuickConfirm(id){
   var c=client();if(!c)return;
@@ -1905,6 +1897,7 @@ function openEdit(id){
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
 
   $id('eId').value=id;
+  $set('eCode',padCode(op.code));
   $id('eDate').value=op.date;
   $id('eTime').value=op.time||'';
   $id('eAmt').value=op.amount;
@@ -2009,11 +2002,8 @@ function doSaveEdit(){
   var amt=parseFloat($v('eAmt'));
   if(isNaN(amt)||amt<=0){toast('مبلغ غير صحيح','err');return;}
 
-  var wasConf=op.status==='confirmed';
-  var willConf=eStatus==='confirmed';
-
-  // عكس التأثير القديم على المحفظة
-  if(wasConf)reverseWallet(op);
+  // عكس التأثير القديم على المحفظة (إن كان مطبّقاً) — بالقيم القديمة
+  reverseWallet(op);
 
   // احسب العمولة الجديدة
   var newComm=(eType==='out'&&eWid)?COMMISSION:0;
@@ -2035,8 +2025,8 @@ function doSaveEdit(){
   op.walletName=newWName;
   op.commission=newComm;
 
-  // تطبيق التأثير الجديد على المحفظة
-  if(willConf)applyWallet(op);
+  // الرصيد يدخل/يخرج على المحفظة فوراً (بصرف النظر عن حالة التأكيد)
+  applyWallet(op);
 
   save();closeModal('mEdit');buildSidebar();
   refreshDash();renderPend();renderStmt();renderWallets();
@@ -2066,7 +2056,7 @@ function setF(which,val,btn){
 }
 function clearFilters(){
   fType='all';fStatus='all';
-  ['fFrom','fTo','fSearch'].forEach(function(id){var e=$id(id);if(e)e.value='';});
+  ['fFrom','fTo','fSearch','fAmtMin','fAmtMax'].forEach(function(id){var e=$id(id);if(e)e.value='';});
   document.querySelectorAll('[data-ft]').forEach(function(b){b.classList.remove('on');});
   var a1=document.querySelector('[data-ft="all"]');if(a1)a1.classList.add('on');
   document.querySelectorAll('[data-fs]').forEach(function(b){b.classList.remove('on');});
@@ -2076,15 +2066,27 @@ function clearFilters(){
 function renderStmt(){
   var c=client();if(!c)return;
   var ops=[...(c.ops||[])];
-  var fr=$v('fFrom'),to=$v('fTo'),q=($v('fSearch')||'').toLowerCase();
+  var fr=$v('fFrom'),to=$v('fTo'),q=($v('fSearch')||'').trim().toLowerCase();
+  var amin=parseFloat($v('fAmtMin')),amax=parseFloat($v('fAmtMax'));
   if(fr)ops=ops.filter(function(o){return o.date>=fr;});
   if(to)ops=ops.filter(function(o){return o.date<=to;});
   if(fType!=='all')ops=ops.filter(function(o){return o.type===fType;});
   if(fStatus==='confirmed')ops=ops.filter(function(o){return o.status==='confirmed';});
   if(fStatus==='pending')ops=ops.filter(function(o){return o.status==='pending';});
+  if(!isNaN(amin))ops=ops.filter(function(o){return o.amount>=amin;});
+  if(!isNaN(amax))ops=ops.filter(function(o){return o.amount<=amax;});
   if(q)ops=ops.filter(function(o){
-    return (o.phone||'').toLowerCase().includes(q)||(o.note||'').toLowerCase().includes(q)
-      ||(o.date||'').includes(q)||(o.walletName||'').toLowerCase().includes(q);
+    var typeTxt=o.type==='in'?'دخول لنا':'خروج له';
+    var statTxt=o.status==='confirmed'?'مؤكد':'معلق';
+    return (o.phone||'').toLowerCase().includes(q)
+      ||(o.note||'').toLowerCase().includes(q)
+      ||(o.date||'').includes(q)
+      ||(o.walletName||'').toLowerCase().includes(q)
+      ||String(o.amount).includes(q)
+      ||padCode(o.code).toLowerCase().includes(q)
+      ||String(o.code||'').includes(q)
+      ||typeTxt.includes(q)
+      ||statTxt.includes(q);
   });
   ops.sort(function(a,b){return(b.date+(b.time||'')).localeCompare(a.date+(a.time||''));});
   var chrono=[...(c.ops||[])].filter(function(o){return o.status==='confirmed';})
@@ -2099,6 +2101,7 @@ function renderStmt(){
     var rb=runMap[o.id];
     return '<tr data-oid="'+o.id+'">'
       +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(o.time||'')+'</span></td>'
+      +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
@@ -2107,7 +2110,7 @@ function renderStmt(){
       +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.note||'—')+'</td>'
       +'<td>'+(rb!=null?'<span class="'+(rb>=0?'v-in':'v-out')+'">'+fmt(rb)+'</span>':'—')+'</td>'
       +'</tr>';}).join('')
-    :'<tr class="empty-row"><td colspan="8">لا توجد نتائج مطابقة</td></tr>';
+    :'<tr class="empty-row"><td colspan="9">لا توجد نتائج مطابقة</td></tr>';
 }
 
 // ══════════════════════════════════════════════════════
@@ -2393,6 +2396,11 @@ function renderWallets(){
       +'<div class="wcard-hist"><div class="wcard-hist-lbl">آخر الحركات:</div>'+histH+'</div>'
       +'</div>';
   }).join('');
+  // كشف المحافظ
+  var lbox=$id('wLedgerBox');
+  if(lbox)lbox.style.display=GW.length?'block':'none';
+  buildWLWalletOptions();
+  renderWalletLedger();
 }
 function wPickName(name,btn){
   document.querySelectorAll('#wNameBtns .type-btn').forEach(function(b){b.className='type-btn';});
@@ -2428,25 +2436,97 @@ function doWDirect(){
   w.totalIn=(w.totalIn||0)+(dep?amt:0);
   w.totalOut=(w.totalOut||0)+(dep?0:amt);
   w.totalCommission=(w.totalCommission||0)+COMMISSION;
+  if(!w.hist)w.hist=[];
+  w.hist.push({oid:null,cid:null,cname:'',type:dep?'in':'out',amount:amt,
+    date:dateStr(new Date()),time:nowTime(),note:($v('wDNote')||'').trim(),
+    direct:true,code:nextOpCode()});
   save();closeModal('mWDirect');
   toast(dep?'✅ تم الإيداع':'✅ تم السحب','ok');
   renderWallets();buildWalletSelector();
 }
 function showWHist(wid){
   var w=GW.find(function(x){return x.id===wid;});if(!w)return;
-  $set('wOpsTitle','📋 سجل: '+w.name);
-  var hist=[...(w.hist||[])].reverse();
-  var tb=$id('wOpsTbody');if(!tb)return;
-  tb.innerHTML=hist.length?hist.map(function(h){
-    return '<tr><td><b>'+fmtD(h.date)+'</b> <span style="color:var(--g3)">'+(h.time||'')+'</span></td>'
-      +'<td><span class="badge '+(h.type==='in'?'b-in':'b-out')+'">'+(h.type==='in'?'↙ دخل':'↗ خرج')+'</span></td>'
-      +'<td class="'+(h.type==='in'?'v-in':'v-out')+'"><b>'+fmt(h.amount)+'</b></td>'
-      +'<td style="color:var(--navy);font-weight:700">'+(h.cname||'إيداع مباشر')+'</td>'
-      +'<td style="color:var(--g3)">'+(h.note||'—')+'</td>'
+  buildWLWalletOptions();
+  var sel=$id('wlWallet');if(sel)sel.value=wid;
+  renderWalletLedger();
+  var box=$id('wLedgerBox');
+  if(box){box.style.display='block';box.scrollIntoView({behavior:'smooth'});}
+}
+// ══════════════════════════════════════════════════════
+//  WALLET LEDGER — كشف شامل لكل المحافظ
+// ══════════════════════════════════════════════════════
+function setWLType(v,btn){
+  wlType=v;
+  document.querySelectorAll('[data-wlt]').forEach(function(b){b.classList.remove('on');});
+  if(btn)btn.classList.add('on');
+  renderWalletLedger();
+}
+function clearWLFilters(){
+  wlType='all';
+  ['wlFrom','wlTo','wlSearch'].forEach(function(id){var e=$id(id);if(e)e.value='';});
+  var sel=$id('wlWallet');if(sel)sel.value='all';
+  document.querySelectorAll('[data-wlt]').forEach(function(b){b.classList.remove('on');});
+  var a=document.querySelector('[data-wlt="all"]');if(a)a.classList.add('on');
+  renderWalletLedger();
+}
+function buildWLWalletOptions(){
+  var sel=$id('wlWallet');if(!sel)return;
+  var cur=sel.value||'all';
+  var html='<option value="all">كل المحافظ</option>';
+  GW.forEach(function(w){ html+='<option value="'+w.id+'">'+w.name+'</option>'; });
+  sel.innerHTML=html;
+  // أعد القيمة المختارة إن وُجدت
+  if(cur==='all'||GW.some(function(w){return w.id===cur;}))sel.value=cur;
+  else sel.value='all';
+}
+function renderWalletLedger(){
+  var tb=$id('wLedgerTbody');if(!tb)return;
+  var widF=($id('wlWallet')&&$id('wlWallet').value)||'all';
+  var fr=$v('wlFrom'),to=$v('wlTo');
+  var q=($v('wlSearch')||'').trim().toLowerCase();
+  // اجمع كل حركات كل المحافظ
+  var rows=[];
+  GW.forEach(function(w){
+    if(widF!=='all'&&w.id!==widF)return;
+    (w.hist||[]).forEach(function(h){
+      rows.push({wid:w.id,wname:w.name,code:h.code,type:h.type,amount:h.amount,
+        date:h.date,time:h.time,cname:h.cname,note:h.note,
+        direct:h.direct||!h.cid});
+    });
+  });
+  // فلاتر
+  if(fr)rows=rows.filter(function(r){return(r.date||'')>=fr;});
+  if(to)rows=rows.filter(function(r){return(r.date||'')<=to;});
+  if(wlType!=='all')rows=rows.filter(function(r){return r.type===wlType;});
+  if(q)rows=rows.filter(function(r){
+    var who=r.direct?'مباشر إيداع سحب':(r.cname||'');
+    var typeTxt=r.type==='in'?'دخول دخل':'خروج خرج';
+    return String(r.amount).includes(q)
+      ||padCode(r.code).toLowerCase().includes(q)
+      ||String(r.code||'').includes(q)
+      ||who.toLowerCase().includes(q)
+      ||(r.note||'').toLowerCase().includes(q)
+      ||(r.wname||'').toLowerCase().includes(q)
+      ||(r.date||'').includes(q)
+      ||typeTxt.includes(q);
+  });
+  // ترتيب: الأحدث أولاً
+  rows.sort(function(a,b){return((b.date||'')+(b.time||'')).localeCompare((a.date||'')+(a.time||''));});
+  // مجاميع
+  var tIn=rows.filter(function(r){return r.type==='in';}).reduce(function(s,r){return s+(r.amount||0);},0);
+  var tOut=rows.filter(function(r){return r.type==='out';}).reduce(function(s,r){return s+(r.amount||0);},0);
+  $set('wLedgerInfo',rows.length?rows.length+' حركة — دخول: '+fmt(tIn)+' | خروج: '+fmt(tOut)+' | صافي: '+fmt(tIn-tOut):'لا توجد حركات');
+  tb.innerHTML=rows.length?rows.map(function(r){
+    return '<tr>'
+      +'<td><b>'+fmtD(r.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(r.time||'')+'</span></td>'
+      +'<td><span class="code-badge">'+padCode(r.code)+'</span></td>'
+      +'<td><span class="wbadge">'+(r.wname||'—')+'</span></td>'
+      +'<td><span class="badge '+(r.type==='in'?'b-in':'b-out')+'">'+(r.type==='in'?'↙ دخل':'↗ خرج')+'</span></td>'
+      +'<td class="'+(r.type==='in'?'v-in':'v-out')+'"><b>'+fmt(r.amount)+'</b></td>'
+      +'<td style="color:var(--navy);font-weight:700">'+(r.direct?'<span style="color:var(--teal)">⚡ مباشر</span>':(r.cname||'—'))+'</td>'
+      +'<td style="color:var(--g3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.note||'—')+'</td>'
       +'</tr>';}).join('')
-    :'<tr class="empty-row"><td colspan="5">لا توجد عمليات</td></tr>';
-  $id('wOpsBox').style.display='block';
-  $id('wOpsBox').scrollIntoView({behavior:'smooth'});
+    :'<tr class="empty-row"><td colspan="7">لا توجد حركات مطابقة</td></tr>';
 }
 function openEditWallet(wid){
   var w=GW.find(function(x){return x.id===wid;});if(!w)return;
@@ -2506,9 +2586,10 @@ function buildPdfHtml(c,ops){
     +'<div class="pdf-kpi"><div class="l">إجمالي الدخول</div><div class="v" style="color:#15803D">+'+fmt(tIn)+'</div></div>'
     +'<div class="pdf-kpi"><div class="l">إجمالي الخروج</div><div class="v" style="color:#DC2626">-'+fmt(tOut)+'</div></div>'
     +'<div class="pdf-kpi"><div class="l">الرصيد</div><div class="v" style="color:'+(net>=0?'#15803D':'#DC2626')+'">'+fmt(net)+'</div></div></div>'
-    +'<table><thead><tr><th>التاريخ</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th></tr></thead>'
+    +'<table><thead><tr><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th></tr></thead>'
     +'<tbody>'+( ops.length ? ops.map(function(o){
       return '<tr><td>'+o.date+' '+(o.time||'')+'</td>'
+        +'<td style="font-weight:800;direction:ltr">'+padCode(o.code)+'</td>'
         +'<td style="color:'+(o.type==='in'?'#15803D':'#DC2626')+';font-weight:800">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</td>'
         +'<td style="font-weight:900;color:'+(o.type==='in'?'#15803D':'#DC2626')+'">'
           +fmt(o.amount)+(o.commission&&o.commission>0?' <span style="font-size:.7em;color:#D97706">(+'+o.commission.toFixed(2)+')</span>':'')
@@ -2517,7 +2598,7 @@ function buildPdfHtml(c,ops){
         +'<td>'+(o.phone||'—')+'</td>'
         +'<td>'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</td>'
         +'<td>'+(o.note||'')+'</td></tr>';}).join('')
-      : '<tr><td colspan="7" style="text-align:center;color:#94A3B8;padding:1.5rem">لا توجد عمليات</td></tr>' )
+      : '<tr><td colspan="8" style="text-align:center;color:#94A3B8;padding:1.5rem">لا توجد عمليات</td></tr>' )
     +'</tbody></table>'
     +'<div class="pf">مكتب المختار للصيرفة — '+ops.length+' عملية — '+dateStr(new Date())+'</div>';
 }
