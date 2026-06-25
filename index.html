@@ -707,6 +707,12 @@ tbody tr:last-child td{border-bottom:none}
 </head>
 <body>
 
+<!-- ═══ UPDATE BANNER ═══ -->
+<div id="updateBanner" style="display:none;position:fixed;top:0;left:0;right:0;z-index:99999;background:#0B1F3A;color:#fff;padding:.7rem 1rem;align-items:center;justify-content:center;gap:1rem;font-weight:700;font-size:.85rem;box-shadow:0 2px 14px rgba(0,0,0,.35)">
+  <span>🔄 في نسخة جديدة متوفرة</span>
+  <button onclick="doUpdate()" style="background:#10B981;color:#fff;border:none;padding:.45rem 1.1rem;border-radius:8px;font-weight:800;cursor:pointer;font-family:inherit;font-size:.82rem">حدّث الآن</button>
+</div>
+
 <!-- ═══ LOGIN ═══ -->
 <div id="loginWrap">
   <div class="lbox">
@@ -724,7 +730,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.3 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.6 • مزامنة لايف ✓</div>
   </div>
 </div>
 
@@ -747,7 +753,14 @@ tbody tr:last-child td{border-bottom:none}
       <button class="btn-add-c" onclick="openModal('mAddC')">+ إضافة</button>
     </div>
     <div class="clist" id="cList"></div>
-    <div class="sb-foot"><button class="btn-logout" onclick="doLogout()">⏏ تسجيل الخروج</button></div>
+    <div class="sb-foot">
+      <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
+        <button onclick="exportBackup()" style="flex:1;padding:.6rem .4rem;border:none;border-radius:10px;background:rgba(16,185,129,.15);color:#34D399;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">💾 نسخة احتياطية</button>
+        <button onclick="document.getElementById('importFile').click()" style="flex:1;padding:.6rem .4rem;border:none;border-radius:10px;background:rgba(59,130,246,.15);color:#60A5FA;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">📥 استرجاع</button>
+      </div>
+      <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackupFile(this)"/>
+      <button class="btn-logout" onclick="doLogout()">⏏ تسجيل الخروج</button>
+    </div>
   </aside>
 
   <div class="main">
@@ -766,6 +779,7 @@ tbody tr:last-child td{border-bottom:none}
         <button class="tabb" onclick="goTab('recon')">🧮 مطابقة</button>
         <button class="tabb" onclick="goTab('pdf')">🖨️ PDF</button>
       </div>
+      <div id="syncBadge" onclick="manualSync()" title="حالة المزامنة — اضغط للمزامنة اليدوية" style="white-space:nowrap;padding:.35rem .7rem;border-radius:999px;font-size:.72rem;font-weight:800;cursor:pointer;background:rgba(148,163,184,.15);color:#94A3B8;flex-shrink:0">—</div>
     </div>
 
     <div class="content">
@@ -1262,8 +1276,11 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 5.3 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 5.6 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
+var _metaDoc=null;
+var APP_BUILD=56;
+var lastSync=0;
 try{
   // Firebase تم تحميله عبر CDN في رأس الصفحة
   firebase.initializeApp({
@@ -1275,18 +1292,26 @@ try{
     appId:'1:84012838970:web:17fb858604520c88704503'
   });
   var db=firebase.firestore();
-  // إعداد للتوافق مع شبكات الموبايل — بعض الشبكات بتكسر الاتصال الافتراضي (WebChannel)
-  try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(e){ console.warn('fs settings:',e); }
-  // تفعيل الحفظ المحلي offline — معزول تماماً حتى لو فشل عالموبايل ما يكسر المزامنة
+  // إعداد الموبايل + الحفظ المحلي offline بالطريقة الجديدة (بدون تحذير deprecation)
   try{
-    db.enablePersistence({synchronizeTabs:true}).catch(function(e){
-      console.warn('persistence off:', e&&e.code);
+    db.settings({
+      experimentalAutoDetectLongPolling:true,
+      cache: firebase.firestore.persistentLocalCache({tabManager: firebase.firestore.persistentMultipleTabManager()}),
+      merge:true
     });
-  }catch(e){ console.warn('persistence threw:', e); }
+  }catch(e){
+    console.warn('cache settings فشل — fallback:', e);
+    try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(_){}
+  }
   // مهم: نعيّن المرجع دائماً حتى لو فشل أي شي فوق — المزامنة لازم تشتغل
   _fbDoc=db.collection('makhtar').doc('v4');
+  _metaDoc=db.collection('makhtar').doc('meta');
   console.log('🔥 Firebase: متصل — المزامنة جاهزة');
 }catch(e){console.warn('🔥 Firebase N/A — offline mode',e);}
+
+// مؤشر المزامنة يتفاعل مع حالة شبكة الجهاز
+window.addEventListener('online', function(){ setSyncUI('syncing'); if(_fbDoc)manualSync(); });
+window.addEventListener('offline', function(){ setSyncUI('offline'); });
 
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -1359,10 +1384,37 @@ function loadLocal(){
   try{var g=localStorage.getItem('makhtar_gw');if(g)GW=JSON.parse(g);}catch(e){GW=[];}
   try{var p=localStorage.getItem('makhtar_pr');if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
 }
+// تطبيق بيانات الكلاود على الحالة المحلية (يُستخدم من المستمع ومن المزامنة اليدوية)
+function applyCloudData(d){
+  if(!d)return false;
+  var newData=(d.data!=null?d.data:'[]');
+  var newGw=(d.gw!=null?d.gw:'[]');
+  var newPr=(d.pr!=null?d.pr:'{}');
+  var curData=localStorage.getItem('makhtar_v4')||'[]';
+  var curGw=localStorage.getItem('makhtar_gw')||'[]';
+  var curPr=localStorage.getItem('makhtar_pr')||'{}';
+  if(newData===curData&&newGw===curGw&&newPr===curPr)return false; // نفس البيانات
+  DB=JSON.parse(newData);
+  GW=JSON.parse(newGw);
+  PROFITS=JSON.parse(newPr);
+  localStorage.setItem('makhtar_v4',newData);
+  localStorage.setItem('makhtar_gw',newGw);
+  localStorage.setItem('makhtar_pr',newPr);
+  if(d.updatedAt){try{localStorage.setItem('makhtar_ts',d.updatedAt);}catch(e){}}
+  ensureOpCodes(false);
+  migrateWalletApplied(false);
+  buildSidebar();
+  if(DB.length&&!activeId)pickClient(DB[0].id);
+  else if(activeId)refreshActiveView();
+  renderWallets();
+  updatePendDot();
+  return true;
+}
 function loadCloud(){
-  if(!_fbDoc){console.warn('⚠️ المزامنة معطّلة — Firebase مش متصل');return;}
+  if(!_fbDoc){console.warn('⚠️ المزامنة معطّلة — Firebase مش متصل');setSyncUI('offline');return;}
   try{
     console.log('☁️ المزامنة: تم تفعيل المستمع (listener)');
+    setSyncUI('syncing');
     // onSnapshot = مزامنة فورية — يتحدث تلقائياً على كل الأجهزة
     _fbDoc.onSnapshot(function(snap){
       if(!snap||!snap.exists||!snap.data())return;
@@ -1370,35 +1422,51 @@ function loadCloud(){
         var d=snap.data();
         var fromCache=snap.metadata&&snap.metadata.fromCache;
         var pending=snap.metadata&&snap.metadata.hasPendingWrites;
-        // قارن المحتوى الفعلي بدل وقت الجهاز (الساعات بتختلف بين الأجهزة)
-        var newData=(d.data!=null?d.data:'[]');
-        var newGw=(d.gw!=null?d.gw:'[]');
-        var newPr=(d.pr!=null?d.pr:'{}');
-        var curData=localStorage.getItem('makhtar_v4')||'[]';
-        var curGw=localStorage.getItem('makhtar_gw')||'[]';
-        var curPr=localStorage.getItem('makhtar_pr')||'{}';
-        console.log('☁️ snapshot وصل',{fromCache:fromCache,pending:pending,changed:(newData!==curData||newGw!==curGw||newPr!==curPr)});
-        // نفس البيانات (أو صدى كتابتنا) → لا تعمل شي
-        if(newData===curData&&newGw===curGw&&newPr===curPr)return;
-        DB=JSON.parse(newData);
-        GW=JSON.parse(newGw);
-        PROFITS=JSON.parse(newPr);
-        localStorage.setItem('makhtar_v4',newData);
-        localStorage.setItem('makhtar_gw',newGw);
-        localStorage.setItem('makhtar_pr',newPr);
-        if(d.updatedAt){try{localStorage.setItem('makhtar_ts',d.updatedAt);}catch(e){}}
-        ensureOpCodes(false);
-        migrateWalletApplied(false);
-        buildSidebar();
-        if(DB.length&&!activeId)pickClient(DB[0].id);
-        else if(activeId)refreshActiveView();
-        renderWallets();
-        updatePendDot();
-        console.log('✅ المزامنة: تم تطبيق تحديث وارد ورسم الشاشة');
+        // حدّث مؤشر الحالة
+        if(pending)setSyncUI('syncing');
+        else if(!fromCache){setSyncUI('online');lastSync=Date.now();}
+        else setSyncUI(navigator.onLine?'online':'offline');
+        var changed=applyCloudData(d);
+        if(changed)console.log('✅ المزامنة: تم تطبيق تحديث وارد ورسم الشاشة');
       }catch(e){console.warn('snapshot parse error',e);}
-    },function(e){console.warn('❌ onSnapshot error',e);});
-  }catch(e){console.warn('cloud load failed',e);}
+    },function(e){console.warn('❌ onSnapshot error',e);setSyncUI(navigator.onLine?'online':'offline');});
+    watchVersion();
+  }catch(e){console.warn('cloud load failed',e);setSyncUI(navigator.onLine?'online':'offline');}
 }
+// ── مؤشر حالة المزامنة ──
+function setSyncUI(state){
+  var el=$id('syncBadge');if(!el)return;
+  var m={
+    online:['#10B981','rgba(16,185,129,.15)','🟢 متزامن'],
+    syncing:['#F59E0B','rgba(245,158,11,.15)','🟡 يزامن'],
+    offline:['#EF4444','rgba(239,68,68,.15)','🔴 غير متصل']
+  }[state]||['#94A3B8','rgba(148,163,184,.15)','—'];
+  el.style.color=m[0];el.style.background=m[1];el.textContent=m[2];
+}
+// ── مزامنة يدوية (اضغط المؤشر) ──
+function manualSync(){
+  if(!_fbDoc){toast('Firebase مش متصل','err');return;}
+  setSyncUI('syncing');
+  _fbDoc.get().then(function(snap){
+    var changed=false;
+    if(snap&&snap.exists)changed=applyCloudData(snap.data());
+    toast(changed?'تم تحديث البيانات ✓':'كل شي محدّث ✓','ok');
+    setSyncUI(navigator.onLine?'online':'offline');
+  }).catch(function(e){console.warn('manual sync err',e);toast('فشل المزامنة','err');setSyncUI(navigator.onLine?'online':'offline');});
+}
+// ── فحص التحديثات (نسخة جديدة) — يستعمل وثيقة منفصلة حتى لا يتداخل مع بيانات المزامنة ──
+function watchVersion(){
+  if(!_metaDoc)return;
+  try{
+    _metaDoc.onSnapshot(function(snap){
+      var b=(snap&&snap.exists&&snap.data()&&snap.data().build)||0;
+      if(APP_BUILD>b){ try{_metaDoc.set({build:APP_BUILD,at:Date.now()},{merge:true}).catch(function(){});}catch(e){} }
+      else if(APP_BUILD<b){ showUpdateBanner(); }
+    },function(){});
+  }catch(e){console.warn('watchVersion err',e);}
+}
+function showUpdateBanner(){ var el=$id('updateBanner'); if(el)el.style.display='flex'; }
+function doUpdate(){ location.replace(location.pathname+'?v='+Date.now()); }
 
 // ══════════════════════════════════════════════════════
 //  OP CODES — كود تسلسلي لكل عملية
@@ -1576,6 +1644,52 @@ function doLogout(){
   var lu=$id('lu');if(lu)lu.value='';
   var lp=$id('lp');if(lp)lp.value='';
   activeId=null;
+}
+
+// ══════════════════════════════════════════════════════
+//  النسخ الاحتياطي — تصدير/استيراد كل البيانات
+// ══════════════════════════════════════════════════════
+function exportBackup(){
+  try{
+    var payload={app:'makhtar',version:'5.6',exportedAt:new Date().toISOString(),
+      data:DB, gw:GW, pr:PROFITS};
+    var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a');
+    a.href=url; a.download='makhtar-backup-'+dateStr(new Date())+'.json';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){try{document.body.removeChild(a);}catch(e){} URL.revokeObjectURL(url);},120);
+    toast('تم تنزيل النسخة الاحتياطية ✓','ok');
+  }catch(e){console.warn('export error',e);toast('فشل التصدير','err');}
+}
+function importBackupFile(input){
+  var f=input&&input.files&&input.files[0];
+  if(!f){return;}
+  var r=new FileReader();
+  r.onload=function(ev){
+    var obj;
+    try{obj=JSON.parse(ev.target.result);}catch(e){toast('الملف غير صالح (JSON)','err');return;}
+    if(!obj||!Array.isArray(obj.data)){toast('الملف لا يحتوي بيانات صالحة','err');return;}
+    var nC=obj.data.length, nW=Array.isArray(obj.gw)?obj.gw.length:0;
+    confirm2('استرجاع نسخة احتياطية',
+      'سيتم استبدال كل البيانات الحالية بـ '+nC+' عميل و '+nW+' محفظة من الملف، ومزامنتها على كل الأجهزة. متأكد؟',
+      function(){
+        DB=obj.data||[];
+        GW=Array.isArray(obj.gw)?obj.gw:[];
+        PROFITS=(obj.pr&&typeof obj.pr==='object')?obj.pr:{total:0,daily:0,monthly:0,log:[]};
+        ensureOpCodes(true);
+        migrateWalletApplied(true);
+        save();
+        activeId=null;
+        buildSidebar();
+        if(DB.length)pickClient(DB[0].id);
+        renderWallets(); updatePendDot();
+        toast('تم استرجاع النسخة الاحتياطية ✓','ok');
+      });
+  };
+  r.onerror=function(){toast('فشل قراءة الملف','err');};
+  r.readAsText(f);
+  input.value='';
 }
 
 // ══════════════════════════════════════════════════════
