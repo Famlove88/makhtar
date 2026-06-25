@@ -1270,14 +1270,16 @@ try{
     appId:'1:84012838970:web:17fb858604520c88704503'
   });
   var db=firebase.firestore();
-  // تفعيل الحفظ المحلي التلقائي (offline persistence)
-  db.enablePersistence({synchronizeTabs:true}).catch(function(e){
-    if(e.code==='failed-precondition'){
-      // أكثر من تبويب مفتوح — يعمل بدون persistence
-    } else if(e.code==='unimplemented'){
-      // المتصفح لا يدعم persistence
-    }
-  });
+  // الحفظ المحلي offline — الطريقة الجديدة (تشيل تحذير الـ deprecation تبع enablePersistence)
+  try{
+    var _cache=firebase.firestore.persistentLocalCache({
+      tabManager:firebase.firestore.persistentMultipleTabManager()
+    });
+    db.settings({cache:_cache,localCache:_cache});
+  }catch(e){
+    // نسخة/متصفح قديم لا يدعم الـ cache الجديد — رجوع للطريقة القديمة (بتشتغل بس بتطلع تحذير)
+    try{db.enablePersistence({synchronizeTabs:true});}catch(_){}
+  }
   _fbDoc=db.collection('makhtar').doc('v4');
 }catch(e){console.warn('Firebase N/A — offline mode');}
 
