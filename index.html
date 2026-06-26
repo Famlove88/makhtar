@@ -730,7 +730,7 @@ tbody tr:last-child td{border-bottom:none}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.6 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 5.7 • مزامنة لايف ✓</div>
   </div>
 </div>
 
@@ -1276,10 +1276,10 @@ tbody tr:last-child td{border-bottom:none}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 5.6 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 5.7 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
 var _metaDoc=null;
-var APP_BUILD=56;
+var APP_BUILD=57;
 var lastSync=0;
 try{
   // Firebase تم تحميله عبر CDN في رأس الصفحة
@@ -1471,7 +1471,15 @@ function doUpdate(){ location.replace(location.pathname+'?v='+Date.now()); }
 // ══════════════════════════════════════════════════════
 //  OP CODES — كود تسلسلي لكل عملية
 // ══════════════════════════════════════════════════════
-function padCode(n){ return n ? '#'+String(n).padStart(4,'0') : '—'; }
+function padCode(n){
+  if(n==null||isNaN(n)||n<=0)return '—';
+  // تحويل الرقم التسلسلي لكود من 5 أحرف فريد (مبعثر بس مضمون لا يتكرر) — نفسه على كل الأجهزة
+  var BASE=26, LEN=5, SPACE=11881376; // 26^5
+  var x=((Math.floor(n)%SPACE)*1000003 + 7)%SPACE; // خريطة عكسية (bijective) → كل رقم له كود فريد
+  var s='';
+  for(var i=0;i<LEN;i++){ s=String.fromCharCode(65+(x%BASE))+s; x=Math.floor(x/BASE); }
+  return '#'+s;
+}
 function maxOpCode(){
   var max=0;
   DB.forEach(function(c){(c.ops||[]).forEach(function(o){ if(o.code&&o.code>max)max=o.code; });});
@@ -1651,7 +1659,7 @@ function doLogout(){
 // ══════════════════════════════════════════════════════
 function exportBackup(){
   try{
-    var payload={app:'makhtar',version:'5.6',exportedAt:new Date().toISOString(),
+    var payload={app:'makhtar',version:'5.7',exportedAt:new Date().toISOString(),
       data:DB, gw:GW, pr:PROFITS};
     var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
