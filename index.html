@@ -752,7 +752,7 @@ body.role-cashier .mgr-only{display:none !important;}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 7.3 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 7.5 • مزامنة آمنة + حارس نسخة ✓</div>
   </div>
 </div>
 
@@ -782,6 +782,9 @@ body.role-cashier .mgr-only{display:none !important;}
         <button onclick="document.getElementById('importFile').click()" style="flex:1;padding:.6rem .4rem;border:none;border-radius:10px;background:rgba(59,130,246,.15);color:#60A5FA;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">📥 استرجاع</button>
       </div>
       <button onclick="openBackup()" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(168,85,247,.15);color:#C084FC;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🕐 النسخ التلقائية</button>
+      <button onclick="openAudit()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(99,102,241,.15);color:#818CF8;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">📜 سجل التدقيق</button>
+      <button onclick="recomputeNow()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(245,158,11,.15);color:#D97706;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">♻️ إعادة حساب الأرصدة</button>
+      <button onclick="openTrash()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(239,68,68,.13);color:#EF4444;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🗑️ سلة المحذوفات</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackupFile(this)"/>
       <button onclick="openUsers()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(13,148,136,.15);color:#14B8A6;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">👥 إدارة المستخدمين</button>
       <button class="btn-logout" onclick="doLogout()">⏏ تسجيل الخروج</button>
@@ -1323,6 +1326,29 @@ body.role-cashier .mgr-only{display:none !important;}
   </div>
 </div>
 
+<!-- AUDIT LOG -->
+<div class="overlay" id="mAudit">
+  <div class="modal" style="max-width:540px">
+    <div class="modal-hd"><h3>📜 سجل التدقيق</h3><button class="modal-x" onclick="closeModal('mAudit')">✕</button></div>
+    <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.6rem;line-height:1.6">كل إضافة / تعديل / حذف / تأكيد — مين عملها وإيمتى. آخر ٥٠٠ حركة (متزامنة على كل الأجهزة).</div>
+    <div style="display:flex;gap:.4rem;margin-bottom:.55rem">
+      <input id="auditSearch" oninput="renderAudit()" placeholder="🔍 بحث (مستخدم / عميل / نوع)" style="flex:1;padding:.55rem .8rem;border:1px solid #E2E8F0;border-radius:9px;font-family:inherit;font-size:.82rem;outline:none"/>
+      <button onclick="loadAudit()" title="تحديث" style="padding:.5rem .7rem;border:none;border-radius:9px;background:rgba(59,130,246,.12);color:#2563EB;font-weight:700;cursor:pointer;font-family:inherit">🔄</button>
+    </div>
+    <button onclick="exportAudit()" style="width:100%;padding:.5rem;border:none;border-radius:9px;background:rgba(16,185,129,.15);color:#0B7A4B;font-weight:700;font-size:.76rem;cursor:pointer;font-family:inherit;margin-bottom:.6rem">💾 تصدير CSV (آخر ٣٠٠٠ حركة)</button>
+    <div id="auditList" style="max-height:54vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- TRASH -->
+<div class="overlay" id="mTrash">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-hd"><h3>🗑️ سلة المحذوفات</h3><button class="modal-x" onclick="closeModal('mTrash')">✕</button></div>
+    <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.7rem;line-height:1.6">العملاء المحذوفين محفوظين هون مع كل عملياتهم — ما بينحذفوا نهائياً، فيك ترجّع أي واحد.</div>
+    <div id="trashList" style="max-height:58vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- PDF PREVIEW -->
 <div id="pdfPreview">
   <div class="pdf-frame">
@@ -1356,14 +1382,17 @@ body.role-cashier .mgr-only{display:none !important;}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 7.3 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 7.5 (دمج آمن + حارس نسخة + استيراد آمن) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
 var _metaDoc=null;
-var _clCol=null, _wlCol=null, _prDoc=null, _mkCol=null, _usersDoc=null;
+var _clCol=null, _wlCol=null, _prDoc=null, _mkCol=null, _usersDoc=null, _auditCol=null;
 var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
+var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=73;
+var APP_BUILD=79;
+var MIN_BUILD=75;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
+var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
 try{
@@ -1378,7 +1407,7 @@ try{
   });
   var db=firebase.firestore();
   // إعداد للتوافق مع شبكات الموبايل
-  try{ db.settings({experimentalAutoDetectLongPolling:true, merge:true}); }catch(e){ console.warn('fs settings:',e); }
+  try{ db.settings({experimentalAutoDetectLongPolling:true}); }catch(e){ console.warn('fs settings:',e); }
   // حفظ محلي offline (الطريقة المدعومة بالـ compat SDK) — معزول حتى لا يكسر شي
   try{
     db.enablePersistence({synchronizeTabs:true}).catch(function(e){ console.warn('persistence off:', e&&e.code); });
@@ -1389,6 +1418,7 @@ try{
   _mkCol=db.collection('makhtar');                   // نفس المجموعة الموجودة — العملاء cl_ والمحافظ wl_
   _prDoc=db.collection('makhtar').doc('profits');    // الأرباح
   _usersDoc=db.collection('makhtar').doc('users');   // المستخدمون وصلاحياتهم
+  _auditCol=db.collection('makhtar_audit');          // سجل التدقيق — مجموعة منفصلة، append-only
   console.log('🔥 Firebase: متصل — المزامنة جاهزة');
 }catch(e){console.warn('🔥 Firebase N/A — offline mode',e);}
 
@@ -1461,11 +1491,12 @@ setInterval(tickClock,1000); tickClock();
 // ── شريط المحافظ بالأعلى ──
 function renderWStrip(){
   var box=$id('wStrip'); if(!box)return;
-  if(!GW || !GW.length){ box.style.display='none'; return; }
+  var WS=activeWallets();
+  if(!WS.length){ box.style.display='none'; return; }
   box.style.display='flex';
   var h='';
-  GW.forEach(function(w){
-    h+='<div class="wchip" onclick="goTab(\'wallets\')"><div class="wchip-name">'+(w.name||'محفظة')+'</div><div class="wchip-bal '+((w.balance||0)>=0?'':'v-out')+'">'+fmt(w.balance||0)+'</div></div>';
+  WS.forEach(function(w){
+    h+='<div class="wchip" onclick="goTab(\'wallets\')"><div class="wchip-name">'+esc(w.name||'محفظة')+'</div><div class="wchip-bal '+((w.balance||0)>=0?'':'v-out')+'">'+fmt(w.balance||0)+'</div></div>';
   });
   h+='<div class="wchip wchip-add" onclick="goTab(\'wallets\')"><span style="font-size:1.05rem;line-height:1">＋</span><span class="wchip-name">إيداع/سحب</span></div>';
   box.innerHTML=h;
@@ -1489,7 +1520,12 @@ function $id(id){return document.getElementById(id);}
 function $v(id){var e=$id(id);return e?e.value:'';}
 function $set(id,v){var e=$id(id);if(e)e.textContent=v;}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6);}
+// تأمين ضد XSS: يهرّب رموز HTML من مدخلات المستخدم قبل حقنها بالـ innerHTML
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(ch){return ch==='&'?'&amp;':ch==='<'?'&lt;':ch==='>'?'&gt;':ch==='"'?'&quot;':'&#39;';});}
 function client(){return DB.find(function(c){return c.id===activeId;})||null;}
+function activeClients(){ return DB.filter(function(c){return !c.deleted;}); }   // العملاء غير المحذوفين
+function firstActiveId(){ for(var _i=0;_i<DB.length;_i++){ if(!DB[_i].deleted)return DB[_i].id; } return null; }
+function activeWallets(){ return GW.filter(function(w){return !w.deleted;}); }   // المحافظ غير المحذوفة
 function dateStr(d){return d.toISOString().slice(0,10);}
 function nowTime(){return new Date().toTimeString().slice(0,5);}
 function fmt(n){
@@ -1538,6 +1574,8 @@ function save(){
 // رفع التغييرات بشكل granular — كل عميل/محفظة لحالو، فما في تضارب بين المستخدمين
 function pushChanges(){
   if(!_mkCol)return;
+  if(_blocked){ console.log('🛑 نسخة قديمة — الكتابة ممنوعة'); return; } // حارس النسخة
+  if(!_syncReady){ console.log('⏸️ المزامنة: ننتظر سحب الأحدث قبل الرفع'); return; } // حماية ضد الدوس
   setSyncUI('syncing');
   var n=0, ids={}, wids={}, writes=[], wKeys=[];
   function addW(key,p){ writes.push(p); wKeys.push(key); }
@@ -1608,21 +1646,99 @@ function loadLocal(){
 }
 // ── أدوات تحديث الحالة المحلية حسب الـ id (granular) ──
 function clientExists(id){ return DB.some(function(c){return c.id===id;}); }
-function upsertClientLocal(c){
-  if(!c||!c.id)return;
-  var i=-1; for(var k=0;k<DB.length;k++){ if(DB[k].id===c.id){i=k;break;} }
-  if(i>=0)DB[i]=c; else DB.push(c);
+// ══════════════════════════════════════════════════════
+//  دمج آمن (UNION) — لا تُفقد أي عملية أبداً، حتى مع عدة مستخدمين بنفس الوقت
+// ══════════════════════════════════════════════════════
+function _opsUnion(localOps, remoteOps, delMap){
+  var byId={};
+  (remoteOps||[]).forEach(function(o){ if(o&&o.id) byId[o.id]=o; });
+  (localOps||[]).forEach(function(o){ if(o&&o.id){ var ex=byId[o.id]; if(!ex || (o.updatedAt||0)>=(ex.updatedAt||0)) byId[o.id]=o; } });
+  if(delMap) Object.keys(delMap).forEach(function(id){ delete byId[id]; });
+  var out=[]; for(var k in byId){ if(byId.hasOwnProperty(k)) out.push(byId[k]); }
+  return out;
+}
+function _delUnion(a,b){
+  var m={};
+  (a||[]).forEach(function(d){ if(d&&d.id) m[d.id]=Math.max(m[d.id]||0,d.t||0); });
+  (b||[]).forEach(function(d){ if(d&&d.id) m[d.id]=Math.max(m[d.id]||0,d.t||0); });
+  return m;
+}
+function _delArr(m){ var o=[]; for(var id in m){ if(m.hasOwnProperty(id)) o.push({id:id,t:m[id]}); } return o; }
+function _reconUnion(a,b){
+  var seen={}, out=[];
+  (a||[]).concat(b||[]).forEach(function(r){ if(!r)return; var k=(r.id||JSON.stringify(r)); if(!seen[k]){seen[k]=1;out.push(r);} });
+  return out;
+}
+function _histKey(h){ return h.oid || ('d_'+(h.code||'?')+'_'+(h.date||'')+'_'+(h.time||'')+'_'+(h.amount||'')); }
+function _histUnion(localH, remoteH){
+  var byK={};
+  (remoteH||[]).forEach(function(h){ if(h) byK[_histKey(h)]=h; });
+  (localH||[]).forEach(function(h){ if(h){ var k=_histKey(h); if(!byK[k]) byK[k]=h; } });
+  var out=[]; for(var k in byK){ if(byK.hasOwnProperty(k)) out.push(byK[k]); }
+  return out;
+}
+// دمج عميل وارد من السحابة مع المحلي — اتحاد العمليات
+function upsertClientLocal(rc){
+  if(!rc||!rc.id)return;
+  var i=-1; for(var k=0;k<DB.length;k++){ if(DB[k].id===rc.id){i=k;break;} }
+  if(i<0){ DB.push(rc); return; }
+  var lc=DB[i];
+  var delM=_delUnion(lc.delOps, rc.delOps);
+  var meta=((lc.metaAt||0)>=(rc.metaAt||0))?lc:rc;
+  var delState=((lc.delRev||0)>=(rc.delRev||0))?lc:rc;   // حالة الحذف تُحسم بـ delRev (مستقلة عن metaAt) — تمنع رجوع المحذوف بعد تعديل متزامن
+  DB[i]={
+    id:rc.id, name:meta.name, sub:meta.sub, color:meta.color,
+    rollover:meta.rollover, rolloverLbp:meta.rolloverLbp,
+    accounts:meta.accounts, metaAt:Math.max(lc.metaAt||0,rc.metaAt||0),
+    deleted:delState.deleted||false, deletedAt:delState.deletedAt||0, deletedBy:delState.deletedBy||'', delRev:Math.max(lc.delRev||0, rc.delRev||0),
+    reconciliations:_reconUnion(lc.reconciliations, rc.reconciliations),
+    ops:_opsUnion(lc.ops, rc.ops, delM),
+    delOps:_delArr(delM)
+  };
 }
 function removeClientLocal(id){ DB=DB.filter(function(c){return c.id!==id;}); }
-function upsertWalletLocal(w){
-  if(!w||!w.id)return;
-  var i=-1; for(var k=0;k<GW.length;k++){ if(GW[k].id===w.id){i=k;break;} }
-  if(i>=0)GW[i]=w; else GW.push(w);
+// دمج محفظة واردة — اتحاد السجل (hist)، والرصيد يُعاد حسابه من السجل
+function upsertWalletLocal(rw){
+  if(!rw||!rw.id)return;
+  var i=-1; for(var k=0;k<GW.length;k++){ if(GW[k].id===rw.id){i=k;break;} }
+  if(i<0){ recomputeWalletFromHist(rw); GW.push(rw); return; }
+  var lw=GW[i];
+  var meta=((lw.metaAt||0)>=(rw.metaAt||0))?lw:rw;
+  var delState=((lw.delRev||0)>=(rw.delRev||0))?lw:rw;   // حالة الحذف بـ delRev — تمنع رجوع المحفظة المحذوفة
+  var merged={ id:rw.id, name:meta.name, desc:meta.desc, created:meta.created||lw.created||rw.created,
+    metaAt:Math.max(lw.metaAt||0,rw.metaAt||0),
+    deleted:delState.deleted||false, deletedAt:delState.deletedAt||0, deletedBy:delState.deletedBy||'', delRev:Math.max(lw.delRev||0, rw.delRev||0),
+    hist:_histUnion(lw.hist, rw.hist) };
+  recomputeWalletFromHist(merged);
+  GW[i]=merged;
+}
+// إعادة حساب رصيد المحفظة من السجل (مصدر الحقيقة)
+function recomputeWalletFromHist(w){
+  var bal=0,tin=0,tout=0,tcom=0;
+  (w.hist||[]).forEach(function(h){
+    if(h.type==='in'){ bal+=(h.amount||0); tin+=(h.amount||0); }
+    else { bal-=(h.amount||0); tout+=(h.amount||0); }
+    if(h.direct){ tcom+=COMMISSION; }   // العمولة فقط من العمليات المباشرة
+  });
+  w.balance=bal; w.totalIn=tin; w.totalOut=tout; w.totalCommission=tcom;
+}
+// إعادة حساب الأرباح من العمليات (مصدر الحقيقة) — عمولة كل عملية خروج بمحفظة
+function recomputeProfitsFromOps(){
+  PROFITS={total:0,daily:{},monthly:{},log:[]};
+  DB.forEach(function(c){ if(c.deleted)return; (c.ops||[]).forEach(function(o){
+    if(o.type==='out' && o.walletId){ addProfit(COMMISSION, o.date, 'عمولة خروج'); }
+  }); });
+}
+// يُعاد حساب كل المشتقات بعد أي دمج/تحميل
+function recomputeAllDerived(){
+  GW.forEach(function(w){ recomputeWalletFromHist(w); });
+  recomputeProfitsFromOps();
 }
 function removeWalletLocal(id){ GW=GW.filter(function(w){return w.id!==id;}); }
 // بعد وصول تغيير من جهاز تاني — أعد الرسم
 function afterRemoteChange(){
   ensureOpCodes(false); migrateWalletApplied(false);
+  recomputeAllDerived();   // الأرصدة والأرباح من مصدر الحقيقة بعد الدمج
   buildSidebar();
   if(DB.length&&!activeId)pickClient(DB[0].id);
   else if(activeId&&!clientExists(activeId)){ activeId=null; showView('vWelcome'); }
@@ -1636,10 +1752,13 @@ function loadCloud(){
   migrateToGranular(function(){
     // اسحب الأحدث فوراً (موثوق) — يحل "لازم أكبس مزامنة بعد الـ refresh"
     pullAll(function(){
-      startGranularListeners(); // بعدها المستمع للتحديثات الحية
+      recomputeAllDerived();    // أرصدة وأرباح صحيحة بعد سحب الأحدث
+      _syncReady=true;          // صار آمن نرفع — معنا آخر نسخة
+      pushChanges();            // ارفع أي تغييرات محلية (اتحاد — ما بيدوس على شي)
+      startGranularListeners(); // المستمع للتحديثات الحية
       startHeartbeat();         // نبضة احتياطية تضمن المزامنة التلقائية
       watchVersion();
-      setTimeout(function(){ try{autoSnapshot('بدء التشغيل'); persistLocal();}catch(e){} }, 2500); // نسخة احتياطية + ضغط التخزين المحلي بعد التحميل
+      setTimeout(function(){ try{autoSnapshot('بدء التشغيل'); persistLocal();}catch(e){} }, 2500);
     });
   });
 }
@@ -1653,8 +1772,7 @@ function applyCollectionSnap(snap){
     if(did.indexOf('cl_')===0){ var cid=did.slice(3); ids[cid]=1; var cj=doc.data().j; if(cj&&_syncCl[cid]!==cj){_syncCl[cid]=cj;try{upsertClientLocal(JSON.parse(cj));changed=true;}catch(e){}} return; }
     if(did.indexOf('wl_')===0){ var wid=did.slice(3); wids[wid]=1; var wj=doc.data().j; if(wj&&_syncWl[wid]!==wj){_syncWl[wid]=wj;try{upsertWalletLocal(JSON.parse(wj));changed=true;}catch(e){}} return; }
   });
-  Object.keys(_syncCl).forEach(function(id){ if(!ids[id]){removeClientLocal(id);delete _syncCl[id];changed=true;} });
-  Object.keys(_syncWl).forEach(function(id){ if(!wids[id]){removeWalletLocal(id);delete _syncWl[id];changed=true;} });
+  // أمان: السحب لا يحذف أبداً (اتحاد فقط). الحذف يتم فقط عبر حدث حذف صريح من المستمع.
   if(changed){persistLocal();afterRemoteChange();}
   return changed;
 }
@@ -1675,6 +1793,7 @@ function startHeartbeat(){
     _metaDoc.get().then(function(s){
       if(!s.exists)return; var d=s.data()||{};
       var b=d.build||0; if(b>APP_BUILD) showUpdateBanner();
+      if(d.minBuild){ _cloudMinBuild=d.minBuild; enforceVersionGuard(); }
       var r=d.rev||0;
       if(r && r!==_lastRev){ _lastRev=r; if(r!==_myRev){ console.log('💓 نبضة: تغيير وارد — سحب تلقائي'); pullAll(); } }
     }).catch(function(){});
@@ -1683,6 +1802,7 @@ function startHeartbeat(){
 // مستمع واحد على مجموعة makhtar — العملاء cl_ والمحافظ wl_ والأرباح profits
 function startGranularListeners(){
   console.log('☁️ المزامنة: تفعيل المستمع (granular)');
+  setTimeout(function(){ _notifReady=true; }, 4000);
   try{
   _mkCol.onSnapshot(function(snap){
     var touched=false, prCh=false;
@@ -1716,7 +1836,7 @@ function startGranularListeners(){
         return;
       }
     });
-    if(touched){ persistLocal(); afterRemoteChange(); console.log('✅ مزامنة: تحديث وارد'); }
+    if(touched){ persistLocal(); afterRemoteChange(); console.log('✅ مزامنة: تحديث وارد'); if(_notifReady)toast('🔔 وصل تحديث من جهاز آخر','inf'); }
     else if(prCh){ persistLocal(); if(activeId)refreshDash(); }
     setSyncUI(navigator.onLine?'online':'offline'); lastSync=Date.now();
   },function(e){console.warn('❌ listener',e);setSyncUI(navigator.onLine?'error':'offline');});
@@ -1769,14 +1889,33 @@ function watchVersion(){
   if(!_metaDoc)return;
   try{
     _metaDoc.onSnapshot(function(snap){
-      var b=(snap&&snap.exists&&snap.data()&&snap.data().build)||0;
+      var dd=(snap&&snap.exists&&snap.data())||{};
+      var b=dd.build||0;
+      if(dd.minBuild) _cloudMinBuild=dd.minBuild;          // الحد الأدنى من السحابة
+      if(MIN_BUILD>(dd.minBuild||0)){ try{_metaDoc.set({minBuild:MIN_BUILD},{merge:true}).catch(function(){});}catch(e){} } // ارفع الحد
       if(APP_BUILD>b){ try{_metaDoc.set({build:APP_BUILD,at:Date.now()},{merge:true}).catch(function(){});}catch(e){} }
       else if(APP_BUILD<b){ showUpdateBanner(); }
+      enforceVersionGuard();
     },function(){});
   }catch(e){console.warn('watchVersion err',e);}
 }
 function showUpdateBanner(){ var el=$id('updateBanner'); if(el)el.style.display='flex'; }
 function doUpdate(){ location.replace(location.pathname+'?v='+Date.now()); }
+// ── حارس النسخة: يمنع أي نسخة أقدم من الكتابة (يسكّر باب فقدان البيانات من نسخة قديمة) ──
+var _blocked=false;
+function enforceVersionGuard(){
+  if(_cloudMinBuild>0 && APP_BUILD<_cloudMinBuild){ _blocked=true; showVersionBlock(); }
+}
+function showVersionBlock(){
+  var el=$id('versionBlock');
+  if(!el){
+    el=document.createElement('div'); el.id='versionBlock';
+    el.style.cssText='position:fixed;inset:0;z-index:99999;background:rgba(8,15,30,.97);display:flex;align-items:center;justify-content:center;padding:1.5rem;text-align:center;font-family:Cairo,sans-serif';
+    el.innerHTML='<div style="max-width:420px"><div style="font-size:3rem">⚠️</div><div style="color:#fff;font-size:1.3rem;font-weight:800;margin:.6rem 0">نسختك قديمة</div><div style="color:#cbd5e1;font-size:.95rem;line-height:1.9;margin-bottom:1.2rem">في نسخة أحدث من البرنامج. لحماية بياناتك، النسخة القديمة ممنوعة من الكتابة. لازم تحدّث قبل ما تكمّل الشغل.</div><button onclick="location.replace(location.pathname+String.fromCharCode(63)+\u0027v=\u0027+Date.now())" style="background:#2563eb;color:#fff;border:0;border-radius:12px;padding:.9rem 1.6rem;font-size:1rem;font-weight:800;font-family:Cairo;cursor:pointer">🔄 حدّث الآن</button></div>';
+    document.body.appendChild(el);
+  }
+  el.style.display='flex';
+}
 
 // ══════════════════════════════════════════════════════
 //  OP CODES — كود تسلسلي لكل عملية
@@ -1884,9 +2023,10 @@ function fmtBytes(n){
 function renderReports(){
   var box=$id('reportsBox'); if(!box)return;
   var pTotal=PROFITS.total||0, pMonth=profitMonth(), pToday=profitToday();
-  var nClients=DB.length;
+  var nClients=activeClients().length;
   var ourUsd=0, theirUsd=0, ourLbp=0, theirLbp=0;
   DB.forEach(function(c){
+    if(c.deleted)return;
     var u=calcBalCur(c,'usd'); if(u>0)ourUsd+=u; else theirUsd+=(-u);
     var l=calcBalCur(c,'lbp'); if(l>0)ourLbp+=l; else theirLbp+=(-l);
   });
@@ -1895,6 +2035,7 @@ function renderReports(){
   var thisMonth=dateStr(new Date()).slice(0,7);
   var perClient=[];
   DB.forEach(function(c){
+    if(c.deleted)return;
     var ops=c.ops||[]; var vol=0;
     ops.forEach(function(o){
       totalOps++; if(o.status==='confirmed')confOps++; else pendOps++;
@@ -1910,9 +2051,9 @@ function renderReports(){
   });
   perClient.sort(function(a,b){return b.n-a.n;});
   var top=perClient.slice(0,5);
-  var nWallets=GW.length;
-  var wBal=GW.reduce(function(s,w){return s+(w.balance||0);},0);
-  var wComm=GW.reduce(function(s,w){return s+(w.totalCommission||0);},0);
+  var nWallets=activeWallets().length;
+  var wBal=activeWallets().reduce(function(s,w){return s+(w.balance||0);},0);
+  var wComm=activeWallets().reduce(function(s,w){return s+(w.totalCommission||0);},0);
   var d=new Date(), months=[];
   for(var i=5;i>=0;i--){ var dd=new Date(d.getFullYear(),d.getMonth()-i,1); var key=dd.toISOString().slice(0,7); months.push({key:key,val:(PROFITS.monthly&&PROFITS.monthly[key])||0}); }
   var maxM=Math.max.apply(null,months.map(function(m){return m.val;}).concat([1]));
@@ -1953,7 +2094,7 @@ function renderReports(){
     top.forEach(function(t,idx){
       h+='<div style="display:flex;align-items:center;gap:.7rem;padding:.6rem 0;'+(idx<top.length-1?'border-bottom:1px solid #F1F5F9':'')+'">'
         +'<div style="width:26px;height:26px;border-radius:50%;background:'+(idx===0?'#FFD700':idx===1?'#C0C0C0':idx===2?'#CD7F32':'#E8EDF3')+';color:#0B1F3A;font-weight:800;font-size:.78rem;display:flex;align-items:center;justify-content:center;flex-shrink:0">'+(idx+1)+'</div>'
-        +'<div style="flex:1;font-weight:700;color:#0B1F3A;font-size:.85rem">'+t.name+'</div>'
+        +'<div style="flex:1;font-weight:700;color:#0B1F3A;font-size:.85rem">'+esc(t.name)+'</div>'
         +'<div style="color:#94A3B8;font-size:.78rem;font-weight:700">'+t.n+' عملية</div>'
         +'</div>';
     });
@@ -1979,7 +2120,7 @@ function renderReports(){
   var cloudBytes=blobSize(dbStr)+blobSize(gwStr)+blobSize(prStr)+blobSize(usStr);
   var docCount=DB.length+GW.length+4; // عملاء + محافظ + (profits+users+meta+v4)
   var maxCB=0, maxCName='—';
-  DB.forEach(function(c){ var b=blobSize(JSON.stringify(c)); if(b>maxCB){maxCB=b;maxCName=c.name||'—';} });
+  DB.forEach(function(c){ if(c.deleted)return; var b=blobSize(JSON.stringify(c)); if(b>maxCB){maxCB=b;maxCName=c.name||'—';} });
   var lsBytes=0; try{ for(var li=0;li<localStorage.length;li++){ var lk=localStorage.key(li); lsBytes+=blobSize(lk)+blobSize(localStorage.getItem(lk)||''); } }catch(e){}
   var snapBytes=0; try{ snapBytes=blobSize(localStorage.getItem('makhtar_snaps')||''); }catch(e){}
   var lzOn = (typeof LZString!=='undefined');
@@ -2002,9 +2143,9 @@ function renderReports(){
   }
   h+=sectionTitle('💾 التخزين');
   h+=srow('بيانات السحابة (Firebase)', fmtBytes(cloudBytes), 'من أصل ١ جيجابايت مجاني — '+cloudPct.toFixed(3)+'%', cloudPct, '#2563EB');
-  h+=srow('عدد المستندات', docCount+' مستند', DB.length+' عميل • '+GW.length+' محفظة • ٤ نظام', null, '#0B1F3A');
+  h+=srow('عدد المستندات', docCount+' مستند', activeClients().length+' عميل • '+activeWallets().length+' محفظة • ٤ نظام', null, '#0B1F3A');
   var warn = maxCB>838860; // > 0.8 MB تحذير
-  h+=srow('أكبر ملف عميل'+(warn?' ⚠️':''), fmtBytes(maxCB), (maxCName!=='—'?'العميل: '+maxCName:'')+(warn?' — اقترب من حد ١ ميجا، يُنصح بأرشفة عملياته':' — الحد لكل عميل ١ ميجا'), docPct, warn?'#DC2626':'#0B7A4B');
+  h+=srow('أكبر ملف عميل'+(warn?' ⚠️':''), fmtBytes(maxCB), (maxCName!=='—'?'العميل: '+esc(maxCName):'')+(warn?' — اقترب من حد ١ ميجا، يُنصح بأرشفة عملياته':' — الحد لكل عميل ١ ميجا'), docPct, warn?'#DC2626':'#0B7A4B');
   h+=srow('تخزين الجهاز (localStorage)'+(lzOn?' 🗜️':''), fmtBytes(lsBytes), 'من أصل ~٥ ميجا — '+lsPct.toFixed(1)+'%'+(lzOn&&saved>0?' • مضغوط (وفّرنا ~'+saved+'%)':'')+' (مشترك مع تطبيقاتك على نفس النطاق)', lsPct, lsPct>80?'#DC2626':'#F59E0B');
   h+=srow('النسخ الاحتياطية المحفوظة', fmtBytes(snapBytes), 'آخر ١٠ نسخ تلقائية بهالجهاز', null, '#9333EA');
   h+='<div style="font-size:.68rem;color:#94A3B8;background:#F8FAFC;border-radius:10px;padding:.6rem .8rem;line-height:1.6;margin-top:.2rem">ℹ️ القراءات والكتابات اليومية ما فينا نقيسها من داخل البرنامج — شوفها بدقة من <b>Firebase Console → Firestore → Usage</b>. هالأرقام فوق تقدير لحجم بياناتك.</div>';
@@ -2068,6 +2209,7 @@ function addUser(){
   if(!u||!p){ toast('اكتب اسم دخول وكلمة سر','err'); return; }
   if(USERS[u]){ toast('اسم الدخول موجود مسبقاً','err'); return; }
   USERS[u]={pw:p, role:role, name:nm||u};
+  logAudit('user.add', u, role);
   saveUsers(); renderUsersList();
   var a=$id('nuUser'),b=$id('nuPw'),c=$id('nuName'); if(a)a.value='';if(b)b.value='';if(c)c.value='';
   toast('تمت إضافة المستخدم ✓','ok');
@@ -2078,6 +2220,7 @@ function delUser(u){
   var mgrs=Object.keys(USERS).filter(function(k){return USERS[k].role==='manager';});
   if(USERS[u].role==='manager' && mgrs.length<=1){ toast('لازم يضل مدير واحد عالأقل','err'); return; }
   confirm2('حذف مستخدم','بدّك تحذف "'+(USERS[u].name||u)+'"؟ ما رح يقدر يدخل بعد هلأ.',function(){
+    logAudit('user.del', u, '');
     delete USERS[u]; saveUsers(); renderUsersList();
     toast('تم حذف المستخدم ✓','ok');
   });
@@ -2198,6 +2341,7 @@ function restoreSnap(ts){
       try{ DB=JSON.parse(lzUnpack(s._d)||'[]'); GW=JSON.parse(lzUnpack(s._g)||'[]'); PROFITS=JSON.parse(lzUnpack(s._p)||'{}'); }
       catch(e){ toast('فشل قراءة النسخة','err'); return; }
       ensureOpCodes(true); migrateWalletApplied(true);
+      logAudit('restore', when, s.nC+' عميل • '+s.nW+' محفظة');
       save(); activeId=null; buildSidebar();
       if(DB.length)pickClient(DB[0].id);
       renderWallets(); updatePendDot();
@@ -2207,7 +2351,7 @@ function restoreSnap(ts){
 }
 function exportBackup(){
   try{
-    var payload={app:'makhtar',version:'7.3',exportedAt:new Date().toISOString(),
+    var payload={app:'makhtar',version:'7.5',exportedAt:new Date().toISOString(),
       data:DB, gw:GW, pr:PROFITS};
     var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
@@ -2227,21 +2371,20 @@ function importBackupFile(input){
     try{obj=JSON.parse(ev.target.result);}catch(e){toast('الملف غير صالح (JSON)','err');return;}
     if(!obj||!Array.isArray(obj.data)){toast('الملف لا يحتوي بيانات صالحة','err');return;}
     var nC=obj.data.length, nW=Array.isArray(obj.gw)?obj.gw.length:0;
-    confirm2('استرجاع نسخة احتياطية',
-      'سيتم استبدال كل البيانات الحالية بـ '+nC+' عميل و '+nW+' محفظة من الملف، ومزامنتها على كل الأجهزة. متأكد؟',
+    confirm2('استرجاع نسخة احتياطية (دمج آمن)',
+      'رح يندمج '+nC+' عميل و '+nW+' محفظة من الملف مع بياناتك الحالية. ⚠️ ما بينحذف أي شي موجود — بس بيرجّع/بيضيف يلي ناقص. متابعة؟',
       function(){
-        autoSnapshot('قبل استرجاع ملف');
-        DB=obj.data||[];
-        GW=Array.isArray(obj.gw)?obj.gw:[];
-        PROFITS=(obj.pr&&typeof obj.pr==='object')?obj.pr:{total:0,daily:0,monthly:0,log:[]};
-        ensureOpCodes(true);
-        migrateWalletApplied(true);
+        try{autoSnapshot('قبل استرجاع ملف');}catch(e){}
+        (obj.data||[]).forEach(function(c){ if(c&&c.id) upsertClientLocal(c); });        // دمج اتحاد — لا يدوس
+        (Array.isArray(obj.gw)?obj.gw:[]).forEach(function(w){ if(w&&w.id) upsertWalletLocal(w); });
+        ensureOpCodes(false); migrateWalletApplied(false);
+        recomputeAllDerived();
         save();
-        activeId=null;
         buildSidebar();
-        if(DB.length)pickClient(DB[0].id);
+        if(DB.length&&!activeId)pickClient(DB[0].id);
+        else if(activeId)refreshActiveView();
         renderWallets(); updatePendDot();
-        toast('تم استرجاع النسخة الاحتياطية ✓','ok');
+        toast('تم الاسترجاع والدمج ✓','ok');
       });
   };
   r.onerror=function(){toast('فشل قراءة الملف','err');};
@@ -2252,16 +2395,132 @@ function importBackupFile(input){
 // ══════════════════════════════════════════════════════
 //  SIDEBAR
 // ══════════════════════════════════════════════════════
+// ══════════════════════════════════════════════════════
+//  AUDIT LOG (سجل التدقيق) + إعادة الحساب + صلاحيات
+// ══════════════════════════════════════════════════════
+var _editBaseRev=0;     // نسخة العملية وقت فتح التعديل (optimistic locking)
+var _savingOp=false;    // منع الحفظ المزدوج (دبل-كليك)
+var _notifReady=false;  // إشعارات المستخدمين تبلّش بعد التحميل الأولي
+var _auditCache=[];
+var AUDIT_ACTION_LBL={
+  'op.add':'➕ عملية','op.confirm':'✅ تأكيد','op.edit':'✏️ تعديل عملية','op.del':'🗑️ حذف عملية',
+  'client.add':'👤 عميل جديد','client.edit':'✏️ تعديل عميل','client.del':'🗑️ حذف عميل',
+  'wallet.add':'💳 محفظة جديدة','wallet.edit':'✏️ تعديل محفظة','wallet.del':'🗑️ حذف محفظة',
+  'wallet.deposit':'↙️ إيداع محفظة','wallet.withdraw':'↗️ سحب محفظة',
+  'rollover.set':'🔄 رصيد مدوّر','rollover.del':'🔄 إزالة مدوّر',
+  'recon.add':'📊 مطابقة','recon.del':'🗑️ حذف مطابقة',
+  'user.add':'👥 مستخدم جديد','user.del':'🗑️ حذف مستخدم',
+  'restore':'⏮️ استرجاع نسخة','recompute':'♻️ إعادة حساب','client.restore':'♻️ استرجاع عميل','wallet.restore':'♻️ استرجاع محفظة'
+};
+// كل حركة = وثيقة صغيرة مستقلة (append-only) بمجموعة makhtar_audit — ما بتأثّر على مزامنة البيانات
+function logAudit(action,target,info){
+  try{
+    if(!_auditCol)return;
+    _auditCol.doc(uid()).set({ts:Date.now(),user:CUR_USER||'?',role:CUR_ROLE||'',action:action,
+      target:String(target==null?'':target),info:String(info==null?'':info)});
+  }catch(e){}
+}
+function openAudit(){ if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;} openModal('mAudit'); loadAudit(); }
+function openTrash(){ if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;} renderTrash(); openModal('mTrash'); }
+function renderTrash(){
+  var box=$id('trashList'); if(!box)return;
+  var delC=DB.filter(function(c){return c.deleted;}).sort(function(a,b){return (b.deletedAt||0)-(a.deletedAt||0);});
+  var delW=GW.filter(function(w){return w.deleted;}).sort(function(a,b){return (b.deletedAt||0)-(a.deletedAt||0);});
+  if(!delC.length && !delW.length){ box.innerHTML='<div style="color:#94A3B8;text-align:center;padding:1.4rem;font-size:.82rem">السلة فاضية</div>'; return; }
+  function card(item,kind){
+    var d=new Date(item.deletedAt||0);
+    var when=d.toLocaleDateString('en-GB')+' '+d.toTimeString().slice(0,5);
+    var meta=kind==='client'?((item.ops||[]).length+' عملية'):((item.hist||[]).length+' حركة');
+    var sub=(kind==='client'&&item.sub)?' <span style="color:#94A3B8;font-weight:500">— '+esc(item.sub)+'</span>':'';
+    var icon=kind==='client'?'👤 ':'💳 ';
+    var fn=kind==='client'?'restoreClient':'restoreWallet';
+    return '<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem;border:1px solid #F0D9D9;border-radius:10px;margin-bottom:.5rem;background:#FFF8F8">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.84rem;color:#0B1F3A;word-break:break-word">'+icon+esc(item.name||'؟')+sub+'</div>'
+      +'<div style="font-size:.68rem;color:#94A3B8">'+meta+' • انحذف '+when+(item.deletedBy?' • بواسطة '+esc(item.deletedBy):'')+'</div></div>'
+      +'<button onclick="'+fn+'(\''+item.id+'\')" style="background:rgba(16,185,129,.15);color:#0B7A4B;border:none;padding:.45rem .8rem;border-radius:8px;font-weight:700;font-size:.76rem;cursor:pointer;font-family:inherit;flex-shrink:0">♻️ استرجاع</button>'
+      +'</div>';
+  }
+  var h='';
+  if(delC.length){ h+='<div style="font-size:.74rem;font-weight:800;color:#475569;margin:.1rem 0 .5rem">العملاء ('+delC.length+')</div>'; h+=delC.map(function(c){return card(c,'client');}).join(''); }
+  if(delW.length){ h+='<div style="font-size:.74rem;font-weight:800;color:#475569;margin:.7rem 0 .5rem">المحافظ ('+delW.length+')</div>'; h+=delW.map(function(w){return card(w,'wallet');}).join(''); }
+  box.innerHTML=h;
+}
+function restoreClient(id){
+  var c=DB.find(function(x){return x.id===id;}); if(!c)return;
+  c.deleted=false; c.deletedAt=0; c.delRev=(c.delRev||0)+1; c.metaAt=Date.now();
+  logAudit('client.restore', c.name, '');
+  save(); buildSidebar(); renderTrash(); toast('✅ تم استرجاع العميل','ok');
+}
+function restoreWallet(id){
+  var w=GW.find(function(x){return x.id===id;}); if(!w)return;
+  w.deleted=false; w.deletedAt=0; w.delRev=(w.delRev||0)+1; w.metaAt=Date.now();
+  logAudit('wallet.restore', w.name, '');
+  save(); renderWallets(); buildWalletSelector(); renderTrash(); toast('✅ تم استرجاع المحفظة','ok');
+}
+function loadAudit(){
+  var box=$id('auditList');
+  if(box)box.innerHTML='<div style="color:#94A3B8;text-align:center;padding:1.4rem;font-size:.82rem">⏳ تحميل السجل…</div>';
+  if(!_auditCol){ if(box)box.innerHTML='<div style="color:#94A3B8;text-align:center;padding:1.4rem">المزامنة مش متصلة</div>'; return; }
+  _auditCol.orderBy('ts','desc').limit(500).get().then(function(snap){
+    _auditCache=[]; snap.forEach(function(d){ _auditCache.push(d.data()||{}); });
+    renderAudit();
+  }).catch(function(e){ console.warn('audit load',e); if(box)box.innerHTML='<div style="color:#DC2626;text-align:center;padding:1.4rem">فشل تحميل السجل — جرّب لاحقاً</div>'; });
+}
+function renderAudit(){
+  var box=$id('auditList'); if(!box)return;
+  var q=($v('auditSearch')||'').trim().toLowerCase();
+  var rows=_auditCache.slice();
+  if(q){ rows=rows.filter(function(e){ return ((e.user||'')+' '+(e.target||'')+' '+(e.info||'')+' '+(AUDIT_ACTION_LBL[e.action]||e.action||'')).toLowerCase().indexOf(q)>=0; }); }
+  if(!rows.length){ box.innerHTML='<div style="color:#94A3B8;text-align:center;padding:1.4rem;font-size:.82rem">لا توجد حركات مطابقة</div>'; return; }
+  box.innerHTML=rows.map(function(e){
+    var d=new Date(e.ts||0);
+    var when=d.toLocaleDateString('en-GB')+' '+d.toTimeString().slice(0,5);
+    var lbl=AUDIT_ACTION_LBL[e.action]||e.action||'—';
+    var isDel=String(e.action||'').indexOf('del')>=0;
+    return '<div style="display:flex;gap:.55rem;align-items:flex-start;padding:.55rem;border:1px solid #EEF2F7;border-radius:9px;margin-bottom:.4rem;background:#fff">'
+      +'<div style="font-size:.72rem;font-weight:800;color:'+(isDel?'#DC2626':'#0B1F3A')+';white-space:nowrap">'+esc(lbl)+'</div>'
+      +'<div style="flex:1;min-width:0"><div style="font-size:.78rem;color:#1A3660;font-weight:700;word-break:break-word">'+esc(e.target||'')+(e.info?' <span style="color:#94A3B8;font-weight:500">— '+esc(e.info)+'</span>':'')+'</div>'
+      +'<div style="font-size:.68rem;color:#94A3B8;margin-top:.15rem">👤 '+esc(e.user||'?')+' • '+when+'</div></div></div>';
+  }).join('');
+}
+function exportAudit(){
+  if(!_auditCol){toast('المزامنة مش متصلة','err');return;}
+  toast('⏳ عم نجهّز التصدير…','inf');
+  _auditCol.orderBy('ts','desc').limit(3000).get().then(function(snap){
+    function q(s){return '"'+String(s==null?'':s).replace(/"/g,'""')+'"';}
+    var csv='التاريخ,الوقت,المستخدم,النوع,الهدف,تفاصيل\n';
+    snap.forEach(function(d){ var e=d.data()||{}; var dt=new Date(e.ts||0);
+      csv+=[q(dt.toLocaleDateString('en-GB')),q(dt.toTimeString().slice(0,8)),q(e.user||''),q(AUDIT_ACTION_LBL[e.action]||e.action||''),q(e.target||''),q(e.info||'')].join(',')+'\n';
+    });
+    var blob=new Blob(['\ufeff'+csv],{type:'text/csv;charset=utf-8'});
+    var url=URL.createObjectURL(blob);
+    var a=document.createElement('a'); a.href=url; a.download='audit-'+dateStr(new Date())+'.csv';
+    document.body.appendChild(a); a.click();
+    setTimeout(function(){try{document.body.removeChild(a);}catch(e){}URL.revokeObjectURL(url);},120);
+    toast('تم تصدير السجل ✓','ok');
+  }).catch(function(e){console.warn('audit export',e);toast('فشل التصدير','err');});
+}
+// إعادة حساب كل الأرصدة والأرباح من سجل العمليات (مصدر الحقيقة) — يدوياً عند الحاجة
+function recomputeNow(){
+  if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;}
+  confirm2('♻️ إعادة حساب الأرصدة','رح يُعاد حساب كل أرصدة المحافظ والأرباح من سجل العمليات. هاي بتصحّح أي فرق تراكمي. متابعة؟',function(){
+    recomputeAllDerived();
+    logAudit('recompute','الأرصدة والأرباح','إعادة حساب يدوية من السجل');
+    save(); buildSidebar(); if(activeId)refreshActiveView(); renderWallets();
+    toast('✅ تم إعادة الحساب من السجل','ok');
+  });
+}
 function sbOpen(){$id('sidebar').classList.add('open');$id('sbOverlay').classList.add('open');}
 function sbClose(){$id('sidebar').classList.remove('open');$id('sbOverlay').classList.remove('open');}
 function buildSidebar(){
   renderWStrip();
   var el=$id('cList');if(!el)return;
-  if(!DB.length){
+  var ACT=activeClients();
+  if(!ACT.length){
     el.innerHTML='<div style="text-align:center;padding:1.5rem;color:rgba(255,255,255,.25);font-size:.78rem;line-height:1.7">لا يوجد عملاء بعد<br><span style="font-size:.68rem">اضغط + إضافة للبدء</span></div>';
     return;
   }
-  el.innerHTML=DB.map(function(c){
+  el.innerHTML=ACT.map(function(c){
     var bal=calcBalAll(c);
     var colBal=bal>=0?'#4ade80':'#f87171';
     var ini=(c.name||'?').slice(0,2);
@@ -2273,8 +2532,8 @@ function buildSidebar(){
     if(accs.wsh&&accs.wsh.on)badges+='<span class="cbadge cbadge-wsh">W</span>';
     return '<div class="ci'+isAct+'" data-cid="'+c.id+'">'
       +'<div class="ci-av" style="background:'+((c.color||'#0B1F3A')+'28')+';color:'+(c.color||'#C9A84C')+'">'+ini+'</div>'
-      +'<div class="ci-info"><div class="ci-name">'+c.name+'</div>'
-      +'<div class="ci-sub">'+(c.sub||'حساب عام')+'</div>'
+      +'<div class="ci-info"><div class="ci-name">'+esc(c.name)+'</div>'
+      +'<div class="ci-sub">'+esc(c.sub||'حساب عام')+'</div>'
       +(badges?'<div class="ci-badges">'+badges+'</div>':'')
       +'</div>'
       +'<div class="ci-right"><div class="ci-bal" style="color:'+colBal+'">'+fmt(Math.abs(bal))+'</div>'
@@ -2326,6 +2585,9 @@ function refreshActiveView(){
   else if(vid==='vReports')renderReports();
 }
 function pickClient(id){
+  var _t=DB.find(function(c){return c.id===id;});
+  if(_t&&_t.deleted){ id=firstActiveId(); }   // لا تفتح عميل محذوف
+  if(!id){ activeId=null; $set('tbName','اختر عميلاً للبدء'); $set('tbSub',''); buildSidebar(); showView('vWelcome'); return; }
   activeId=id;var c=client();if(!c)return;
   $set('tbName',c.name);$set('tbSub',c.sub||'');
   buildSidebar();sbClose();
@@ -2367,7 +2629,7 @@ function refreshDash(){
       +'</div>'
       +'<span class="'+(o.type==='in'?'v-in':'v-out')+'">'+fmt(o.amount)+'</span>'
       +'</div>'
-      +'<div style="font-size:.68rem;color:var(--g3);margin-top:.2rem">'+fmtD(o.date)+' '+(o.time||'')+' '+(o.note?'— '+o.note:'')+'</div>'
+      +'<div style="font-size:.68rem;color:var(--g3);margin-top:.2rem">'+fmtD(o.date)+' '+(o.time||'')+' '+(o.note?'— '+esc(o.note):'')+'</div>'
       +'</div>';}).join(''):'<div style="text-align:center;padding:1.5rem;color:var(--g3);font-size:.82rem">✅ لا توجد معلقة</div>';}
   updatePendDot();
 }
@@ -2416,9 +2678,9 @@ function updateAmtLbl(){var l=$id('opAmtLbl');if(l)l.textContent=opAcc==='lbp'?'
 function buildWalletSelector(){
   var row=$id('opWalletRow');if(!row)return;
   var btns='<button class="wsel-btn'+(opWid===''?' ws-none':'')+'" onclick="pickWallet(\'\')">🚫 بدون محفظة</button>';
-  GW.forEach(function(w){
+  activeWallets().forEach(function(w){
     var isOn=opWid===w.id;
-    btns+='<button class="wsel-btn'+(isOn?' ws-on':'')+'" onclick="pickWallet(\''+w.id+'\')">💳 '+w.name+'</button>';
+    btns+='<button class="wsel-btn'+(isOn?' ws-on':'')+'" onclick="pickWallet(\''+w.id+'\')">💳 '+esc(w.name)+'</button>';
   });
   row.innerHTML=btns;
 }
@@ -2516,6 +2778,8 @@ function doSaveOp(){
   var amt=parseFloat($v('opAmt'));
   if(!amt||amt<=0){toast('أدخل مبلغاً صحيحاً','err');return;}
   var date=$v('opDate');if(!date){toast('أدخل التاريخ','err');return;}
+  if(_savingOp)return;
+  _savingOp=true; setTimeout(function(){_savingOp=false;},1500);
   if(!c.ops)c.ops=[];
   var wName='';
   if(opWid){var ww=GW.find(function(w){return w.id===opWid;});if(ww)wName=ww.name;}
@@ -2530,9 +2794,11 @@ function doSaveOp(){
     walletId:opWid,
     walletName:wName,
     commission:opComm,  // العمولة المسجلة على العميل
-    applied:false
+    applied:false,
+    updatedAt:Date.now()
   };
   c.ops.push(op);
+  logAudit('op.add', c.name, padCode(op.code)+' • '+(op.type==='in'?'دخول':'خروج')+' '+amt.toFixed(2));
   applyWallet(op);            // ← الرصيد يدخل على المحفظة فوراً (قبل تأكيد العميل)
   save();
   closeModal('mOpConfirm'); // ← إغلاق شاشة المراجعة
@@ -2568,8 +2834,8 @@ function renderPend(){
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
-      +'<td style="color:var(--g3)">'+(o.phone||'—')+'</td>'
-      +'<td style="color:var(--g3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.note||'—')+'</td>'
+      +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
+      +'<td style="color:var(--g3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
       +'<td><button class="btn btn-green btn-xs" data-qc="'+o.id+'" onclick="event.stopPropagation()">✅ تأكيد</button>'+comm+'</td>'
       +'</tr>';}).join('')
     :'<tr class="empty-row"><td colspan="8">✅ لا توجد معلقة — كل العمليات مؤكدة</td></tr>';
@@ -2578,6 +2844,8 @@ function doQuickConfirm(id){
   var c=client();if(!c)return;
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
   op.status='confirmed';
+  op.updatedAt=Date.now();
+  logAudit('op.confirm', c.name, padCode(op.code));
   applyWallet(op);
   save();buildSidebar();renderPend();refreshDash();renderWallets();
   toast('✅ تم التأكيد','ok');
@@ -2599,6 +2867,8 @@ var eType='in'; var eAcc='gen'; var eWid='';
 function openEdit(id){
   var c=client();if(!c)return;
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
+  if(CUR_ROLE==='cashier' && op.status==='confirmed'){ toast('الكاشير ما بيقدر يعدّل عملية مؤكدة','err'); return; }
+  _editBaseRev=op.updatedAt||0;   // لكشف التعديل المتزامن من جهاز آخر
 
   $id('eId').value=id;
   $set('eCode',padCode(op.code));
@@ -2688,10 +2958,10 @@ function buildEditWalletRow(){
   var row=document.getElementById('eWalletRow');if(!row)return;
   var h='';
   h+='<button class="wsel-btn'+(eWid===''?' ws-none':'')+'" onclick="ePickWallet(\'\')">🚫 بدون محفظة</button>';
-  GW.forEach(function(w){
+  activeWallets().forEach(function(w){
     var isOn=eWid===w.id;
     var onCls=isOn?(eType==='in'?' ws-on-in':' ws-on-out'):'';
-    h+='<button class="wsel-btn'+onCls+'" onclick="ePickWallet(\''+w.id+'\')">💳 '+w.name+'</button>';
+    h+='<button class="wsel-btn'+onCls+'" onclick="ePickWallet(\''+w.id+'\')">💳 '+esc(w.name)+'</button>';
   });
   row.innerHTML=h;
 }
@@ -2703,6 +2973,8 @@ function doSaveEdit(){
   var c=client();if(!c)return;
   var id=$v('eId');
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
+  if(CUR_ROLE==='cashier' && op.status==='confirmed'){ toast('الكاشير ما بيقدر يعدّل عملية مؤكدة','err'); closeModal('mEdit'); return; }
+  if((op.updatedAt||0)>(_editBaseRev||0)){ toast('⚠️ حدا تاني عدّل هالعملية بنفس الوقت — افتحها من جديد','warn'); closeModal('mEdit'); buildSidebar(); refreshActiveView(); return; }
   var amt=parseFloat($v('eAmt'));
   if(isNaN(amt)||amt<=0){toast('مبلغ غير صحيح','err');return;}
 
@@ -2728,6 +3000,8 @@ function doSaveEdit(){
   op.walletId=eWid;
   op.walletName=newWName;
   op.commission=newComm;
+  op.updatedAt=Date.now();
+  logAudit('op.edit', c.name, padCode(op.code));
 
   // الرصيد يدخل/يخرج على المحفظة فوراً (بصرف النظر عن حالة التأكيد)
   applyWallet(op);
@@ -2741,7 +3015,10 @@ function doDelOp(){
   confirm2('🗑 حذف العملية','هل تريد حذف هذه العملية نهائياً؟ لا يمكن التراجع.',function(){
     var c=client();if(!c)return;
     var op=(c.ops||[]).find(function(x){return x.id===id;});
+    if(CUR_ROLE==='cashier' && op && op.status==='confirmed'){ toast('الكاشير ما بيقدر يحذف عملية مؤكدة','err'); return; }
     if(op)reverseWallet(op);
+    if(!c.delOps)c.delOps=[]; c.delOps.push({id:id,t:Date.now()}); // شاهدة حذف — يمنع رجوعها بالدمج
+    logAudit('op.del', c.name, op?padCode(op.code):id);
     c.ops=(c.ops||[]).filter(function(o){return o.id!==id;});
     save();closeModal('mEdit');buildSidebar();
     refreshDash();renderPend();renderStmt();renderWallets();
@@ -2809,9 +3086,9 @@ function renderStmt(){
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
-      +'<td style="color:var(--g3)">'+(o.phone||'—')+'</td>'
+      +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
       +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅':'⏳')+'</span></td>'
-      +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(o.note||'—')+'</td>'
+      +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
       +'<td>'+(rb!=null?'<span class="'+(rb>=0?'v-in':'v-out')+'">'+fmt(rb)+'</span>':'—')+'</td>'
       +'</tr>';}).join('')
     :'<tr class="empty-row"><td colspan="9">لا توجد نتائج مطابقة</td></tr>';
@@ -2859,6 +3136,7 @@ function doSaveRecon(){
   var rec={id:uid(),date:$v('rcDate')||dateStr(new Date()),
     expected:calcBalAll(c),actual:actual,diff:actual-calcBalAll(c),note:$v('rcNote').trim()};
   c.reconciliations.push(rec);
+  logAudit('recon.add', c.name, 'فعلي '+actual.toFixed(2)+' • فرق '+rec.diff.toFixed(2));
   save();toast('✅ تم حفظ المطابقة','ok');renderReconHistory();
 }
 function clearRecon(){
@@ -2876,7 +3154,7 @@ function renderReconHistory(){
     var dc=ok?'var(--green)':(r.diff>0?'var(--teal)':'var(--red)');
     return '<tr><td>'+fmtD(r.date)+'</td><td>'+fmt(r.expected)+'</td><td>'+fmt(r.actual)+'</td>'
       +'<td style="color:'+dc+';font-weight:800">'+(ok?'✅ صفر':fmt(r.diff))+'</td>'
-      +'<td style="color:var(--g3)">'+(r.note||'—')+'</td>'
+      +'<td style="color:var(--g3)">'+esc(r.note||'—')+'</td>'
       +'<td><button class="btn btn-wa btn-xs" onclick="sendReconWARecord(\''+r.id+'\')">📤</button></td>'
       +'<td><button class="btn btn-red btn-xs" onclick="delRecon(\''+r.id+'\')">🗑</button></td></tr>';
   }).join(''):'<tr class="empty-row"><td colspan="7">لا توجد مطابقات مسجلة</td></tr>';
@@ -2884,6 +3162,7 @@ function renderReconHistory(){
 function delRecon(id){
   confirm2('🗑 حذف المطابقة','هل تريد حذف سجل هذه المطابقة؟',function(){
     var c=client();if(!c)return;
+    logAudit('recon.del', c.name, '');
     c.reconciliations=(c.reconciliations||[]).filter(function(r){return r.id!==id;});
     save();renderReconHistory();toast('تم الحذف','warn');
   });
@@ -2989,7 +3268,8 @@ function pickColor(col,btn){
 function doAddClient(){
   var name=($v('cName')||'').trim();
   if(!name){toast('أدخل اسم العميل','err');return;}
-  var c={id:uid(),name:name,sub:($v('cSub')||'').trim(),color:selColor,ops:[],rollover:null,reconciliations:[],accounts:{}};
+  var c={id:uid(),name:name,sub:($v('cSub')||'').trim(),color:selColor,ops:[],rollover:null,reconciliations:[],accounts:{},metaAt:Date.now()};
+  logAudit('client.add', name, '');
   DB.push(c);save();closeModal('mAddC');buildSidebar();
   toast('✅ تمت الإضافة','ok');pickClient(c.id);
   var cn=$id('cName');if(cn)cn.value='';
@@ -3020,17 +3300,20 @@ function doSaveCS(){
     if(!c.accounts[k])c.accounts[k]={on:false};
     c.accounts[k].on=btn?btn.classList.contains('ton-'+k):false;
   });
+  c.metaAt=Date.now();
   save();buildSidebar();$set('tbName',c.name);$set('tbSub',c.sub||'');
   buildAccPicker();renderAccKpis();closeModal('mCS');toast('✅ تم الحفظ','ok');
 }
 function askDelClient(){
   closeModal('mCS');
-  confirm2('🗑 حذف العميل','سيُحذف العميل وجميع عملياته نهائياً. هل أنت متأكد؟',function(){
-    DB=DB.filter(function(c){return c.id!==activeId;});
+  confirm2('🗑 حذف العميل','رح ينحذف العميل بس بيضل محفوظ بسلة المحذوفات — فيك ترجّعو وقت ما بدّك. متابعة؟',function(){
+    var _dc=client();
+    if(_dc){ _dc.deleted=true; _dc.deletedAt=Date.now(); _dc.deletedBy=CUR_USER||''; _dc.delRev=(_dc.delRev||0)+1; _dc.metaAt=Date.now(); }
+    logAudit('client.del', _dc?_dc.name:activeId, '');
     activeId=null;save();buildSidebar();
     $set('tbName','اختر عميلاً للبدء');$set('tbSub','');
-    showView('vWelcome');toast('تم الحذف','warn');
-    if(DB.length)pickClient(DB[0].id);
+    showView('vWelcome');toast('تم النقل لسلة المحذوفات','warn');
+    var _f=firstActiveId(); if(_f)pickClient(_f);
   });
 }
 function openRoll(cur){
@@ -3050,12 +3333,16 @@ function doSaveRoll(){
   var cur=$v('rCur')||'usd';
   var obj={amount:parseFloat($v('rAmt'))||0,date:$v('rDate'),note:($v('rNote')||'').trim()};
   if(cur==='lbp')c.rolloverLbp=obj; else c.rollover=obj;
+  c.metaAt=Date.now();
+  logAudit('rollover.set', c.name, (cur==='lbp'?'ل.ل ':'$ ')+(obj.amount||0));
   save();closeModal('mRoll');buildSidebar();refreshDash();toast('✅ تم حفظ الرصيد المدور','ok');
 }
 function doRemRoll(){
   var c=client();if(!c)return;
   var cur=$v('rCur')||'usd';
   if(cur==='lbp')c.rolloverLbp=null; else c.rollover=null;
+  c.metaAt=Date.now();
+  logAudit('rollover.del', c.name, '');
   save();closeModal('mRoll');buildSidebar();refreshDash();toast('تمت الإزالة','warn');
 }
 
@@ -3064,7 +3351,7 @@ function doRemRoll(){
 // ══════════════════════════════════════════════════════
 function renderWallets(){
   renderWStrip();
-  var ws=GW;
+  var ws=activeWallets();
   var totBal=ws.reduce(function(s,w){return s+(w.balance||0);},0);
   var totIn=ws.reduce(function(s,w){return s+(w.totalIn||0);},0);
   var totOut=ws.reduce(function(s,w){return s+(w.totalOut||0);},0);
@@ -3080,11 +3367,11 @@ function renderWallets(){
   grid.innerHTML=ws.map(function(w){
     var hist=(w.hist||[]).slice(-3).reverse();
     var histH=hist.length?hist.map(function(h){
-      return '<div class="wcard-hist-row"><span style="color:var(--g3);font-size:.72rem">'+(h.cname||'مباشر')+'</span>'
+      return '<div class="wcard-hist-row"><span style="color:var(--g3);font-size:.72rem">'+esc(h.cname||'مباشر')+'</span>'
         +'<span class="'+(h.type==='in'?'v-in':'v-out')+'">'+(h.type==='in'?'+':'-')+fmt(h.amount)+'</span></div>';
     }).join(''):'<div style="color:var(--g3);font-size:.72rem;text-align:center;padding:.3rem 0">لا توجد عمليات بعد</div>';
     return '<div class="wcard"><div class="wcard-hd">'
-      +'<div><div class="wcard-name">💳 '+w.name+'</div><div class="wcard-sub">'+(w.desc||'محفظة مشتركة')+'</div></div>'
+      +'<div><div class="wcard-name">💳 '+esc(w.name)+'</div><div class="wcard-sub">'+esc(w.desc||'محفظة مشتركة')+'</div></div>'
       +'<button class="btn btn-ghost btn-xs" onclick="openEditWallet(\''+w.id+'\')">⚙️</button></div>'
       +'<div class="wcard-bal '+(w.balance>=0?'pos':'neg')+'">'+fmt(w.balance||0)+'</div>'
       +'<div class="wcard-g2">'
@@ -3103,7 +3390,7 @@ function renderWallets(){
   }).join('');
   // كشف المحافظ
   var lbox=$id('wLedgerBox');
-  if(lbox)lbox.style.display=GW.length?'block':'none';
+  if(lbox)lbox.style.display=activeWallets().length?'block':'none';
   buildWLWalletOptions();
   renderWalletLedger();
 }
@@ -3117,7 +3404,8 @@ function doAddWallet(){
   if(!name){toast('أدخل اسم المحفظة','err');return;}
   GW.push({id:uid(),name:name,desc:($v('wDesc')||'').trim(),
     balance:parseFloat($v('wInitBal'))||0,
-    totalIn:0,totalOut:0,totalCommission:0,hist:[],created:dateStr(new Date())});
+    totalIn:0,totalOut:0,totalCommission:0,hist:[],created:dateStr(new Date()),metaAt:Date.now()});
+  logAudit('wallet.add', name, '');
   save();closeModal('mAddWallet');toast('✅ تمت الإضافة','ok');
   renderWallets();buildWalletSelector();
 }
@@ -3127,7 +3415,7 @@ function openWDirect(wid,type){
   $id('wDAmt').value='';$id('wDNote').value='';
   var dep=type==='deposit';
   $set('mWDTitle',(dep?'↙ إيداع مباشر في ':'↗ سحب مباشر من ')+w.name);
-  $id('wDInfo').innerHTML='<b style="color:var(--navy)">'+w.name+'</b><br>الرصيد الحالي: <b class="'+(w.balance>=0?'v-in':'v-out')+'">'+fmt(w.balance||0)+'</b><br>النوع: <b>'+(dep?'<span class="v-in">↙ إيداع</span>':'<span class="v-out">↗ سحب</span>')+'</b>';
+  $id('wDInfo').innerHTML='<b style="color:var(--navy)">'+esc(w.name)+'</b><br>الرصيد الحالي: <b class="'+(w.balance>=0?'v-in':'v-out')+'">'+fmt(w.balance||0)+'</b><br>النوع: <b>'+(dep?'<span class="v-in">↙ إيداع</span>':'<span class="v-out">↗ سحب</span>')+'</b>';
   openModal('mWDirect');
 }
 function doWDirect(){
@@ -3142,9 +3430,10 @@ function doWDirect(){
   w.totalOut=(w.totalOut||0)+(dep?0:amt);
   w.totalCommission=(w.totalCommission||0)+COMMISSION;
   if(!w.hist)w.hist=[];
-  w.hist.push({oid:null,cid:null,cname:'',type:dep?'in':'out',amount:amt,
+  w.hist.push({oid:'d_'+uid(),cid:null,cname:'',type:dep?'in':'out',amount:amt,
     date:dateStr(new Date()),time:nowTime(),note:($v('wDNote')||'').trim(),
     direct:true,code:nextOpCode()});
+  logAudit(dep?'wallet.deposit':'wallet.withdraw', w.name, amt.toFixed(2));
   save();closeModal('mWDirect');
   toast(dep?'✅ تم الإيداع':'✅ تم السحب','ok');
   renderWallets();buildWalletSelector();
@@ -3178,10 +3467,10 @@ function buildWLWalletOptions(){
   var sel=$id('wlWallet');if(!sel)return;
   var cur=sel.value||'all';
   var html='<option value="all">كل المحافظ</option>';
-  GW.forEach(function(w){ html+='<option value="'+w.id+'">'+w.name+'</option>'; });
+  activeWallets().forEach(function(w){ html+='<option value="'+w.id+'">'+esc(w.name)+'</option>'; });
   sel.innerHTML=html;
   // أعد القيمة المختارة إن وُجدت
-  if(cur==='all'||GW.some(function(w){return w.id===cur;}))sel.value=cur;
+  if(cur==='all'||activeWallets().some(function(w){return w.id===cur;}))sel.value=cur;
   else sel.value='all';
 }
 function renderWalletLedger(){
@@ -3192,6 +3481,7 @@ function renderWalletLedger(){
   // اجمع كل حركات كل المحافظ
   var rows=[];
   GW.forEach(function(w){
+    if(w.deleted)return;
     if(widF!=='all'&&w.id!==widF)return;
     (w.hist||[]).forEach(function(h){
       rows.push({wid:w.id,wname:w.name,code:h.code,type:h.type,amount:h.amount,
@@ -3228,8 +3518,8 @@ function renderWalletLedger(){
       +'<td><span class="wbadge">'+(r.wname||'—')+'</span></td>'
       +'<td><span class="badge '+(r.type==='in'?'b-in':'b-out')+'">'+(r.type==='in'?'↙ دخل':'↗ خرج')+'</span></td>'
       +'<td class="'+(r.type==='in'?'v-in':'v-out')+'"><b>'+fmt(r.amount)+'</b></td>'
-      +'<td style="color:var(--navy);font-weight:700">'+(r.direct?'<span style="color:var(--teal)">⚡ مباشر</span>':(r.cname||'—'))+'</td>'
-      +'<td style="color:var(--g3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+(r.note||'—')+'</td>'
+      +'<td style="color:var(--navy);font-weight:700">'+(r.direct?'<span style="color:var(--teal)">⚡ مباشر</span>':esc(r.cname||'—'))+'</td>'
+      +'<td style="color:var(--g3);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(r.note||'—')+'</td>'
       +'</tr>';}).join('')
     :'<tr class="empty-row"><td colspan="7">لا توجد حركات مطابقة</td></tr>';
 }
@@ -3243,15 +3533,19 @@ function doEditWallet(){
   var w=GW.find(function(x){return x.id===wid;});if(!w)return;
   var n=($v('ewName')||'').trim();if(n)w.name=n;
   w.desc=($v('ewDesc')||'').trim();
+  w.metaAt=Date.now();
+  logAudit('wallet.edit', w.name, '');
   save();closeModal('mEditWallet');toast('✅ تم التعديل','ok');
   renderWallets();buildWalletSelector();
 }
 function askDelWallet(){
   closeModal('mEditWallet');
-  confirm2('🗑 حذف المحفظة','سيتم حذف المحفظة وسجل عملياتها نهائياً؟',function(){
+  confirm2('🗑 حذف المحفظة','رح تنحذف المحفظة بس بتضل محفوظة بسلة المحذوفات — فيك ترجّعها. متابعة؟',function(){
     var wid=$v('ewId');
-    GW=GW.filter(function(x){return x.id!==wid;});
-    save();toast('تم الحذف','warn');renderWallets();buildWalletSelector();
+    var _dw=GW.find(function(x){return x.id===wid;});
+    if(_dw){ _dw.deleted=true; _dw.deletedAt=Date.now(); _dw.deletedBy=CUR_USER||''; _dw.delRev=(_dw.delRev||0)+1; _dw.metaAt=Date.now(); }
+    logAudit('wallet.del', _dw?_dw.name:wid, '');
+    save();toast('تم النقل لسلة المحذوفات','warn');renderWallets();buildWalletSelector();
   });
 }
 
@@ -3284,7 +3578,7 @@ function buildPdfHtml(c,ops){
   var roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
   var net=roll+tIn-tOut;
   return '<div class="ph"><div class="ph-logo">🏦</div><h1>مكتب المختار للصيرفة</h1>'
-    +'<p>كشف حساب: '+c.name+(c.sub?' — '+c.sub:'')+'</p>'
+    +'<p>كشف حساب: '+esc(c.name)+(c.sub?' — '+esc(c.sub):'')+'</p>'
     +'<p>تاريخ الطباعة: '+new Date().toLocaleString('ar-LB')+'</p></div>'
     +'<div class="pdf-kpis">'
     +'<div class="pdf-kpi"><div class="l">رصيد مدور</div><div class="v" style="color:#0E7490">'+fmt(roll)+'</div></div>'
@@ -3300,9 +3594,9 @@ function buildPdfHtml(c,ops){
           +fmt(o.amount)+(o.commission&&o.commission>0?' <span style="font-size:.7em;color:#D97706">(+'+o.commission.toFixed(2)+')</span>':'')
           +'</td>'
         +'<td>'+(o.walletName||'—')+'</td>'
-        +'<td>'+(o.phone||'—')+'</td>'
+        +'<td>'+esc(o.phone||'—')+'</td>'
         +'<td>'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</td>'
-        +'<td>'+(o.note||'')+'</td></tr>';}).join('')
+        +'<td>'+esc(o.note||'')+'</td></tr>';}).join('')
       : '<tr><td colspan="8" style="text-align:center;color:#94A3B8;padding:1.5rem">لا توجد عمليات</td></tr>' )
     +'</tbody></table>'
     +'<div class="pf">مكتب المختار للصيرفة — '+ops.length+' عملية — '+dateStr(new Date())+'</div>';
@@ -3317,7 +3611,7 @@ function doPrint(){
   var ops=getPdfOps();
   var w=window.open('','_blank');
   if(!w){toast('السماح بنوافذ منبثقة','err');return;}
-  w.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف — '+c.name+'</title>'
+  w.document.write('<!DOCTYPE html><html lang="ar" dir="rtl"><head><meta charset="UTF-8"><title>كشف — '+esc(c.name)+'</title>'
     +'<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;900&display=swap" rel="stylesheet"/>'
     +'<style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:\'Cairo\',sans-serif;direction:rtl;color:#0F172A;background:#fff;padding:1.5cm;font-size:10pt}'
     +'.ph{text-align:center;border-bottom:2px solid #0B1F3A;padding-bottom:.8rem;margin-bottom:1rem}.ph-logo{font-size:2rem;margin-bottom:.2rem}.ph h1{font-size:1.2rem;color:#0B1F3A;font-weight:900}.ph p{color:#64748B;font-size:.75rem;margin-top:.1rem}'
