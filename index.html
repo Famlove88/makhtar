@@ -2562,7 +2562,7 @@ function showView(id){document.querySelectorAll('.view').forEach(function(v){v.c
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(function(b){b.classList.remove('on');});
   document.querySelectorAll('.mob-btn[id^="mbn-"]').forEach(function(b){b.classList.remove('mon');});
-  var idx=TABS.indexOf(tab);
+  var idx=(typeof TABS!=='undefined'&&TABS)?TABS.indexOf(tab):['dash','op','pend','wallets','stmt','recon','reports','pdf'].indexOf(tab);
   var tabBtns=document.querySelectorAll('.tabb');
   if(tabBtns[idx])tabBtns[idx].classList.add('on');
   var mb=$id('mbn-'+tab);if(mb)mb.classList.add('mon');
