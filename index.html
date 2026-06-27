@@ -11,6 +11,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -751,7 +752,7 @@ body.role-cashier .mgr-only{display:none !important;}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 7.0 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 7.3 • مزامنة لايف ✓</div>
   </div>
 </div>
 
@@ -1355,14 +1356,14 @@ body.role-cashier .mgr-only{display:none !important;}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 7.0 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 7.3 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
 var _metaDoc=null;
 var _clCol=null, _wlCol=null, _prDoc=null, _mkCol=null, _usersDoc=null;
 var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=70;
+var APP_BUILD=73;
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
 try{
@@ -1517,10 +1518,17 @@ function confirm2(title,msg,cb){
 // ══════════════════════════════════════════════════════
 //  STORAGE
 // ══════════════════════════════════════════════════════
+// ضغط/فك ضغط للتخزين المحلي (LZString) — مع fallback إذا المكتبة مش محمّلة
+function lzPack(str){ try{ if(typeof LZString!=='undefined'&&LZString.compressToUTF16){ return 'LZ1:'+LZString.compressToUTF16(str); } }catch(e){} return str; }
+function lzUnpack(str){
+  if(typeof str!=='string') return str;
+  if(str.indexOf('LZ1:')===0){ try{ return (typeof LZString!=='undefined'&&LZString.decompressFromUTF16)?(LZString.decompressFromUTF16(str.slice(4))||''):''; }catch(e){ return ''; } }
+  return str; // غير مضغوط (توافق مع القديم)
+}
 function persistLocal(){
-  try{localStorage.setItem('makhtar_v4',JSON.stringify(DB));}catch(e){}
-  try{localStorage.setItem('makhtar_gw',JSON.stringify(GW));}catch(e){}
-  try{localStorage.setItem('makhtar_pr',JSON.stringify(PROFITS));}catch(e){}
+  try{localStorage.setItem('makhtar_v4',lzPack(JSON.stringify(DB)));}catch(e){}
+  try{localStorage.setItem('makhtar_gw',lzPack(JSON.stringify(GW)));}catch(e){}
+  try{localStorage.setItem('makhtar_pr',lzPack(JSON.stringify(PROFITS)));}catch(e){}
 }
 function save(){
   persistLocal();
@@ -1594,9 +1602,9 @@ function onSyncFail(){
 function onSyncOk(){ hideSyncErr(); }
 function retrySyncNow(){ hideSyncErr(); setSyncUI('syncing'); if(_mkCol){ try{pushChanges();}catch(e){} try{pullAll();}catch(e){} } else { toast('Firebase مش متصل','err'); } }
 function loadLocal(){
-  try{var d=localStorage.getItem('makhtar_v4');if(d)DB=JSON.parse(d);}catch(e){DB=[];}
-  try{var g=localStorage.getItem('makhtar_gw');if(g)GW=JSON.parse(g);}catch(e){GW=[];}
-  try{var p=localStorage.getItem('makhtar_pr');if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
+  try{var d=lzUnpack(localStorage.getItem('makhtar_v4'));if(d)DB=JSON.parse(d);}catch(e){DB=[];}
+  try{var g=lzUnpack(localStorage.getItem('makhtar_gw'));if(g)GW=JSON.parse(g);}catch(e){GW=[];}
+  try{var p=lzUnpack(localStorage.getItem('makhtar_pr'));if(p)PROFITS=JSON.parse(p);}catch(e){PROFITS={total:0,daily:{},monthly:{},log:[]};}
 }
 // ── أدوات تحديث الحالة المحلية حسب الـ id (granular) ──
 function clientExists(id){ return DB.some(function(c){return c.id===id;}); }
@@ -1631,6 +1639,7 @@ function loadCloud(){
       startGranularListeners(); // بعدها المستمع للتحديثات الحية
       startHeartbeat();         // نبضة احتياطية تضمن المزامنة التلقائية
       watchVersion();
+      setTimeout(function(){ try{autoSnapshot('بدء التشغيل'); persistLocal();}catch(e){} }, 2500); // نسخة احتياطية + ضغط التخزين المحلي بعد التحميل
     });
   });
 }
@@ -1866,6 +1875,12 @@ function renderProfitKpis(){
 //  REPORTS — لوحة تقارير وتحليلات
 // ══════════════════════════════════════════════════════
 function fmtLbp(n){ return (Math.round(n||0)).toLocaleString('en-US')+' ل.ل'; }
+function blobSize(str){ try{return new Blob([str||'']).size;}catch(e){return (str||'').length;} }
+function fmtBytes(n){
+  if(n<1024) return n+' بايت';
+  if(n<1048576) return (n/1024).toFixed(1)+' KB';
+  return (n/1048576).toFixed(2)+' MB';
+}
 function renderReports(){
   var box=$id('reportsBox'); if(!box)return;
   var pTotal=PROFITS.total||0, pMonth=profitMonth(), pToday=profitToday();
@@ -1959,6 +1974,40 @@ function renderReports(){
       +'</div>';
   });
   h+='</div>';
+  // ── التخزين ──
+  var dbStr=JSON.stringify(DB), gwStr=JSON.stringify(GW), prStr=JSON.stringify(PROFITS), usStr=JSON.stringify(USERS||{});
+  var cloudBytes=blobSize(dbStr)+blobSize(gwStr)+blobSize(prStr)+blobSize(usStr);
+  var docCount=DB.length+GW.length+4; // عملاء + محافظ + (profits+users+meta+v4)
+  var maxCB=0, maxCName='—';
+  DB.forEach(function(c){ var b=blobSize(JSON.stringify(c)); if(b>maxCB){maxCB=b;maxCName=c.name||'—';} });
+  var lsBytes=0; try{ for(var li=0;li<localStorage.length;li++){ var lk=localStorage.key(li); lsBytes+=blobSize(lk)+blobSize(localStorage.getItem(lk)||''); } }catch(e){}
+  var snapBytes=0; try{ snapBytes=blobSize(localStorage.getItem('makhtar_snaps')||''); }catch(e){}
+  var lzOn = (typeof LZString!=='undefined');
+  var rawLocal = blobSize(dbStr)+blobSize(gwStr)+blobSize(prStr); // الحجم قبل الضغط
+  var storedMain = 0; try{ storedMain=blobSize(localStorage.getItem('makhtar_v4')||'')+blobSize(localStorage.getItem('makhtar_gw')||'')+blobSize(localStorage.getItem('makhtar_pr')||''); }catch(e){}
+  var saved = rawLocal>0 ? Math.max(0,Math.round((1-storedMain/rawLocal)*100)) : 0;
+  var cloudPct=Math.min(100,(cloudBytes/1073741824)*100);   // من 1 جيجا
+  var lsPct=Math.min(100,(lsBytes/5242880)*100);            // من ~5 ميجا
+  var docPct=Math.min(100,(maxCB/1048576)*100);             // أكبر ملف من 1 ميجا
+
+  function bar(pct,color){
+    return '<div style="background:#F1F5F9;border-radius:6px;height:8px;overflow:hidden;margin-top:.4rem"><div style="height:100%;width:'+Math.max(pct,1)+'%;background:'+color+';border-radius:6px"></div></div>';
+  }
+  function srow(lbl,val,sub,pct,color){
+    return '<div style="background:#fff;border:1px solid #E8EDF3;border-radius:12px;padding:.75rem .9rem;margin-bottom:.6rem">'
+      +'<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:.78rem;font-weight:700;color:#0B1F3A">'+lbl+'</span>'
+      +'<span style="font-size:.82rem;font-weight:800;color:'+color+'">'+val+'</span></div>'
+      +(sub?'<div style="font-size:.66rem;color:#94A3B8;margin-top:.15rem">'+sub+'</div>':'')
+      +(pct!=null?bar(pct,color):'')+'</div>';
+  }
+  h+=sectionTitle('💾 التخزين');
+  h+=srow('بيانات السحابة (Firebase)', fmtBytes(cloudBytes), 'من أصل ١ جيجابايت مجاني — '+cloudPct.toFixed(3)+'%', cloudPct, '#2563EB');
+  h+=srow('عدد المستندات', docCount+' مستند', DB.length+' عميل • '+GW.length+' محفظة • ٤ نظام', null, '#0B1F3A');
+  var warn = maxCB>838860; // > 0.8 MB تحذير
+  h+=srow('أكبر ملف عميل'+(warn?' ⚠️':''), fmtBytes(maxCB), (maxCName!=='—'?'العميل: '+maxCName:'')+(warn?' — اقترب من حد ١ ميجا، يُنصح بأرشفة عملياته':' — الحد لكل عميل ١ ميجا'), docPct, warn?'#DC2626':'#0B7A4B');
+  h+=srow('تخزين الجهاز (localStorage)'+(lzOn?' 🗜️':''), fmtBytes(lsBytes), 'من أصل ~٥ ميجا — '+lsPct.toFixed(1)+'%'+(lzOn&&saved>0?' • مضغوط (وفّرنا ~'+saved+'%)':'')+' (مشترك مع تطبيقاتك على نفس النطاق)', lsPct, lsPct>80?'#DC2626':'#F59E0B');
+  h+=srow('النسخ الاحتياطية المحفوظة', fmtBytes(snapBytes), 'آخر ١٠ نسخ تلقائية بهالجهاز', null, '#9333EA');
+  h+='<div style="font-size:.68rem;color:#94A3B8;background:#F8FAFC;border-radius:10px;padding:.6rem .8rem;line-height:1.6;margin-top:.2rem">ℹ️ القراءات والكتابات اليومية ما فينا نقيسها من داخل البرنامج — شوفها بدقة من <b>Firebase Console → Firestore → Usage</b>. هالأرقام فوق تقدير لحجم بياناتك.</div>';
   box.innerHTML=h;
 }
 // حساب رصيد عملة معينة (cur = 'usd'|'lbp'|'all')
@@ -2111,9 +2160,10 @@ function autoSnapshot(reason){
   try{
     if(!DB.length && !GW.length) return; // لا تحفظ نسخة فاضية
     var dStr=JSON.stringify(DB), gStr=JSON.stringify(GW), pStr=JSON.stringify(PROFITS);
+    var dP=lzPack(dStr), gP=lzPack(gStr), pP=lzPack(pStr);
     var snaps=getSnaps();
-    if(snaps.length){ var last=snaps[snaps.length-1]; if(last && last._d===dStr && last._g===gStr) return; } // ما تغيّر شي
-    snaps.push({ts:Date.now(), reason:reason||'تلقائي', nC:DB.length, nW:GW.length, _d:dStr, _g:gStr, _p:pStr});
+    if(snaps.length){ var last=snaps[snaps.length-1]; if(last && last._d===dP && last._g===gP) return; } // ما تغيّر شي
+    snaps.push({ts:Date.now(), reason:reason||'تلقائي', nC:DB.length, nW:GW.length, _d:dP, _g:gP, _p:pP});
     while(snaps.length>SNAP_MAX) snaps.shift();
     saveSnaps(snaps);
   }catch(e){console.warn('autoSnapshot',e);}
@@ -2145,7 +2195,7 @@ function restoreSnap(ts){
     'سيتم استبدال كل البيانات الحالية بـ '+s.nC+' عميل و '+s.nW+' محفظة من هالنسخة، ومزامنتها على كل الأجهزة. متأكد؟',
     function(){
       autoSnapshot('قبل الاسترجاع'); // حتى تقدر ترجع للحالة الحالية
-      try{ DB=JSON.parse(s._d||'[]'); GW=JSON.parse(s._g||'[]'); PROFITS=JSON.parse(s._p||'{}'); }
+      try{ DB=JSON.parse(lzUnpack(s._d)||'[]'); GW=JSON.parse(lzUnpack(s._g)||'[]'); PROFITS=JSON.parse(lzUnpack(s._p)||'{}'); }
       catch(e){ toast('فشل قراءة النسخة','err'); return; }
       ensureOpCodes(true); migrateWalletApplied(true);
       save(); activeId=null; buildSidebar();
@@ -2157,7 +2207,7 @@ function restoreSnap(ts){
 }
 function exportBackup(){
   try{
-    var payload={app:'makhtar',version:'7.0',exportedAt:new Date().toISOString(),
+    var payload={app:'makhtar',version:'7.3',exportedAt:new Date().toISOString(),
       data:DB, gw:GW, pr:PROFITS};
     var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
