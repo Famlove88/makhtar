@@ -751,7 +751,7 @@ body.role-cashier .mgr-only{display:none !important;}
     <div class="lf"><label>كلمة المرور</label>
       <input id="lp" type="password" placeholder="••••••••" autocomplete="current-password"/></div>
     <button type="button" class="btn-login" onclick="doLogin()">🚀 دخول</button>
-    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 6.9 • مزامنة لايف ✓</div>
+    <div style="text-align:center;margin-top:1rem;font-size:.72rem;color:var(--g3,#94A3B8);font-weight:700">الإصدار 7.0 • مزامنة لايف ✓</div>
   </div>
 </div>
 
@@ -782,6 +782,7 @@ body.role-cashier .mgr-only{display:none !important;}
       </div>
       <button onclick="openBackup()" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(168,85,247,.15);color:#C084FC;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🕐 النسخ التلقائية</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackupFile(this)"/>
+      <button onclick="openUsers()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(13,148,136,.15);color:#14B8A6;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">👥 إدارة المستخدمين</button>
       <button class="btn-logout" onclick="doLogout()">⏏ تسجيل الخروج</button>
     </div>
   </aside>
@@ -1286,6 +1287,26 @@ body.role-cashier .mgr-only{display:none !important;}
   </div>
 </div>
 
+<!-- USER MANAGEMENT -->
+<div class="overlay" id="mUsers">
+  <div class="modal" style="max-width:460px">
+    <div class="modal-hd"><h3>👥 إدارة المستخدمين</h3><button class="modal-x" onclick="closeModal('mUsers')">✕</button></div>
+    <div style="background:#F4F7FB;border-radius:12px;padding:.85rem;margin-bottom:.9rem">
+      <div style="font-size:.82rem;font-weight:800;color:#0B1F3A;margin-bottom:.6rem">➕ مستخدم جديد</div>
+      <input id="nuName" placeholder="الاسم (مثلاً: أحمد)" style="width:100%;padding:.55rem .7rem;margin-bottom:.5rem;border:1px solid #D7E0EC;border-radius:9px;font-family:inherit;font-size:.85rem;box-sizing:border-box"/>
+      <input id="nuUser" placeholder="اسم الدخول (username)" autocomplete="off" style="width:100%;padding:.55rem .7rem;margin-bottom:.5rem;border:1px solid #D7E0EC;border-radius:9px;font-family:inherit;font-size:.85rem;box-sizing:border-box"/>
+      <input id="nuPw" placeholder="كلمة السر" autocomplete="new-password" style="width:100%;padding:.55rem .7rem;margin-bottom:.5rem;border:1px solid #D7E0EC;border-radius:9px;font-family:inherit;font-size:.85rem;box-sizing:border-box"/>
+      <select id="nuRole" style="width:100%;padding:.55rem .7rem;margin-bottom:.6rem;border:1px solid #D7E0EC;border-radius:9px;font-family:inherit;font-size:.85rem;box-sizing:border-box;background:#fff">
+        <option value="cashier">موظف صندوق (عمليات وأرصدة فقط)</option>
+        <option value="manager">مدير (صلاحية كاملة)</option>
+      </select>
+      <button onclick="addUser()" style="width:100%;padding:.6rem;border:none;border-radius:9px;background:#0B7A4B;color:#fff;font-weight:800;font-size:.85rem;cursor:pointer;font-family:inherit">➕ إضافة المستخدم</button>
+    </div>
+    <div style="font-size:.8rem;font-weight:800;color:#0B1F3A;margin-bottom:.5rem">المستخدمون الحاليون</div>
+    <div id="usersList" style="max-height:38vh;overflow-y:auto"></div>
+  </div>
+</div>
+
 <!-- AUTO BACKUP -->
 <div class="overlay" id="mBackup">
   <div class="modal" style="max-width:440px">
@@ -1334,14 +1355,14 @@ body.role-cashier .mgr-only{display:none !important;}
 // ══════════════════════════════════════════════════════
 //  Firebase — اختياري (البرنامج يعمل بدونه)
 // ══════════════════════════════════════════════════════
-console.log('%c مكتب المختار — الإصدار 6.9 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
+console.log('%c مكتب المختار — الإصدار 7.0 (مزامنة لايف) ','background:#0B1F3A;color:#fff;padding:4px 8px;border-radius:4px;font-weight:bold');
 var _fbDoc=null;
 var _metaDoc=null;
-var _clCol=null, _wlCol=null, _prDoc=null, _mkCol=null;
+var _clCol=null, _wlCol=null, _prDoc=null, _mkCol=null, _usersDoc=null;
 var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=69;
+var APP_BUILD=70;
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
 try{
@@ -1366,6 +1387,7 @@ try{
   _metaDoc=db.collection('makhtar').doc('meta');     // النسخة/التحديث
   _mkCol=db.collection('makhtar');                   // نفس المجموعة الموجودة — العملاء cl_ والمحافظ wl_
   _prDoc=db.collection('makhtar').doc('profits');    // الأرباح
+  _usersDoc=db.collection('makhtar').doc('users');   // المستخدمون وصلاحياتهم
   console.log('🔥 Firebase: متصل — المزامنة جاهزة');
 }catch(e){console.warn('🔥 Firebase N/A — offline mode',e);}
 
@@ -1380,14 +1402,41 @@ document.addEventListener('visibilitychange', function(){
 // ══════════════════════════════════════════════════════
 //  STATE
 // ══════════════════════════════════════════════════════
-// الحسابات وصلاحياتها — غيّر الأسماء وكلمات السر حسب موظفينك
-// role: 'manager' = صلاحية كاملة (يشوف الأرباح والتقارير ويحذف) | 'cashier' = موظف صندوق (عمليات وأرصدة فقط)
-var USERS={
+// الحسابات وصلاحياتها — تُدار من داخل البرنامج (شاشة إدارة المستخدمين)
+// role: 'manager' = صلاحية كاملة | 'cashier' = موظف صندوق (عمليات وأرصدة فقط)
+var DEFAULT_USERS={
   'admin':  {pw:'1234', role:'manager', name:'المدير'},
   'مختار':  {pw:'0000', role:'manager', name:'المختار'},
   'صندوق1': {pw:'1111', role:'cashier', name:'موظف صندوق 1'},
   'صندوق2': {pw:'2222', role:'cashier', name:'موظف صندوق 2'}
 };
+var USERS={}, _syncUsers='';
+function loadUsers(){
+  try{ var s=localStorage.getItem('makhtar_users'); if(s){ var o=JSON.parse(s); if(o&&Object.keys(o).length){ USERS=o; return; } } }catch(e){}
+  USERS=JSON.parse(JSON.stringify(DEFAULT_USERS));
+  try{ localStorage.setItem('makhtar_users',JSON.stringify(USERS)); }catch(e){}
+}
+loadUsers();
+function saveUsers(){
+  try{ localStorage.setItem('makhtar_users',JSON.stringify(USERS)); }catch(e){}
+  if(_usersDoc){
+    var j=JSON.stringify(USERS); _syncUsers=j;
+    try{ _usersDoc.set({j:j,u:Date.now()}); }catch(e){}
+    try{ _myRev=Date.now()+'_'+Math.random().toString(36).slice(2,7); _metaDoc.set({rev:_myRev},{merge:true}); }catch(e){}
+  }
+}
+// جلب المستخدمين من السحابة عند بدء التشغيل (قبل تسجيل الدخول) حتى يقدر أي مستخدم جديد يدخل من أي جهاز
+function fetchUsersEarly(){
+  if(!_usersDoc)return;
+  try{ _usersDoc.get().then(function(s){
+    if(s.exists && s.data() && s.data().j){
+      try{ var o=JSON.parse(s.data().j); if(o&&Object.keys(o).length){ USERS=o; _syncUsers=s.data().j; localStorage.setItem('makhtar_users',s.data().j); } }catch(e){}
+    } else { // أول مرة — ارفع الافتراضي للسحابة
+      saveUsers();
+    }
+  }).catch(function(){}); }catch(e){}
+}
+fetchUsersEarly();
 var CUR_ROLE='manager', CUR_USER='';
 // اسم المحل — غيّرو متى ما بدّك
 var SHOP_NAME='مكتب المختار للصيرفة';
@@ -1590,6 +1639,7 @@ function applyCollectionSnap(snap){
   var changed=false, ids={}, wids={};
   snap.forEach(function(doc){
     var did=doc.id;
+    if(did==='users'){ var uj=doc.data().j; if(uj&&_syncUsers!==uj){_syncUsers=uj;try{USERS=JSON.parse(uj);localStorage.setItem('makhtar_users',uj);}catch(e){}} return; }
     if(did==='profits'){ var pj=doc.data().j; if(pj&&_syncPr!==pj){_syncPr=pj;try{PROFITS=JSON.parse(pj);changed=true;}catch(e){}} return; }
     if(did.indexOf('cl_')===0){ var cid=did.slice(3); ids[cid]=1; var cj=doc.data().j; if(cj&&_syncCl[cid]!==cj){_syncCl[cid]=cj;try{upsertClientLocal(JSON.parse(cj));changed=true;}catch(e){}} return; }
     if(did.indexOf('wl_')===0){ var wid=did.slice(3); wids[wid]=1; var wj=doc.data().j; if(wj&&_syncWl[wid]!==wj){_syncWl[wid]=wj;try{upsertWalletLocal(JSON.parse(wj));changed=true;}catch(e){}} return; }
@@ -1630,6 +1680,12 @@ function startGranularListeners(){
     snap.docChanges().forEach(function(ch){
       var did=ch.doc.id;
       if(did==='v4'||did==='meta')return; // تجاهل القديم والميتا
+      if(did==='users'){
+        if(ch.type==='removed')return;
+        var ud=ch.doc.data(); var uj=ud&&ud.j; if(!uj||_syncUsers===uj)return;
+        _syncUsers=uj; try{USERS=JSON.parse(uj);localStorage.setItem('makhtar_users',uj);}catch(e){}
+        return;
+      }
       if(did==='profits'){
         if(ch.type==='removed')return;
         var pd=ch.doc.data(); var pj=pd&&pd.j; if(!pj||_syncPr===pj)return;
@@ -1940,6 +1996,43 @@ function calcBalAll(c){ return calcBalAllCur(c,'usd'); }
 // ══════════════════════════════════════════════════════
 //  LOGIN / LOGOUT
 // ══════════════════════════════════════════════════════
+// ── إدارة المستخدمين (للمدير فقط) ──
+function openUsers(){ if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;} renderUsersList(); openModal('mUsers'); }
+function renderUsersList(){
+  var box=$id('usersList'); if(!box)return;
+  var keys=Object.keys(USERS), h='';
+  keys.forEach(function(u){
+    var d=USERS[u]||{}, isMgr=d.role==='manager';
+    h+='<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem;border:1px solid #E8EDF3;border-radius:10px;margin-bottom:.5rem;background:#fff">'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem;color:#0B1F3A">'+(d.name||u)+'</div>'
+      +'<div style="font-size:.7rem;color:#94A3B8">الدخول: '+u+' • '+(isMgr?'<span style="color:#0B7A4B;font-weight:800">مدير</span>':'<span style="color:#2563EB;font-weight:800">موظف صندوق</span>')+'</div></div>'
+      +(u===CUR_USER
+        ? '<span style="font-size:.66rem;color:#94A3B8;flex-shrink:0">(أنت)</span>'
+        : '<button onclick="delUser(\''+u+'\')" style="background:rgba(220,38,38,.1);color:#DC2626;border:none;padding:.35rem .65rem;border-radius:7px;font-weight:700;font-size:.72rem;cursor:pointer;font-family:inherit;flex-shrink:0">حذف</button>')
+      +'</div>';
+  });
+  box.innerHTML=h;
+}
+function addUser(){
+  var u=($v('nuUser')||'').trim(), p=($v('nuPw')||'').trim();
+  var nm=($v('nuName')||'').trim(), role=$v('nuRole')||'cashier';
+  if(!u||!p){ toast('اكتب اسم دخول وكلمة سر','err'); return; }
+  if(USERS[u]){ toast('اسم الدخول موجود مسبقاً','err'); return; }
+  USERS[u]={pw:p, role:role, name:nm||u};
+  saveUsers(); renderUsersList();
+  var a=$id('nuUser'),b=$id('nuPw'),c=$id('nuName'); if(a)a.value='';if(b)b.value='';if(c)c.value='';
+  toast('تمت إضافة المستخدم ✓','ok');
+}
+function delUser(u){
+  if(u===CUR_USER){ toast('ما فيك تحذف حالك','err'); return; }
+  if(!USERS[u]){ return; }
+  var mgrs=Object.keys(USERS).filter(function(k){return USERS[k].role==='manager';});
+  if(USERS[u].role==='manager' && mgrs.length<=1){ toast('لازم يضل مدير واحد عالأقل','err'); return; }
+  confirm2('حذف مستخدم','بدّك تحذف "'+(USERS[u].name||u)+'"؟ ما رح يقدر يدخل بعد هلأ.',function(){
+    delete USERS[u]; saveUsers(); renderUsersList();
+    toast('تم حذف المستخدم ✓','ok');
+  });
+}
 function doLogin(){
   var u=($v('lu')||'').trim();
   var p=($v('lp')||'').trim();
@@ -1963,6 +2056,7 @@ function doLogin(){
   }else{
     if(err)err.style.display='block';
     var lp=$id('lp');if(lp)lp.value='';
+    fetchUsersEarly(); // لو مستخدم جديد انضاف من جهاز تاني — حدّث القائمة للمحاولة الجاية
   }
 }
 $id('lp').addEventListener('keydown',function(e){if(e.key==='Enter')doLogin();});
@@ -2063,7 +2157,7 @@ function restoreSnap(ts){
 }
 function exportBackup(){
   try{
-    var payload={app:'makhtar',version:'6.9',exportedAt:new Date().toISOString(),
+    var payload={app:'makhtar',version:'7.0',exportedAt:new Date().toISOString(),
       data:DB, gw:GW, pr:PROFITS};
     var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
