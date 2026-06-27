@@ -2266,14 +2266,16 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
       $id('appWrap').style.display='block';
       CUR_USER=saved; CUR_ROLE=USERS[saved].role||'manager'; applyRole();
       loadLocal();
-      ensureOpCodes(false);
-      migrateWalletApplied(false);
-      buildSidebar();
-      if(DB.length)pickClient(DB[0].id);
-      var td=dateStr(new Date());
-      ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
-      var ot=$id('opTime');if(ot)ot.value=nowTime();
-      loadCloud();
+      try{
+        ensureOpCodes(false);
+        migrateWalletApplied(false);
+        buildSidebar();
+        if(DB.length)pickClient(DB[0].id);
+        var td=dateStr(new Date());
+        ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
+        var ot=$id('opTime');if(ot)ot.value=nowTime();
+      }catch(e){ console.warn('autoLogin render error (تجاهلناه حتى تشتغل المزامنة):',e); }
+      loadCloud();   // ← يشتغل دايماً حتى لو فشل الرسم فوق
     }
   }catch(e){}
 })();
