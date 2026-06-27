@@ -1845,22 +1845,25 @@ function startGranularListeners(){
 // ── ترحيل لمرة واحدة: تقسيم الوثيقة القديمة لوثائق cl_/wl_ بنفس المجموعة ──
 function migrateToGranular(done){
   if(!_mkCol||!_fbDoc){done();return;}
-  _fbDoc.get({source:'server'}).then(function(snap){
-    if(!snap.exists){ done(); return; }
+  var _done=false;
+  function finish(){ if(_done)return; _done=true; done(); }
+  setTimeout(finish, 4000);   // ضمان: المزامنة ما بتتعلّق أبداً لو تأخّر فحص الترحيل (نت متقطّع)
+  _fbDoc.get().then(function(snap){          // بدون {source:'server'} — يستعمل الكاش = فوري وما بيتعلّق
+    if(!snap.exists){ finish(); return; }
     var d=snap.data();
-    if(d._migrated){ done(); return; } // مُرحّل سابقاً
+    if(d._migrated){ finish(); return; } // مُرحّل سابقاً
     var oldDB=[], oldGW=[], oldPR={};
     try{oldDB=JSON.parse(d.data||'[]');}catch(e){}
     try{oldGW=JSON.parse(d.gw||'[]');}catch(e){}
     try{oldPR=JSON.parse(d.pr||'{}');}catch(e){}
-    if(!oldDB.length&&!oldGW.length){ try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){} done(); return; }
+    if(!oldDB.length&&!oldGW.length){ try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){} finish(); return; }
     console.log('🔀 ترحيل لأول مرة: '+oldDB.length+' عميل، '+oldGW.length+' محفظة');
     oldDB.forEach(function(c){ if(c&&c.id)try{_mkCol.doc('cl_'+c.id).set({j:JSON.stringify(c),u:Date.now()});}catch(e){} });
     oldGW.forEach(function(w){ if(w&&w.id)try{_mkCol.doc('wl_'+w.id).set({j:JSON.stringify(w),u:Date.now()});}catch(e){} });
     try{_prDoc.set({j:JSON.stringify(oldPR||{}),u:Date.now()});}catch(e){}
     try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){}
-    setTimeout(done,900);
-  }).catch(function(e){console.warn('migrate read',e);done();});
+    setTimeout(finish,900);
+  }).catch(function(e){console.warn('migrate read',e);finish();});
 }
 // ── مؤشر حالة المزامنة ──
 function setSyncUI(state){
