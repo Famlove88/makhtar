@@ -1390,8 +1390,8 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=79;
-var MIN_BUILD=75;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
+var APP_BUILD=80;
+var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
@@ -1452,7 +1452,7 @@ function saveUsers(){
   try{ localStorage.setItem('makhtar_users',JSON.stringify(USERS)); }catch(e){}
   if(_usersDoc){
     var j=JSON.stringify(USERS); _syncUsers=j;
-    try{ _usersDoc.set({j:j,u:Date.now()}); }catch(e){}
+    try{ _usersDoc.set({j:j,u:Date.now(),_b:APP_BUILD}); }catch(e){}
     try{ _myRev=Date.now()+'_'+Math.random().toString(36).slice(2,7); _metaDoc.set({rev:_myRev},{merge:true}); }catch(e){}
   }
 }
@@ -1583,7 +1583,7 @@ function pushChanges(){
     if(!c||!c.id)return; ids[c.id]=1;
     var j=JSON.stringify(c);
     if(_syncCl[c.id]!==j){ _syncCl[c.id]=j; n++;
-      try{ addW('cl_'+c.id, _mkCol.doc('cl_'+c.id).set({j:j,u:Date.now()})); }catch(e){}
+      try{ addW('cl_'+c.id, _mkCol.doc('cl_'+c.id).set({j:j,u:Date.now(),_b:APP_BUILD})); }catch(e){}
     }
   });
   Object.keys(_syncCl).forEach(function(id){
@@ -1593,7 +1593,7 @@ function pushChanges(){
     if(!w||!w.id)return; wids[w.id]=1;
     var j=JSON.stringify(w);
     if(_syncWl[w.id]!==j){ _syncWl[w.id]=j; n++;
-      try{ addW('wl_'+w.id, _mkCol.doc('wl_'+w.id).set({j:j,u:Date.now()})); }catch(e){}
+      try{ addW('wl_'+w.id, _mkCol.doc('wl_'+w.id).set({j:j,u:Date.now(),_b:APP_BUILD})); }catch(e){}
     }
   });
   Object.keys(_syncWl).forEach(function(id){
@@ -1601,7 +1601,7 @@ function pushChanges(){
   });
   var pj=JSON.stringify(PROFITS);
   if(_syncPr!==pj){ _syncPr=pj; n++;
-    try{ addW('pr', _prDoc.set({j:pj,u:Date.now()})); }catch(e){}
+    try{ addW('pr', _prDoc.set({j:pj,u:Date.now(),_b:APP_BUILD})); }catch(e){}
   }
   // أعد محاولة الحذف المعلّق (فشل سابقاً)
   Object.keys(_pendDel).forEach(function(did){ try{_mkCol.doc(did).delete().then(function(){delete _pendDel[did];}).catch(function(){});}catch(e){} });
@@ -1858,9 +1858,9 @@ function migrateToGranular(done){
     try{oldPR=JSON.parse(d.pr||'{}');}catch(e){}
     if(!oldDB.length&&!oldGW.length){ try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){} finish(); return; }
     console.log('🔀 ترحيل لأول مرة: '+oldDB.length+' عميل، '+oldGW.length+' محفظة');
-    oldDB.forEach(function(c){ if(c&&c.id)try{_mkCol.doc('cl_'+c.id).set({j:JSON.stringify(c),u:Date.now()});}catch(e){} });
-    oldGW.forEach(function(w){ if(w&&w.id)try{_mkCol.doc('wl_'+w.id).set({j:JSON.stringify(w),u:Date.now()});}catch(e){} });
-    try{_prDoc.set({j:JSON.stringify(oldPR||{}),u:Date.now()});}catch(e){}
+    oldDB.forEach(function(c){ if(c&&c.id)try{_mkCol.doc('cl_'+c.id).set({j:JSON.stringify(c),u:Date.now(),_b:APP_BUILD});}catch(e){} });
+    oldGW.forEach(function(w){ if(w&&w.id)try{_mkCol.doc('wl_'+w.id).set({j:JSON.stringify(w),u:Date.now(),_b:APP_BUILD});}catch(e){} });
+    try{_prDoc.set({j:JSON.stringify(oldPR||{}),u:Date.now(),_b:APP_BUILD});}catch(e){}
     try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){}
     setTimeout(finish,900);
   }).catch(function(e){console.warn('migrate read',e);finish();});
