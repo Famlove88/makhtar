@@ -1390,7 +1390,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=80;
+var APP_BUILD=81;
 var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -1398,12 +1398,12 @@ var _lastRev=0, _myRev=0, _hbT=null;
 try{
   // Firebase تم تحميله عبر CDN في رأس الصفحة
   firebase.initializeApp({
-    apiKey:'AIzaSyBfDJB9x8MF-7qQigmzanTMlwqm3jWlqcU',
-    authDomain:'financemkhotar.firebaseapp.com',
-    projectId:'financemkhotar',
-    storageBucket:'financemkhotar.firebasestorage.app',
-    messagingSenderId:'84012838970',
-    appId:'1:84012838970:web:17fb858604520c88704503'
+    apiKey:'AIzaSyAaTYLQ7HE9_0MH6S9_2vq_RSVKZNJM5cA',
+    authDomain:'makhtar2-920fc.firebaseapp.com',
+    projectId:'makhtar2-920fc',
+    storageBucket:'makhtar2-920fc.firebasestorage.app',
+    messagingSenderId:'157498587013',
+    appId:'1:157498587013:web:1c6f7cac3f1f70802176ec'
   });
   var db=firebase.firestore();
   // إعداد للتوافق مع شبكات الموبايل
@@ -1842,29 +1842,9 @@ function startGranularListeners(){
   },function(e){console.warn('❌ listener',e);setSyncUI(navigator.onLine?'error':'offline');});
   }catch(e){console.warn('listener sub',e);}
 }
-// ── ترحيل لمرة واحدة: تقسيم الوثيقة القديمة لوثائق cl_/wl_ بنفس المجموعة ──
-function migrateToGranular(done){
-  if(!_mkCol||!_fbDoc){done();return;}
-  var _done=false;
-  function finish(){ if(_done)return; _done=true; done(); }
-  setTimeout(finish, 4000);   // ضمان: المزامنة ما بتتعلّق أبداً لو تأخّر فحص الترحيل (نت متقطّع)
-  _fbDoc.get().then(function(snap){          // بدون {source:'server'} — يستعمل الكاش = فوري وما بيتعلّق
-    if(!snap.exists){ finish(); return; }
-    var d=snap.data();
-    if(d._migrated){ finish(); return; } // مُرحّل سابقاً
-    var oldDB=[], oldGW=[], oldPR={};
-    try{oldDB=JSON.parse(d.data||'[]');}catch(e){}
-    try{oldGW=JSON.parse(d.gw||'[]');}catch(e){}
-    try{oldPR=JSON.parse(d.pr||'{}');}catch(e){}
-    if(!oldDB.length&&!oldGW.length){ try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){} finish(); return; }
-    console.log('🔀 ترحيل لأول مرة: '+oldDB.length+' عميل، '+oldGW.length+' محفظة');
-    oldDB.forEach(function(c){ if(c&&c.id)try{_mkCol.doc('cl_'+c.id).set({j:JSON.stringify(c),u:Date.now(),_b:APP_BUILD});}catch(e){} });
-    oldGW.forEach(function(w){ if(w&&w.id)try{_mkCol.doc('wl_'+w.id).set({j:JSON.stringify(w),u:Date.now(),_b:APP_BUILD});}catch(e){} });
-    try{_prDoc.set({j:JSON.stringify(oldPR||{}),u:Date.now(),_b:APP_BUILD});}catch(e){}
-    try{_fbDoc.set({_migrated:true},{merge:true});}catch(e){}
-    setTimeout(finish,900);
-  }).catch(function(e){console.warn('migrate read',e);finish();});
-}
+// ── الترحيل خلص من زمان — مُلغى نهائياً حتى ما يرجع يقرا v4 أو يدوس الداتا الجديدة ──
+// (كان أي فتح بيعيد الترحيل من نسخة v4 قديمة ويرجّع الحساب — هلق ما عاد يشتغل أبداً)
+function migrateToGranular(done){ done(); }
 // ── مؤشر حالة المزامنة ──
 function setSyncUI(state){
   var el=$id('syncBadge');if(!el)return;
@@ -3797,6 +3777,30 @@ function sendWACur(cur){
     + LINE;
 
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ══════════════════════════════════════════════════════
+//  Service Worker — تحديث تلقائي (network-first)
+//  بيخلّي كل جهاز ياخد آخر نسخة لحالو بدون شاشة "حدّث" وبدون قفل
+// ══════════════════════════════════════════════════════
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', function () {
+    var refreshing = false;
+    // إذا الصفحة أصلاً تحت سيطرة SW (يعني مش أول تثبيت) → أي SW جديد بيسيطر = reload ناعم تلقائي
+    if (navigator.serviceWorker.controller) {
+      navigator.serviceWorker.addEventListener('controllerchange', function () {
+        if (refreshing) return; refreshing = true;
+        location.reload();
+      });
+    }
+    navigator.serviceWorker.register('sw.js').then(function (reg) {
+      reg.update();                                        // افحص تحديث فوراً
+      setInterval(function () { reg.update(); }, 60000);   // وكل دقيقة
+      document.addEventListener('visibilitychange', function () {
+        if (document.visibilityState === 'visible') reg.update();  // وكل ما يرجع للتطبيق
+      });
+    }).catch(function (e) { console.warn('SW reg failed', e); });
+  });
 }
 
 </script>
