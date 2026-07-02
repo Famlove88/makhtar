@@ -719,6 +719,11 @@ body.role-cashier .mgr-only{display:none !important;}
 .wchip-add{border-style:dashed;border-color:#93b4e8;color:#2563EB;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.1rem}
 @media(max-width:640px){.ah-shop{font-size:.85rem}.ah-info{font-size:.68rem;gap:.55rem;width:100%;justify-content:space-between}}
 
+/* ═══ علامة المراجعة (دبل شيك) ═══ */
+.rvbtn{width:26px;height:26px;min-width:26px;border-radius:8px;border:2px solid var(--g2);background:transparent;cursor:pointer;font-weight:900;font-size:.85rem;color:transparent;font-family:inherit;line-height:1;padding:0;transition:all .15s}
+.rvbtn:hover{border-color:var(--green)}
+.rvbtn.rv-on{background:var(--green);border-color:var(--green);color:#fff}
+tr.rv-row td{background:rgba(34,197,94,.07)}
 </style>
 </head>
 <body>
@@ -980,11 +985,14 @@ body.role-cashier .mgr-only{display:none !important;}
         <div class="box">
           <div class="box-hd">
             <div class="box-title">جدول الحركات</div>
-            <button class="btn btn-wa btn-sm" onclick="sendWA()">📤 واتساب</button>
+            <div style="display:flex;gap:.4rem;align-items:center">
+              <button class="btn btn-ghost btn-sm" onclick="clearReviews()" title="مسح كل علامات المراجعة لهذا العميل">↺ مسح المراجعة</button>
+              <button class="btn btn-wa btn-sm" onclick="sendWA()">📤 واتساب</button>
+            </div>
           </div>
           <div class="tbl-wrap">
-            <table><thead><tr><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th><th>الرصيد</th></tr></thead>
-            <tbody id="stmtTbody"><tr class="empty-row"><td colspan="9">لا توجد نتائج</td></tr></tbody></table>
+            <table><thead><tr><th style="width:34px" title="علامة مراجعة">✔</th><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>الحالة</th><th>ملاحظة</th><th>الرصيد</th></tr></thead>
+            <tbody id="stmtTbody"><tr class="empty-row"><td colspan="10">لا توجد نتائج</td></tr></tbody></table>
           </div>
         </div>
       </div>
@@ -1390,7 +1398,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=81;
+var APP_BUILD=82;
 var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -2619,6 +2627,8 @@ function refreshDash(){
   updatePendDot();
 }
 document.addEventListener('click',function(e){
+  var rv=e.target.closest('[data-rv]');
+  if(rv){e.stopPropagation();toggleReview(rv.dataset.rv,rv);return;}
   var row=e.target.closest('[data-oid]');
   if(row&&!e.target.closest('button')){
     // لا تفتح التعديل من الداشبورد — فقط من الكشف وقائمة التأكيد
@@ -2628,6 +2638,42 @@ document.addEventListener('click',function(e){
   var qc=e.target.closest('[data-qc]');
   if(qc){e.stopPropagation();doQuickConfirm(qc.dataset.qc);}
 });
+
+// ═══ علامة المراجعة (دبل شيك للتدقيق) ═══
+function toggleReview(id,btn){
+  var c=client();if(!c)return;
+  var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
+  if(op.rv){delete op.rv;}else{op.rv=1;}
+  op.updatedAt=Date.now();          // حتى تتزامن العلامة على باقي الأجهزة
+  save();
+  // تحديث فوري بالمكان — بدون إعادة رسم الجدول (ما بيقفز السكرول)
+  if(btn){
+    btn.className='rvbtn'+(op.rv?' rv-on':'');
+    var tr=btn.closest('tr');if(tr)tr.className=op.rv?'rv-row':'';
+  }
+  // تحديث العدّاد فقط
+  var tb=$id('stmtTbody');
+  if(tb){
+    var all=tb.querySelectorAll('.rvbtn').length;
+    var on=tb.querySelectorAll('.rvbtn.rv-on').length;
+    var fi=$id('fInfo');
+    if(fi&&fi.textContent){
+      fi.textContent=fi.textContent.replace(/ \| ✔ راجعت: \d+\/\d+/,'');
+      if(on)fi.textContent+=' | ✔ راجعت: '+on+'/'+all;
+    }
+  }
+}
+function clearReviews(){
+  var c=client();if(!c)return;
+  var marked=(c.ops||[]).filter(function(o){return o.rv;});
+  if(!marked.length){toast('ما في علامات مراجعة لمسحها','inf');return;}
+  confirm2('↺ مسح علامات المراجعة','رح تنمسح علامات المراجعة ('+marked.length+') لهذا العميل — حتى تبلّش مراجعة جديدة. متابعة؟',function(){
+    var now=Date.now();
+    marked.forEach(function(o){delete o.rv;o.updatedAt=now;});
+    save();renderStmt();
+    toast('↺ انمسحت علامات المراجعة','ok');
+  });
+}
 
 // ══════════════════════════════════════════════════════
 //  ACC KPIs
@@ -3061,11 +3107,13 @@ function renderStmt(){
   chrono.forEach(function(o){run+=o.type==='in'?o.amount:-o.amount;runMap[o.id]=run;});
   var tIn=ops.filter(function(o){return o.type==='in';}).reduce(function(s,o){return s+o.amount;},0);
   var tOut=ops.filter(function(o){return o.type==='out';}).reduce(function(s,o){return s+o.amount;},0);
-  $set('fInfo',ops.length?ops.length+' نتيجة — دخول: '+fmt(tIn)+' | خروج: '+fmt(tOut)+' | صافي: '+fmt(tIn-tOut):'لا توجد نتائج');
+  var rvN=ops.filter(function(o){return o.rv;}).length;
+  $set('fInfo',ops.length?ops.length+' نتيجة — دخول: '+fmt(tIn)+' | خروج: '+fmt(tOut)+' | صافي: '+fmt(tIn-tOut)+(rvN?' | ✔ راجعت: '+rvN+'/'+ops.length:''):'لا توجد نتائج');
   var tb=$id('stmtTbody');if(!tb)return;
   tb.innerHTML=ops.length?ops.map(function(o){
     var rb=runMap[o.id];
-    return '<tr data-oid="'+o.id+'">'
+    return '<tr data-oid="'+o.id+'"'+(o.rv?' class="rv-row"':'')+'>'
+      +'<td><button class="rvbtn'+(o.rv?' rv-on':'')+'" data-rv="'+o.id+'" title="علامة مراجعة">✓</button></td>'
       +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(o.time||'')+'</span></td>'
       +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
@@ -3076,7 +3124,7 @@ function renderStmt(){
       +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
       +'<td>'+(rb!=null?'<span class="'+(rb>=0?'v-in':'v-out')+'">'+fmt(rb)+'</span>':'—')+'</td>'
       +'</tr>';}).join('')
-    :'<tr class="empty-row"><td colspan="9">لا توجد نتائج مطابقة</td></tr>';
+    :'<tr class="empty-row"><td colspan="10">لا توجد نتائج مطابقة</td></tr>';
 }
 
 // ══════════════════════════════════════════════════════
