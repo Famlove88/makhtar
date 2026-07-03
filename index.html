@@ -1131,6 +1131,7 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
     <div class="modal-body">
       <input type="hidden" id="eId"/>
       <div style="display:flex;justify-content:flex-end;margin-bottom:.7rem"><span class="code-badge" id="eCode">—</span></div>
+      <div id="eMeta" style="display:none;background:var(--g1,#f3f4f6);border-radius:10px;padding:.5rem .8rem;margin-bottom:.8rem;font-size:.72rem;color:var(--g3);line-height:1.9"></div>
 
       <!-- نوع العملية -->
       <div class="fg">
@@ -1398,7 +1399,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=83;
+var APP_BUILD=84;
 var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -2827,6 +2828,7 @@ function doSaveOp(){
     walletName:wName,
     commission:opComm,  // العمولة المسجلة على العميل
     applied:false,
+    createdAt:Date.now(),   // 📥 وقت الإدخال الفعلي عالبرنامج — تلقائي من ساعة الجهاز
     updatedAt:Date.now()
   };
   c.ops.push(op);
@@ -2905,6 +2907,15 @@ function openEdit(id){
 
   $id('eId').value=id;
   $set('eCode',padCode(op.code));
+  // 🕒 الأوقات التلقائية: وقت الإدخال الفعلي + وقت التأكيد (للتدقيق — من ساعة الجهاز، مش يدوي)
+  var mEl=$id('eMeta');
+  if(mEl){
+    var mh='';
+    if(op.createdAt)mh+='<div>📥 دُخّلت عالبرنامج فعلياً: <b style="color:var(--navy)">'+fmtCAt(op.createdAt)+'</b></div>';
+    if(op.confirmedAt)mh+='<div>✅ تأكّدت: <b style="color:var(--green)">'+fmtCAt(op.confirmedAt)+'</b></div>';
+    mEl.innerHTML=mh;
+    mEl.style.display=mh?'block':'none';
+  }
   $id('eDate').value=op.date;
   $id('eTime').value=op.time||'';
   $id('eAmt').value=op.amount;

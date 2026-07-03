@@ -7,7 +7,7 @@
    ⚠️ مهم: بدّل رقم CACHE_VERSION بكل deploy جديد (مع APP_BUILD).
    ═══════════════════════════════════════════════════════════════ */
 
-const CACHE_VERSION = 'makhtar-v83';          // ← بدّل الرقم بكل deploy
+const CACHE_VERSION = 'makhtar-v84';          // ← بدّل الرقم بكل deploy
 const CORE = ['./', './index.html'];
 
 // المضيفات الوحيدة المسموح تخزينها — أي شي غيرها (Firestore، APIs) ما منلمسو نهائياً
