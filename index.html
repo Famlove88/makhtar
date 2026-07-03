@@ -1398,7 +1398,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=82;
+var APP_BUILD=83;
 var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -1542,6 +1542,7 @@ function fmt(n){
   return s+'$'+Math.abs(n).toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g,',');
 }
 function fmtD(s){if(!s)return '';var p=s.split('-');return p[2]+'/'+p[1]+'/'+p[0];}
+function fmtCAt(ms){var d=new Date(ms);var p=function(n){return(n<10?'0':'')+n;};return p(d.getDate())+'/'+p(d.getMonth()+1)+' '+p(d.getHours())+':'+p(d.getMinutes());}
 function toast(msg,type){
   var t=document.createElement('div');
   t.className='toast '+(type==='ok'?'ok':type==='err'?'err':type==='warn'?'warn':'inf');
@@ -2609,7 +2610,7 @@ function refreshDash(){
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'">'+fmt(o.amount)+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'<span style="color:var(--g3)">—</span>')+'</td>'
-      +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</span></td>'
+      +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</span>'+(o.status==='confirmed'&&o.confirmedAt?'<div style="font-size:.58rem;color:var(--g3);margin-top:.15rem;white-space:nowrap">🕒 '+fmtCAt(o.confirmedAt)+'</div>':'')+'</td>'
       +'</tr>';}).join(''):'<tr class="empty-row"><td colspan="5">لا توجد عمليات بعد</td></tr>';}
   // Pending mini
   var dp=$id('dashPend');
@@ -2875,6 +2876,7 @@ function doQuickConfirm(id){
   var c=client();if(!c)return;
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
   op.status='confirmed';
+  op.confirmedAt=Date.now();      // 🕒 وقت التأكيد الفعلي — تلقائي
   op.updatedAt=Date.now();
   logAudit('op.confirm', c.name, padCode(op.code));
   applyWallet(op);
@@ -3026,6 +3028,9 @@ function doSaveEdit(){
   op.time=$v('eTime');
   op.phone=$v('ePhone').trim();
   op.note=$v('eNote').trim();
+  // 🕒 وقت التأكيد: إذا انقلبت من معلقة لمؤكدة → سجّل الوقت تلقائياً. وإذا رجعت معلقة → شيلو.
+  if(eStatus==='confirmed' && op.status!=='confirmed'){op.confirmedAt=Date.now();}
+  else if(eStatus==='pending'){delete op.confirmedAt;}
   op.status=eStatus;
   op.account=eAcc||'gen';
   op.walletId=eWid;
@@ -3120,7 +3125,7 @@ function renderStmt(){
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
       +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
       +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
-      +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅':'⏳')+'</span></td>'
+      +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅':'⏳')+'</span>'+(o.status==='confirmed'&&o.confirmedAt?'<div style="font-size:.58rem;color:var(--g3);margin-top:.15rem;white-space:nowrap">🕒 '+fmtCAt(o.confirmedAt)+'</div>':'')+'</td>'
       +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
       +'<td>'+(rb!=null?'<span class="'+(rb>=0?'v-in':'v-out')+'">'+fmt(rb)+'</span>':'—')+'</td>'
       +'</tr>';}).join('')
