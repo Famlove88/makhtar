@@ -963,6 +963,7 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
       <div id="vStmt" class="view">
         <div class="filter-bar">
           <div class="filter-row">
+            <div class="fg"><label>الأرشيف</label><button onclick="openArchList()" style="background:rgba(201,168,76,.15);color:#A07830;border:1px solid rgba(201,168,76,.4);padding:.5rem .8rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit;white-space:nowrap">📦 الشهور المُقفلة</button></div>
             <div class="fg"><label>من</label><input type="date" id="fFrom" oninput="renderStmt()"/></div>
             <div class="fg"><label>إلى</label><input type="date" id="fTo" oninput="renderStmt()"/></div>
             <div class="fg"><label>النوع</label><div class="chips">
@@ -1037,6 +1038,17 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
           <button onclick="renderReports()" style="background:rgba(16,185,129,.12);color:#0B7A4B;border:none;padding:.4rem .8rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🔄 تحديث</button>
         </div>
         <div style="font-size:.76rem;color:#94A3B8;margin-bottom:.5rem">نظرة شاملة على كل العملاء والمحافظ والأرباح</div>
+        <div style="background:#fff;border:1px solid #E8EDF3;border-radius:14px;padding:1rem;margin-bottom:.8rem">
+          <h4 style="margin:0 0 .3rem">🗓️ الإقفال الشهري والأرشفة</h4>
+          <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.6rem;line-height:1.7">بينقل العمليات المؤكدة القديمة للأرشيف وبيخفف حجم البيانات وبيسرّع المزامنة. الأرصدة ما بتتغير، والعمليات المعلقة بتضل. الأرشيف بيتقرا من زر 📦 بتبويب الكشف.</div>
+          <div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-bottom:.6rem">
+            <div class="fg" style="margin:0"><label>إقفال حتى نهاية شهر</label><input type="month" id="clsMonth"/></div>
+            <button onclick="previewClose()" style="background:rgba(37,99,235,.12);color:#2563EB;border:none;padding:.55rem .9rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🔍 معاينة</button>
+            <button id="closeExecBtn" onclick="doCloseMonth()" style="display:none;background:#0B1F3A;color:#fff;border:none;padding:.55rem .9rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🗓️ نفّذ الإقفال</button>
+            <button onclick="undoCloseAll()" style="background:rgba(220,38,38,.08);color:#DC2626;border:1px solid rgba(220,38,38,.25);padding:.55rem .9rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">⏮️ تراجع كامل عن الأرشفة</button>
+          </div>
+          <div id="closePreview"></div>
+        </div>
         <div id="reportsBox"></div>
       </div>
 
@@ -1353,8 +1365,16 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 <div class="overlay" id="mTrash">
   <div class="modal" style="max-width:520px">
     <div class="modal-hd"><h3>🗑️ سلة المحذوفات</h3><button class="modal-x" onclick="closeModal('mTrash')">✕</button></div>
-    <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.7rem;line-height:1.6">العملاء المحذوفين محفوظين هون مع كل عملياتهم — ما بينحذفوا نهائياً، فيك ترجّع أي واحد.</div>
+    <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.7rem;line-height:1.6">العملاء المحذوفين محفوظين هون مع كل عملياتهم — فيك ترجّع أي واحد. ⏱️ العناصر اللي بتضل بالسلة أكتر من <b>٩٠ يوم</b> بتنحذف نهائياً بشكل تلقائي.</div>
     <div id="trashList" style="max-height:58vh;overflow-y:auto"></div>
+  </div>
+</div>
+
+<!-- ARCHIVE VIEWER -->
+<div class="overlay" id="mArch">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-hd"><h3>📦 أرشيف الشهور المُقفلة</h3><button class="modal-x" onclick="closeModal('mArch')">✕</button></div>
+    <div id="archBody" style="max-height:62vh;overflow-y:auto"></div>
   </div>
 </div>
 
@@ -1399,8 +1419,8 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=84;
-var MIN_BUILD=80;        // أقل نسخة مسموح لها تكتب — أي نسخة أقدم بتتمنع (حارس النسخة)
+var APP_BUILD=85;
+var MIN_BUILD=85;        // ⚠️ مرفوع لـ 85 — الإقفال الشهري يتطلب أن كل الأجهزة تفهم archUpto، وإلا الأجهزة القديمة بترجّع العمليات المؤرشفة (ازدواج بالرصيد)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
@@ -1437,7 +1457,11 @@ window.addEventListener('offline', function(){ setSyncUI('offline'); });
 // أمان: كل ما يرجع المستخدم للتطبيق (يفتح التبويب / يفك قفل الموبايل) — اسحب الأحدث
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState==='visible' && _mkCol && navigator.onLine){ try{pullAll();}catch(e){} }
+  // 📱 عند الاختفاء: ادفش أي تغيير معلّق فوراً (ما تستنى الـ debounce)
+  if(document.visibilityState==='hidden'){ try{ clearTimeout(saveTimer); pushChanges(); }catch(e){} }
 });
+// 📱 pagehide: شبكة أمان لـ Safari/iOS — بحالات بيسكّر التاب بدون visibilitychange
+window.addEventListener('pagehide', function(){ try{ clearTimeout(saveTimer); pushChanges(); }catch(e){} });
 
 // ══════════════════════════════════════════════════════
 //  STATE
@@ -1535,7 +1559,7 @@ function client(){return DB.find(function(c){return c.id===activeId;})||null;}
 function activeClients(){ return DB.filter(function(c){return !c.deleted;}); }   // العملاء غير المحذوفين
 function firstActiveId(){ for(var _i=0;_i<DB.length;_i++){ if(!DB[_i].deleted)return DB[_i].id; } return null; }
 function activeWallets(){ return GW.filter(function(w){return !w.deleted;}); }   // المحافظ غير المحذوفة
-function dateStr(d){return d.toISOString().slice(0,10);}
+function dateStr(d){var m=d.getMonth()+1,dd=d.getDate();return d.getFullYear()+'-'+(m<10?'0':'')+m+'-'+(dd<10?'0':'')+dd;} // 🕐 توقيت محلي — toISOString كانت UTC وبتعطي تاريخ مبارح بين ١٢ بالليل و٣ الصبح بتوقيت لبنان
 function nowTime(){return new Date().toTimeString().slice(0,5);}
 function fmt(n){
   if(isNaN(n)||n==null)return '$0.00';
@@ -1576,7 +1600,27 @@ function persistLocal(){
   try{localStorage.setItem('makhtar_gw',lzPack(JSON.stringify(GW)));}catch(e){}
   try{localStorage.setItem('makhtar_pr',lzPack(JSON.stringify(PROFITS)));}catch(e){}
 }
+// 🛡️ حارس العمليات القديمة — أي عملية أو حركة سجل موجودة بالدفتر الحي وتاريخها ≤ حد الأرشفة
+// بتنعلّم kpc تلقائياً قبل أي حفظ/رفع → مستحيل يطيّرها فلتر الدمج، حتى لو معلقة من سنة
+// أو عملية جديدة انضافت بتاريخ قديم بعد الإقفال. (المؤرشفة الحقيقية انحذفت قبل ما توصل هون)
+function guardOldOps(){
+  try{
+    DB.forEach(function(c){
+      var au=c.archUpto||''; if(!au)return;
+      (c.ops||[]).forEach(function(o){
+        if(!o.kpc && (o.date||'')<=au){ o.kpc=1; o.updatedAt=Date.now(); }
+      });
+    });
+    GW.forEach(function(w){
+      var au=w.archUpto||''; if(!au)return;
+      (w.hist||[]).forEach(function(h){
+        if(!h.kpc && (h.date||'')<=au){ h.kpc=1; }
+      });
+    });
+  }catch(e){console.warn('guardOldOps',e);}
+}
 function save(){
+  guardOldOps();   // 🛡️ قبل أي حفظ — ولا عملية قديمة بتضيع
   persistLocal();
   clearTimeout(saveTimer);
   saveTimer=setTimeout(pushChanges,500);
@@ -1659,13 +1703,37 @@ function clientExists(id){ return DB.some(function(c){return c.id===id;}); }
 // ══════════════════════════════════════════════════════
 //  دمج آمن (UNION) — لا تُفقد أي عملية أبداً، حتى مع عدة مستخدمين بنفس الوقت
 // ══════════════════════════════════════════════════════
-function _opsUnion(localOps, remoteOps, delMap){
+function _opsUnion(localOps, remoteOps, delMap, archUpto, archDelMap){
   var byId={};
   (remoteOps||[]).forEach(function(o){ if(o&&o.id) byId[o.id]=o; });
   (localOps||[]).forEach(function(o){ if(o&&o.id){ var ex=byId[o.id]; if(!ex || (o.updatedAt||0)>=(ex.updatedAt||0)) byId[o.id]=o; } });
   if(delMap) Object.keys(delMap).forEach(function(id){ delete byId[id]; });
+  if(archDelMap) Object.keys(archDelMap).forEach(function(id){ delete byId[id]; }); // 🗓️ شواهد الأرشفة — عمليات محمية (kpc) تأرشفت لاحقاً، ممنوع ترجع
   var out=[]; for(var k in byId){ if(byId.hasOwnProperty(k)) out.push(byId[k]); }
+  // 🗓️ الإقفال: أي عملية مؤكدة تاريخها ≤ حد الأرشفة انتقلت للأرشيف — ما بترجع بالدمج أبداً
+  // ⚠️ إلا إذا معلّمة kpc (عملية كانت معلقة وقت الإقفال وتأكدت بعده — بتضل بالدفتر الحي لآخر إقفال جاي)
+  if(archUpto) out=out.filter(function(o){ return !(o.status==='confirmed' && (o.date||'')<=archUpto && !o.kpc); });
   return out;
+}
+function _archMonthsUnion(a,b){
+  var m={}; (a||[]).concat(b||[]).forEach(function(k){ if(k) m[k]=1; });
+  return Object.keys(m).sort();
+}
+function _archDelMap(arr){
+  if(!arr||!arr.length)return null;
+  var m={}; arr.forEach(function(d){ var k=(d&&d.id)||d; if(k)m[k]=1; });
+  return m;
+}
+// 🗓️ قاعدة أرباح الأرشيف + أعلى كود مؤرشف — محفوظة بوثيقة meta (merge:true) مع عدّاد rev
+// منفصلة عن وثيقة profits (اللي بتنكتب كاملة LWW) حتى ما ينمسح أثر الأرشيف بسباق كتابة متزامن
+var _ARCHPR={rev:0,total:0,monthly:{},maxCode:0};
+try{ var _ap=localStorage.getItem('makhtar_archpr'); if(_ap)_ARCHPR=JSON.parse(_ap)||_ARCHPR; }catch(e){}
+function persistArchPr(){ try{localStorage.setItem('makhtar_archpr',JSON.stringify(_ARCHPR));}catch(e){} }
+function adoptArchPr(inc){
+  if(!inc || (inc.rev||0)<=(_ARCHPR.rev||0)) return false;
+  _ARCHPR={rev:inc.rev||0,total:inc.total||0,monthly:inc.monthly||{},maxCode:inc.maxCode||0};
+  persistArchPr();
+  return true;
 }
 function _delUnion(a,b){
   var m={};
@@ -1680,11 +1748,14 @@ function _reconUnion(a,b){
   return out;
 }
 function _histKey(h){ return h.oid || ('d_'+(h.code||'?')+'_'+(h.date||'')+'_'+(h.time||'')+'_'+(h.amount||'')); }
-function _histUnion(localH, remoteH){
+function _histUnion(localH, remoteH, archUpto, archDelSet){
   var byK={};
   (remoteH||[]).forEach(function(h){ if(h) byK[_histKey(h)]=h; });
   (localH||[]).forEach(function(h){ if(h){ var k=_histKey(h); if(!byK[k]) byK[k]=h; } });
+  if(archDelSet) Object.keys(archDelSet).forEach(function(k){ delete byK[k]; }); // 🗓️ شواهد أرشفة السجل المحمي
   var out=[]; for(var k in byK){ if(byK.hasOwnProperty(k)) out.push(byK[k]); }
+  // 🗓️ الإقفال: حركات السجل المؤرشفة ما بترجع بالدمج — إلا المعلّمة kpc (تابعة لعملية كانت معلقة وقت الإقفال)
+  if(archUpto) out=out.filter(function(h){ return (h.date||'')>archUpto || h.kpc; });
   return out;
 }
 // دمج عميل وارد من السحابة مع المحلي — اتحاد العمليات
@@ -1696,13 +1767,20 @@ function upsertClientLocal(rc){
   var delM=_delUnion(lc.delOps, rc.delOps);
   var meta=((lc.metaAt||0)>=(rc.metaAt||0))?lc:rc;
   var delState=((lc.delRev||0)>=(rc.delRev||0))?lc:rc;   // حالة الحذف تُحسم بـ delRev (مستقلة عن metaAt) — تمنع رجوع المحذوف بعد تعديل متزامن
+  var arch=((lc.archRev||0)>=(rc.archRev||0))?lc:rc;     // 🗓️ حالة الإقفال تُحسم بـ archRev (عدّاد يرتفع مع كل إقفال/تراجع) — بيسمح بالتراجع الموثوق
+  var archUpto=arch.archUpto||'';
   DB[i]={
     id:rc.id, name:meta.name, sub:meta.sub, color:meta.color,
     rollover:meta.rollover, rolloverLbp:meta.rolloverLbp,
     accounts:meta.accounts, metaAt:Math.max(lc.metaAt||0,rc.metaAt||0),
     deleted:delState.deleted||false, deletedAt:delState.deletedAt||0, deletedBy:delState.deletedBy||'', delRev:Math.max(lc.delRev||0, rc.delRev||0),
+    archRev:Math.max(lc.archRev||0, rc.archRev||0),
+    archUpto:archUpto, archAt:arch.archAt||0,
+    archBalUsd:arch.archBalUsd||0, archBalLbp:arch.archBalLbp||0, archNetRun:arch.archNetRun||0,
+    archMonths:(arch.archMonths||[]).slice(),
+    archDel:(arch.archDel||[]).slice(),
     reconciliations:_reconUnion(lc.reconciliations, rc.reconciliations),
-    ops:_opsUnion(lc.ops, rc.ops, delM),
+    ops:_opsUnion(lc.ops, rc.ops, delM, archUpto, _archDelMap(arch.archDel)),
     delOps:_delArr(delM)
   };
 }
@@ -1715,16 +1793,25 @@ function upsertWalletLocal(rw){
   var lw=GW[i];
   var meta=((lw.metaAt||0)>=(rw.metaAt||0))?lw:rw;
   var delState=((lw.delRev||0)>=(rw.delRev||0))?lw:rw;   // حالة الحذف بـ delRev — تمنع رجوع المحفظة المحذوفة
+  var arch=((lw.archRev||0)>=(rw.archRev||0))?lw:rw;     // 🗓️ حالة الإقفال بـ archRev — بيسمح بالتراجع الموثوق
+  var archUpto=arch.archUpto||'';
   var merged={ id:rw.id, name:meta.name, desc:meta.desc, created:meta.created||lw.created||rw.created,
     metaAt:Math.max(lw.metaAt||0,rw.metaAt||0),
     deleted:delState.deleted||false, deletedAt:delState.deletedAt||0, deletedBy:delState.deletedBy||'', delRev:Math.max(lw.delRev||0, rw.delRev||0),
-    hist:_histUnion(lw.hist, rw.hist) };
+    archRev:Math.max(lw.archRev||0, rw.archRev||0),
+    archUpto:archUpto, archAt:arch.archAt||0,
+    archIn:arch.archIn||0, archOut:arch.archOut||0, archCom:arch.archCom||0,
+    archMonths:(arch.archMonths||[]).slice(),
+    archDel:(arch.archDel||[]).slice(),
+    hist:_histUnion(lw.hist, rw.hist, archUpto, _archDelMap(arch.archDel)) };
   recomputeWalletFromHist(merged);
   GW[i]=merged;
 }
 // إعادة حساب رصيد المحفظة من السجل (مصدر الحقيقة)
 function recomputeWalletFromHist(w){
-  var bal=0,tin=0,tout=0,tcom=0;
+  // 🗓️ الرصيد الافتتاحي من الأرشيف — السجل المؤرشف انتقل لوثائق arch_wl لكن أثره محفوظ هون
+  var tin=(w.archIn||0), tout=(w.archOut||0), tcom=(w.archCom||0);
+  var bal=tin-tout;
   (w.hist||[]).forEach(function(h){
     if(h.type==='in'){ bal+=(h.amount||0); tin+=(h.amount||0); }
     else { bal-=(h.amount||0); tout+=(h.amount||0); }
@@ -1734,7 +1821,9 @@ function recomputeWalletFromHist(w){
 }
 // إعادة حساب الأرباح من العمليات (مصدر الحقيقة) — عمولة كل عملية خروج بمحفظة
 function recomputeProfitsFromOps(){
-  PROFITS={total:0,daily:{},monthly:{},log:[]};
+  // 🗓️ نبلّش من قاعدة أرباح الأرشيف (_ARCHPR) — عمولات العمليات المؤرشفة محفوظة كإجماليات شهرية
+  PROFITS={total:_ARCHPR.total||0,daily:{},monthly:{},log:[]};
+  Object.keys(_ARCHPR.monthly||{}).forEach(function(mk){ PROFITS.monthly[mk]=(PROFITS.monthly[mk]||0)+(_ARCHPR.monthly[mk]||0); });
   DB.forEach(function(c){ if(c.deleted)return; (c.ops||[]).forEach(function(o){
     if(o.type==='out' && o.walletId){ addProfit(COMMISSION, o.date, 'عمولة خروج'); }
   }); });
@@ -1768,7 +1857,7 @@ function loadCloud(){
       startGranularListeners(); // المستمع للتحديثات الحية
       startHeartbeat();         // نبضة احتياطية تضمن المزامنة التلقائية
       watchVersion();
-      setTimeout(function(){ try{autoSnapshot('بدء التشغيل'); persistLocal();}catch(e){} }, 2500);
+      setTimeout(function(){ try{autoSnapshot('بدء التشغيل'); persistLocal(); purgeOldTrash();}catch(e){} }, 2500);
     });
   });
 }
@@ -1885,6 +1974,8 @@ function watchVersion(){
       var dd=(snap&&snap.exists&&snap.data())||{};
       var b=dd.build||0;
       if(dd.minBuild) _cloudMinBuild=dd.minBuild;          // الحد الأدنى من السحابة
+      // 🗓️ تبنّي قاعدة أرباح الأرشيف الأحدث (rev أعلى) — لايف مع كل تغيير على meta
+      if(adoptArchPr(dd.archPr)){ recomputeAllDerived(); persistLocal(); if(activeId)refreshActiveView(); }
       if(MIN_BUILD>(dd.minBuild||0)){ try{_metaDoc.set({minBuild:MIN_BUILD},{merge:true}).catch(function(){});}catch(e){} } // ارفع الحد
       if(APP_BUILD>b){ try{_metaDoc.set({build:APP_BUILD,at:Date.now()},{merge:true}).catch(function(){});}catch(e){} }
       else if(APP_BUILD<b){ showUpdateBanner(); }
@@ -1923,7 +2014,7 @@ function padCode(n){
   return '#'+s;
 }
 function maxOpCode(){
-  var max=0;
+  var max=_ARCHPR.maxCode||0;   // 🗓️ أعلى كود مؤرشف — يمنع إعادة استخدام أكواد العمليات المؤرشفة
   DB.forEach(function(c){(c.ops||[]).forEach(function(o){ if(o.code&&o.code>max)max=o.code; });});
   GW.forEach(function(w){(w.hist||[]).forEach(function(h){ if(h.code&&h.code>max)max=h.code; });});
   return max;
@@ -2048,7 +2139,7 @@ function renderReports(){
   var wBal=activeWallets().reduce(function(s,w){return s+(w.balance||0);},0);
   var wComm=activeWallets().reduce(function(s,w){return s+(w.totalCommission||0);},0);
   var d=new Date(), months=[];
-  for(var i=5;i>=0;i--){ var dd=new Date(d.getFullYear(),d.getMonth()-i,1); var key=dd.toISOString().slice(0,7); months.push({key:key,val:(PROFITS.monthly&&PROFITS.monthly[key])||0}); }
+  for(var i=5;i>=0;i--){ var dd=new Date(d.getFullYear(),d.getMonth()-i,1); var key=dateStr(dd).slice(0,7); months.push({key:key,val:(PROFITS.monthly&&PROFITS.monthly[key])||0}); } // 🕐 مفتاح شهري محلي
   var maxM=Math.max.apply(null,months.map(function(m){return m.val;}).concat([1]));
   var arName=['كانون2','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين1','تشرين2','كانون1'];
 
@@ -2150,6 +2241,7 @@ function calcBalCur(c, cur){
   var roll = cur==='lbp'
     ? (c.rolloverLbp ? parseFloat(c.rolloverLbp.amount)||0 : 0)
     : (c.rollover ? parseFloat(c.rollover.amount)||0 : 0);
+  roll += cur==='lbp' ? (c.archBalLbp||0) : (c.archBalUsd||0);   // 🗓️ صافي الفترات المُقفلة
   var ops = (c.ops||[]).filter(function(o){
     if(o.status!=='confirmed') return false;
     if(cur==='lbp') return o.account==='lbp';
@@ -2177,6 +2269,306 @@ function calcBal(c){ return calcBalCur(c,'usd'); }
 function calcBalAll(c){ return calcBalAllCur(c,'usd'); }
 
 // ══════════════════════════════════════════════════════
+//  🗓️ الإقفال الشهري والأرشفة
+//  العمليات المؤكدة القديمة تنتقل لوثائق arch_cl_{id}_{YYYY-MM} (والسجل لـ arch_wl_)
+//  وأثرها محفوظ كأرصدة افتتاحية (archBal*) — الدمج يمنع رجوعها عبر archUpto
+//  للتراجع: استرجاع نسخة "قبل الإقفال" من النسخ الاحتياطية بيرجّع كل شي
+// ══════════════════════════════════════════════════════
+function lastDayOfMonth(mk){ // 'YYYY-MM' → 'YYYY-MM-DD' آخر يوم
+  var p=mk.split('-'); var d=new Date(parseInt(p[0],10), parseInt(p[1],10), 0);
+  return mk+'-'+String(d.getDate()).padStart(2,'0');
+}
+function _closePlan(cutoff){
+  var plan=[], wplan=[], nOps=0, nHist=0, nKeptPend=0;
+  // مجموعة العمليات المعلقة بكل العملاء (حتى المحذوفين بالسلة) — سجلّها بالمحافظ ممنوع يتأرشف
+  var pendSet={};
+  DB.forEach(function(c){ (c.ops||[]).forEach(function(o){ if(o.status==='pending')pendSet[o.id]=1; }); });
+  DB.forEach(function(c){
+    if(c.deleted)return;
+    var aops=(c.ops||[]).filter(function(o){return o.status==='confirmed' && (o.date||'')<=cutoff;});
+    var kept=(c.ops||[]).filter(function(o){return o.status==='pending' && (o.date||'')<=cutoff;}).length;
+    nKeptPend+=kept;
+    if(aops.length){ plan.push({c:c,ops:aops}); nOps+=aops.length; }
+  });
+  GW.forEach(function(w){
+    if(w.deleted)return;
+    var hh=(w.hist||[]).filter(function(h){return (h.date||'')<=cutoff && !(h.oid && pendSet[h.oid]);});
+    if(hh.length){ wplan.push({w:w,hist:hh}); nHist+=hh.length; }
+  });
+  return {plan:plan,wplan:wplan,nOps:nOps,nHist:nHist,nKeptPend:nKeptPend,pendSet:pendSet};
+}
+function previewClose(){
+  var box=$id('closePreview'); if(!box)return;
+  var mk=$v('clsMonth');
+  if(!mk){ box.innerHTML='<div style="color:var(--red);font-size:.82rem">اختر شهراً أولاً</div>'; return; }
+  var thisMk=dateStr(new Date()).slice(0,7);
+  if(mk>=thisMk){ box.innerHTML='<div style="color:var(--red);font-size:.82rem">⚠️ ما فيك تقفل الشهر الجاري أو المستقبل — اختر شهراً منتهياً</div>'; $id('closeExecBtn').style.display='none'; return; }
+  var cutoff=lastDayOfMonth(mk);
+  var p=_closePlan(cutoff);
+  if(!p.nOps && !p.nHist){ box.innerHTML='<div style="color:var(--g3);font-size:.82rem">لا يوجد شيء للأرشفة حتى '+fmtD(cutoff)+' — كل العمليات إما معلقة أو أحدث من هالتاريخ</div>'; $id('closeExecBtn').style.display='none'; return; }
+  var h='<div style="font-size:.85rem;line-height:1.9;background:var(--goldf);border:1px solid var(--gold);border-radius:10px;padding:.8rem">';
+  h+='<b>📋 معاينة الإقفال حتى '+fmtD(cutoff)+' (شامل):</b><br>';
+  h+='• <b>'+p.nOps+'</b> عملية مؤكدة من <b>'+p.plan.length+'</b> عميل رح تنتقل للأرشيف<br>';
+  h+='• <b>'+p.nHist+'</b> حركة سجل من <b>'+p.wplan.length+'</b> محفظة<br>';
+  h+='• العمليات <b>المعلقة</b> ما بتتأثر وبتضل موجودة'+(p.nKeptPend?' — منها <b>'+p.nKeptPend+'</b> بتاريخ قديم رح تنحمى بعلامة خاصة':'')+'<br>';
+  h+='• الأرصدة ما بتتغير ولا قرش — الصافي بينحفظ كرصيد افتتاحي<br>';
+  h+='• نسخة احتياطية تلقائية بتنحفظ قبل التنفيذ (للتراجع)</div>';
+  box.innerHTML=h;
+  var eb=$id('closeExecBtn'); if(eb)eb.style.display='inline-block';
+}
+// كتابة وثيقة أرشيف بأسلوب اتحاد (get → union → set) — آمنة لو انعادت
+function _archWrite(docId, key, items, keyFn){
+  return _mkCol.doc(docId).get().then(function(s){
+    var ex=[];
+    if(s.exists){ try{ var d=JSON.parse(lzUnpack(s.data().j||'')||'{}'); ex=d[key]||[]; }catch(e){} }
+    var byK={};
+    ex.forEach(function(it){ if(it)byK[keyFn(it)]=it; });
+    items.forEach(function(it){ if(it)byK[keyFn(it)]=it; });
+    var out=[]; for(var k in byK){ if(byK.hasOwnProperty(k))out.push(byK[k]); }
+    var obj={}; obj[key]=out;
+    return _mkCol.doc(docId).set({j:lzPack(JSON.stringify(obj)),u:Date.now(),_b:APP_BUILD,n:out.length});
+  });
+}
+function doCloseMonth(){
+  if(CUR_ROLE!=='manager'){ toast('الإقفال للمدير فقط','err'); return; }
+  if(!_mkCol || !navigator.onLine){ toast('لازم تكون متصل بالإنترنت للإقفال','err'); return; }
+  if(!_syncReady || _blocked){ toast('المزامنة مش جاهزة — جرّب بعد لحظات','err'); return; }
+  var mk=$v('clsMonth');
+  var thisMk=dateStr(new Date()).slice(0,7);
+  if(!mk || mk>=thisMk){ toast('اختر شهراً منتهياً','err'); return; }
+  var cutoff=lastDayOfMonth(mk);
+  var p=_closePlan(cutoff);
+  if(!p.nOps && !p.nHist){ toast('ما في شي للأرشفة','inf'); return; }
+  confirm2('🗓️ تأكيد الإقفال الشهري',
+    'رح ننقل '+p.nOps+' عملية و'+p.nHist+' حركة سجل للأرشيف حتى '+fmtD(cutoff)+'. الأرصدة ما بتتغير. متأكد؟',
+    function(){ _execClose(cutoff, p); });
+}
+function _execClose(cutoff, p){
+  autoSnapshot('قبل الإقفال '+cutoff);   // ⏮️ نقطة التراجع
+  toast('⏳ عم ننفّذ الإقفال…','inf');
+  var eb=$id('closeExecBtn'); if(eb)eb.disabled=true;
+  var writes=[];
+  // وثائق أرشيف العملاء — مجمّعة حسب الشهر
+  p.plan.forEach(function(pc){
+    var byM={};
+    pc.ops.forEach(function(o){ var m=(o.date||'').slice(0,7); (byM[m]=byM[m]||[]).push(o); });
+    Object.keys(byM).forEach(function(m){
+      writes.push(_archWrite('arch_cl_'+pc.c.id+'_'+m, 'ops', byM[m], function(o){return o.id;}));
+    });
+    pc.months=Object.keys(byM).sort();
+  });
+  // وثائق أرشيف المحافظ
+  p.wplan.forEach(function(pw){
+    var byM={};
+    pw.hist.forEach(function(h){ var m=(h.date||'').slice(0,7); (byM[m]=byM[m]||[]).push(h); });
+    Object.keys(byM).forEach(function(m){
+      writes.push(_archWrite('arch_wl_'+pw.w.id+'_'+m, 'hist', byM[m], _histKey));
+    });
+    pw.months=Object.keys(byM).sort();
+  });
+  Promise.all(writes).then(function(){
+    // ✅ الأرشيف بالسحابة — هلق طبّق التغيير المحلي
+    var maxArchCode=_ARCHPR.maxCode||0;
+    p.plan.forEach(function(pc){
+      var c=pc.c, nUsd=0, nLbp=0, nRun=0;
+      pc.ops.forEach(function(o){
+        var isLbp=o.account==='lbp';
+        var eff=o.type==='in' ? o.amount : -(o.amount+(o.walletId?(o.commission||COMMISSION):0));
+        if(isLbp)nLbp+=eff; else nUsd+=eff;
+        nRun+=o.type==='in'?o.amount:-o.amount;
+        if(o.code&&o.code>maxArchCode)maxArchCode=o.code;
+        if(o.type==='out'&&o.walletId){ var m=(o.date||'').slice(0,7); _ARCHPR.total+=COMMISSION; _ARCHPR.monthly[m]=(_ARCHPR.monthly[m]||0)+COMMISSION; }
+      });
+      c.archBalUsd=(c.archBalUsd||0)+nUsd;
+      c.archBalLbp=(c.archBalLbp||0)+nLbp;
+      c.archNetRun=(c.archNetRun||0)+nRun;
+      c.archUpto=cutoff; c.archAt=Date.now();
+      c.archRev=(c.archRev||0)+1;
+      c.archMonths=_archMonthsUnion(c.archMonths, pc.months);
+      // شواهد الأرشفة: العمليات المحمية (kpc) اللي عم تتأرشف هلق — لأن kpc بيتجاوز فلتر التاريخ
+      if(!c.archDel)c.archDel=[];
+      pc.ops.forEach(function(o){ if(o.kpc)c.archDel.push({id:o.id,t:Date.now()}); });
+      c.ops=(c.ops||[]).filter(function(o){return !(o.status==='confirmed'&&(o.date||'')<=cutoff);});
+    });
+    // 🛡️ علّم كل عملية معلقة تاريخها ≤ الحد بعلامة kpc — إذا تأكدت لاحقاً ما بيحذفها فلتر الدمج
+    // (بكل العملاء، حتى يلي ما عندهم شي للأرشفة — لأن archUpto صار عليهم كمان إذا سبق وأُقفلوا)
+    DB.forEach(function(c){
+      (c.ops||[]).forEach(function(o){
+        if(o.status==='pending' && (o.date||'')<=cutoff && !o.kpc){ o.kpc=1; o.updatedAt=Date.now(); }
+      });
+      // العملاء يلي ما كان عندهم عمليات للأرشفة بياخدوا الحد الجديد كمان (بدون تغيير أرصدة)
+      if(!c.deleted && (c.archUpto||'')<cutoff){ c.archUpto=cutoff; c.archAt=Date.now(); c.archRev=(c.archRev||0)+1; }
+    });
+    p.wplan.forEach(function(pw){
+      var w=pw.w, ain=0, aout=0, acom=0;
+      pw.hist.forEach(function(h){
+        if(h.type==='in')ain+=(h.amount||0); else aout+=(h.amount||0);
+        if(h.direct)acom+=COMMISSION;
+        if(h.code&&h.code>maxArchCode)maxArchCode=h.code;
+      });
+      w.archIn=(w.archIn||0)+ain; w.archOut=(w.archOut||0)+aout; w.archCom=(w.archCom||0)+acom;
+      w.archMonths=_archMonthsUnion(w.archMonths, pw.months);
+      if(!w.archDel)w.archDel=[];
+      pw.hist.forEach(function(h){ if(h.kpc)w.archDel.push({id:_histKey(h),t:Date.now()}); });
+    });
+    // 🛡️ حد الأرشفة وعلامات kpc لكل المحافظ الحية (حتى يلي ما تأرشف منها شي)
+    GW.forEach(function(w){
+      if(w.deleted)return;
+      (w.hist||[]).forEach(function(h){
+        if((h.date||'')<=cutoff && h.oid && p.pendSet[h.oid] && !h.kpc){ h.kpc=1; }
+      });
+      // شيل الحركات المؤرشفة فقط (المعلقة kpc بتضل)
+      w.hist=(w.hist||[]).filter(function(h){return (h.date||'')>cutoff || (h.oid&&p.pendSet[h.oid]);});
+      if((w.archUpto||'')<cutoff){ w.archUpto=cutoff; w.archAt=Date.now(); w.archRev=(w.archRev||0)+1; }
+    });
+    // 🗓️ قاعدة أرباح الأرشيف + أعلى كود — بوثيقة meta بعدّاد rev
+    _ARCHPR.maxCode=Math.max(_ARCHPR.maxCode||0, maxArchCode);
+    _ARCHPR.rev=(_ARCHPR.rev||0)+1;
+    persistArchPr();
+    try{ _metaDoc.set({archPr:_ARCHPR},{merge:true}); }catch(e){}
+    recomputeAllDerived();
+    save();
+    try{ clearTimeout(saveTimer); pushChanges(); }catch(e){}   // ⚡ رفع فوري — تقليص نافذة السباق
+    logAudit('close.month', 'حتى '+cutoff, p.nOps+' عملية • '+p.nHist+' حركة'+(p.nKeptPend?' • '+p.nKeptPend+' معلقة محمية':''));
+    if(eb)eb.disabled=false;
+    var box=$id('closePreview'); if(box)box.innerHTML='<div style="color:var(--green);font-weight:700;font-size:.85rem">✅ تم الإقفال حتى '+fmtD(cutoff)+' — '+p.nOps+' عملية و'+p.nHist+' حركة انتقلت للأرشيف'+(p.nKeptPend?' ('+p.nKeptPend+' معلقة قديمة ضلت محمية)':'')+'</div>';
+    if(eb)eb.style.display='none';
+    buildSidebar(); if(activeId)refreshActiveView(); renderWallets(); renderReports();
+    toast('✅ تم الإقفال الشهري بنجاح','ok');
+  }).catch(function(e){
+    console.warn('close fail',e);
+    if(eb)eb.disabled=false;
+    toast('❌ فشل الإقفال — ما انحفظ شي بالأرشيف كاملاً. جرّب مرة تانية (آمن، ما في ازدواج)','err');
+  });
+}
+// ── ⏮️ تراجع كامل عن الأرشفة — بيرجّع كل العمليات من وثائق الأرشيف وبيصفّر الأرصدة الافتتاحية ──
+function undoCloseAll(){
+  if(CUR_ROLE!=='manager'){ toast('التراجع للمدير فقط','err'); return; }
+  if(!_mkCol || !navigator.onLine){ toast('لازم تكون متصل بالإنترنت','err'); return; }
+  if(!_syncReady || _blocked){ toast('المزامنة مش جاهزة — جرّب بعد لحظات','err'); return; }
+  var anyArch=DB.some(function(c){return (c.archMonths||[]).length;}) || GW.some(function(w){return (w.archMonths||[]).length;});
+  if(!anyArch){ toast('ما في أرشيف للتراجع عنه','inf'); return; }
+  confirm2('⏮️ تراجع كامل عن الأرشفة',
+    'رح نرجّع كل العمليات المؤرشفة من السحابة لدفاتر العملاء والمحافظ، ونصفّر الأرصدة الافتتاحية. الأرصدة النهائية ما بتتغير. العملية بتنعكس على كل الأجهزة. متأكد؟',
+    function(){ _execUndoClose(); });
+}
+function _execUndoClose(){
+  autoSnapshot('قبل التراجع عن الأرشفة');
+  toast('⏳ عم نرجّع الأرشيف…','inf');
+  var reads=[];
+  DB.forEach(function(c){
+    (c.archMonths||[]).forEach(function(mk){
+      reads.push(_mkCol.doc('arch_cl_'+c.id+'_'+mk).get().then(function(s){
+        if(!s.exists)return;
+        var ops=[]; try{ ops=(JSON.parse(lzUnpack(s.data().j||'')||'{}').ops)||[]; }catch(e){}
+        var byId={}; (c.ops||[]).forEach(function(o){ if(o&&o.id)byId[o.id]=1; });
+        var delM={}; (c.delOps||[]).forEach(function(d){ if(d&&d.id)delM[d.id]=1; });
+        ops.forEach(function(o){ if(o&&o.id&&!byId[o.id]&&!delM[o.id]){ delete o.kpc; c.ops.push(o); byId[o.id]=1; } });
+      }));
+    });
+  });
+  GW.forEach(function(w){
+    (w.archMonths||[]).forEach(function(mk){
+      reads.push(_mkCol.doc('arch_wl_'+w.id+'_'+mk).get().then(function(s){
+        if(!s.exists)return;
+        var hist=[]; try{ hist=(JSON.parse(lzUnpack(s.data().j||'')||'{}').hist)||[]; }catch(e){}
+        var byK={}; (w.hist||[]).forEach(function(h){ if(h)byK[_histKey(h)]=1; });
+        hist.forEach(function(h){ if(h){ var k=_histKey(h); if(!byK[k]){ delete h.kpc; w.hist.push(h); byK[k]=1; } } });
+      }));
+    });
+  });
+  Promise.all(reads).then(function(){
+    var nC=0,nW=0;
+    DB.forEach(function(c){
+      if(!(c.archMonths||[]).length && !c.archUpto)return;
+      c.archUpto=''; c.archAt=Date.now();
+      c.archBalUsd=0; c.archBalLbp=0; c.archNetRun=0;
+      c.archMonths=[]; c.archDel=[];
+      c.archRev=(c.archRev||0)+1;   // rev أعلى مع archUpto فاضي → التراجع بيغلب الإقفال بالدمج على كل الأجهزة
+      nC++;
+    });
+    GW.forEach(function(w){
+      if(!(w.archMonths||[]).length && !w.archUpto)return;
+      w.archUpto=''; w.archAt=Date.now();
+      w.archIn=0; w.archOut=0; w.archCom=0;
+      w.archMonths=[]; w.archDel=[];
+      w.archRev=(w.archRev||0)+1;
+      nW++;
+    });
+    // أرباح الأرشيف تتصفّر — بس أعلى كود بيضل محفوظ (منع تكرار الأكواد للأبد)
+    _ARCHPR={rev:(_ARCHPR.rev||0)+1,total:0,monthly:{},maxCode:_ARCHPR.maxCode||0};
+    persistArchPr();
+    try{ _metaDoc.set({archPr:_ARCHPR},{merge:true}); }catch(e){}
+    ensureOpCodes(false); migrateWalletApplied(false);
+    recomputeAllDerived();
+    save();
+    try{ clearTimeout(saveTimer); pushChanges(); }catch(e){}
+    logAudit('close.undo', nC+' عميل • '+nW+' محفظة', 'رجع كل الأرشيف للدفاتر');
+    buildSidebar(); if(activeId)refreshActiveView(); renderWallets(); renderReports();
+    var box=$id('closePreview'); if(box)box.innerHTML='<div style="color:var(--teal);font-weight:700;font-size:.85rem">⏮️ تم التراجع — كل الأرشيف رجع للدفاتر ('+nC+' عميل، '+nW+' محفظة)</div>';
+    toast('⏮️ تم التراجع عن الأرشفة بالكامل','ok');
+  }).catch(function(e){
+    console.warn('undo fail',e);
+    toast('❌ فشل التراجع — ما تغيّر شي. جرّب مرة تانية','err');
+  });
+}
+// ── 📦 عارض الأرشيف (كشف حساب الشهور المُقفلة) ──
+function openArchList(){
+  var c=client(); if(!c){toast('اختر عميلاً','err');return;}
+  var box=$id('archBody'); if(!box)return;
+  var months=(c.archMonths||[]).slice().sort().reverse();
+  if(!months.length){ box.innerHTML='<div style="color:var(--g3);text-align:center;padding:1.4rem;font-size:.82rem">لا يوجد أرشيف لهذا العميل بعد — الأرشيف بينشأ بعد أول إقفال شهري</div>'; }
+  else{
+    var h='<div style="font-size:.78rem;color:var(--g3);margin-bottom:.6rem">اختر شهراً لعرض عملياته المؤرشفة:</div><div style="display:flex;flex-wrap:wrap;gap:.4rem">';
+    months.forEach(function(m){ h+='<button class="chip" onclick="loadArchMonth(\''+m+'\')">🗓️ '+m+'</button>'; });
+    h+='</div><div id="archOps" style="margin-top:.8rem"></div>';
+    box.innerHTML=h;
+  }
+  openModal('mArch');
+}
+function loadArchMonth(mk){
+  var c=client(); if(!c)return;
+  var box=$id('archOps'); if(!box)return;
+  if(!_mkCol||!navigator.onLine){ box.innerHTML='<div style="color:var(--red);font-size:.8rem">لازم اتصال بالإنترنت لقراءة الأرشيف</div>'; return; }
+  box.innerHTML='<div style="color:var(--g3);font-size:.8rem">⏳ عم نجيب أرشيف '+mk+'…</div>';
+  _mkCol.doc('arch_cl_'+c.id+'_'+mk).get().then(function(s){
+    if(!s.exists){ box.innerHTML='<div style="color:var(--g3);font-size:.8rem">ما لقينا وثيقة الأرشيف لهالشهر</div>'; return; }
+    var ops=[];
+    try{ ops=(JSON.parse(lzUnpack(s.data().j||'')||'{}').ops)||[]; }catch(e){}
+    ops.sort(function(a,b){return(a.date+(a.time||'')).localeCompare(b.date+(b.time||''));});
+    var tIn=0,tOut=0;
+    ops.forEach(function(o){ if(o.type==='in')tIn+=o.amount; else tOut+=o.amount; });
+    var h='<div style="font-size:.8rem;font-weight:700;margin-bottom:.4rem">🗓️ '+mk+' — '+ops.length+' عملية | دخول: '+fmt(tIn)+' | خروج: '+fmt(tOut)+' | صافي: '+fmt(tIn-tOut)+'</div>';
+    h+='<div style="max-height:320px;overflow:auto;border:1px solid var(--g2);border-radius:10px"><table style="width:100%;border-collapse:collapse;font-size:.76rem">';
+    h+='<thead><tr style="background:var(--g1);position:sticky;top:0"><th style="padding:.4rem">التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>ملاحظة</th></tr></thead><tbody>';
+    h+=ops.map(function(o){
+      return '<tr style="border-top:1px solid var(--g2)"><td style="padding:.35rem .4rem;white-space:nowrap">'+fmtD(o.date)+' '+(o.time||'')+'</td>'
+        +'<td>'+padCode(o.code)+'</td>'
+        +'<td style="color:'+(o.type==='in'?'var(--green)':'var(--red)')+';font-weight:700">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</td>'
+        +'<td style="font-weight:700">'+fmt(o.amount)+(o.commission?'<span style="font-size:.62rem;color:var(--amber)"> +'+o.commission.toFixed(2)+'</span>':'')+'</td>'
+        +'<td>'+esc(o.walletName||'—')+'</td>'
+        +'<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td></tr>';
+    }).join('');
+    h+='</tbody></table></div>';
+    box.innerHTML=h;
+  }).catch(function(e){ console.warn('arch read',e); box.innerHTML='<div style="color:var(--red);font-size:.8rem">فشل قراءة الأرشيف — جرّب مرة تانية</div>'; });
+}
+// ── 🗑️ تنظيف تلقائي للسلة (أقدم من ٩٠ يوم) ──
+var TRASH_TTL_MS=90*86400000;
+function purgeOldTrash(){
+  try{
+    var cut=Date.now()-TRASH_TTL_MS, n=0;
+    DB.slice().forEach(function(c){
+      if(c.deleted && (c.deletedAt||0)>0 && c.deletedAt<cut){ logAudit('trash.purge','عميل: '+c.name,'بعد ٩٠ يوم بالسلة'); removeClientLocal(c.id); n++; }
+    });
+    GW.slice().forEach(function(w){
+      if(w.deleted && (w.deletedAt||0)>0 && w.deletedAt<cut){ logAudit('trash.purge','محفظة: '+w.name,'بعد ٩٠ يوم بالسلة'); removeWalletLocal(w.id); n++; }
+    });
+    if(n){ console.log('🗑️ تنظيف السلة: '+n+' عنصر'); save(); buildSidebar(); }
+  }catch(e){console.warn('purgeTrash',e);}
+}
+
+// ══════════════════════════════════════════════════════
 //  LOGIN / LOGOUT
 // ══════════════════════════════════════════════════════
 // ── إدارة المستخدمين (للمدير فقط) ──
@@ -2187,8 +2579,8 @@ function renderUsersList(){
   keys.forEach(function(u){
     var d=USERS[u]||{}, isMgr=d.role==='manager';
     h+='<div style="display:flex;align-items:center;gap:.6rem;padding:.6rem;border:1px solid #E8EDF3;border-radius:10px;margin-bottom:.5rem;background:#fff">'
-      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem;color:#0B1F3A">'+(d.name||u)+'</div>'
-      +'<div style="font-size:.7rem;color:#94A3B8">الدخول: '+u+' • '+(isMgr?'<span style="color:#0B7A4B;font-weight:800">مدير</span>':'<span style="color:#2563EB;font-weight:800">موظف صندوق</span>')+'</div></div>'
+      +'<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:.85rem;color:#0B1F3A">'+esc(d.name||u)+'</div>'
+      +'<div style="font-size:.7rem;color:#94A3B8">الدخول: '+esc(u)+' • '+(isMgr?'<span style="color:#0B7A4B;font-weight:800">مدير</span>':'<span style="color:#2563EB;font-weight:800">موظف صندوق</span>')+'</div></div>'
       +(u===CUR_USER
         ? '<span style="font-size:.66rem;color:#94A3B8;flex-shrink:0">(أنت)</span>'
         : '<button onclick="delUser(\''+u+'\')" style="background:rgba(220,38,38,.1);color:#DC2626;border:none;padding:.35rem .65rem;border-radius:7px;font-weight:700;font-size:.72rem;cursor:pointer;font-family:inherit;flex-shrink:0">حذف</button>')
@@ -2200,6 +2592,7 @@ function addUser(){
   var u=($v('nuUser')||'').trim(), p=($v('nuPw')||'').trim();
   var nm=($v('nuName')||'').trim(), role=$v('nuRole')||'cashier';
   if(!u||!p){ toast('اكتب اسم دخول وكلمة سر','err'); return; }
+  if(/[<>'"\\]/.test(u)||/[<>'"\\]/.test(nm)){ toast('اسم الدخول/الاسم ما بيقبل الرموز < > \' " \\','err'); return; }
   if(USERS[u]){ toast('اسم الدخول موجود مسبقاً','err'); return; }
   USERS[u]={pw:p, role:role, name:nm||u};
   logAudit('user.add', u, role);
@@ -2346,8 +2739,8 @@ function restoreSnap(ts){
 }
 function exportBackup(){
   try{
-    var payload={app:'makhtar',version:'7.5',exportedAt:new Date().toISOString(),
-      data:DB, gw:GW, pr:PROFITS};
+    var payload={app:'makhtar',version:String(APP_BUILD),build:APP_BUILD,exportedAt:new Date().toISOString(),
+      data:DB, gw:GW, pr:PROFITS, archPr:_ARCHPR};
     var blob=new Blob([JSON.stringify(payload,null,2)],{type:'application/json'});
     var url=URL.createObjectURL(blob);
     var a=document.createElement('a');
@@ -2370,6 +2763,7 @@ function importBackupFile(input){
       'رح يندمج '+nC+' عميل و '+nW+' محفظة من الملف مع بياناتك الحالية. ⚠️ ما بينحذف أي شي موجود — بس بيرجّع/بيضيف يلي ناقص. متابعة؟',
       function(){
         try{autoSnapshot('قبل استرجاع ملف');}catch(e){}
+        if(obj.archPr && adoptArchPr(obj.archPr)){ try{_metaDoc&&_metaDoc.set({archPr:_ARCHPR},{merge:true});}catch(e){} } // 🗓️ قاعدة الأرشيف من الملف إذا أحدث
         (obj.data||[]).forEach(function(c){ if(c&&c.id) upsertClientLocal(c); });        // دمج اتحاد — لا يدوس
         (Array.isArray(obj.gw)?obj.gw:[]).forEach(function(w){ if(w&&w.id) upsertWalletLocal(w); });
         ensureOpCodes(false); migrateWalletApplied(false);
@@ -2405,7 +2799,8 @@ var AUDIT_ACTION_LBL={
   'rollover.set':'🔄 رصيد مدوّر','rollover.del':'🔄 إزالة مدوّر',
   'recon.add':'📊 مطابقة','recon.del':'🗑️ حذف مطابقة',
   'user.add':'👥 مستخدم جديد','user.del':'🗑️ حذف مستخدم',
-  'restore':'⏮️ استرجاع نسخة','recompute':'♻️ إعادة حساب','client.restore':'♻️ استرجاع عميل','wallet.restore':'♻️ استرجاع محفظة'
+  'restore':'⏮️ استرجاع نسخة','recompute':'♻️ إعادة حساب','client.restore':'♻️ استرجاع عميل','wallet.restore':'♻️ استرجاع محفظة',
+  'close.month':'🗓️ إقفال شهري','close.undo':'⏮️ تراجع عن الأرشفة','trash.purge':'🗑️ تنظيف السلة'
 };
 // كل حركة = وثيقة صغيرة مستقلة (append-only) بمجموعة makhtar_audit — ما بتأثّر على مزامنة البيانات
 function logAudit(action,target,info){
@@ -2610,7 +3005,7 @@ function refreshDash(){
       +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3);font-size:.72rem">'+(o.time||'')+'</span><div style="font-size:.6rem;color:var(--g3);direction:ltr;text-align:right;margin-top:.1rem">'+padCode(o.code)+'</div></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'">'+fmt(o.amount)+'</td>'
-      +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'<span style="color:var(--g3)">—</span>')+'</td>'
+      +'<td>'+(o.walletName?'<span class="wbadge">'+esc(o.walletName)+'</span>':'<span style="color:var(--g3)">—</span>')+'</td>'
       +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</span>'+(o.status==='confirmed'&&o.confirmedAt?'<div style="font-size:.58rem;color:var(--g3);margin-top:.15rem;white-space:nowrap">🕒 '+fmtCAt(o.confirmedAt)+'</div>':'')+'</td>'
       +'</tr>';}).join(''):'<tr class="empty-row"><td colspan="5">لا توجد عمليات بعد</td></tr>';}
   // Pending mini
@@ -2620,7 +3015,7 @@ function refreshDash(){
       +'<div style="display:flex;justify-content:space-between;align-items:center">'
       +'<div style="display:flex;align-items:center;gap:.5rem">'
       +'<span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙':'↗')+'</span>'
-      +(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'')
+      +(o.walletName?'<span class="wbadge">'+esc(o.walletName)+'</span>':'')
       +'</div>'
       +'<span class="'+(o.type==='in'?'v-in':'v-out')+'">'+fmt(o.amount)+'</span>'
       +'</div>'
@@ -2682,7 +3077,6 @@ function clearReviews(){
 // ══════════════════════════════════════════════════════
 function renderAccKpis(){
   // مُدمج في renderCurSections
-  var row=$id('accKpis');if(row)row.style.display='none';
 }
 
 // ══════════════════════════════════════════════════════
@@ -2782,10 +3176,10 @@ function openOpConfirm(){
     ['💵 المبلغ', '<b class="'+(isOut?'v-out':'v-in')+'">'+amt.toFixed(2)+' '+symb+'</b>'],
     ['📅 التاريخ', '<b>'+fmtD(date)+'</b> <span style="color:var(--g3)">'+(($v('opTime'))||nowTime())+'</span>'],
     ['🗂️ الحساب', accName],
-    ['💳 المحفظة', wName?'<span class="wbadge">💳 '+wName+'</span>':'<span style="color:var(--g3)">بدون محفظة</span>'],
+    ['💳 المحفظة', wName?'<span class="wbadge">💳 '+esc(wName)+'</span>':'<span style="color:var(--g3)">بدون محفظة</span>'],
   ];
-  if(phone)rows.push(['📱 الهاتف','<span style="color:var(--g4)">'+phone+'</span>']);
-  if(note)rows.push(['📝 ملاحظة','<span style="color:var(--g4)">'+note+'</span>']);
+  if(phone)rows.push(['📱 الهاتف','<span style="color:var(--g4)">'+esc(phone)+'</span>']);
+  if(note)rows.push(['📝 ملاحظة','<span style="color:var(--g4)">'+esc(note)+'</span>']);
   if(isOut&&wName){
     rows.push(['💰 العمولة','<span style="color:var(--amber);font-weight:800">+0.5$ ← أرباح (لا تُخصم)</span>']);
     rows.push(['💳 يُسجَّل على العميل','<b class="v-out">'+(amt+COMMISSION).toFixed(2)+' '+symb+'</b>']);
@@ -2867,7 +3261,7 @@ function renderPend(){
       +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
-      +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
+      +'<td>'+(o.walletName?'<span class="wbadge">'+esc(o.walletName)+'</span>':'—')+'</td>'
       +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
       +'<td style="color:var(--g3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
       +'<td><button class="btn btn-green btn-xs" data-qc="'+o.id+'" onclick="event.stopPropagation()">✅ تأكيد</button>'+comm+'</td>'
@@ -3119,7 +3513,7 @@ function renderStmt(){
   ops.sort(function(a,b){return(b.date+(b.time||'')).localeCompare(a.date+(a.time||''));});
   var chrono=[...(c.ops||[])].filter(function(o){return o.status==='confirmed';})
     .sort(function(a,b){return(a.date+(a.time||'')).localeCompare(b.date+(b.time||''));});
-  var runMap={},run=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  var runMap={},run=(c.rollover?parseFloat(c.rollover.amount)||0:0)+(c.archNetRun||0); // 🗓️ + صافي المؤرشف
   chrono.forEach(function(o){run+=o.type==='in'?o.amount:-o.amount;runMap[o.id]=run;});
   var tIn=ops.filter(function(o){return o.type==='in';}).reduce(function(s,o){return s+o.amount;},0);
   var tOut=ops.filter(function(o){return o.type==='out';}).reduce(function(s,o){return s+o.amount;},0);
@@ -3134,7 +3528,7 @@ function renderStmt(){
       +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
       +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
       +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
-      +'<td>'+(o.walletName?'<span class="wbadge">'+o.walletName+'</span>':'—')+'</td>'
+      +'<td>'+(o.walletName?'<span class="wbadge">'+esc(o.walletName)+'</span>':'—')+'</td>'
       +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
       +'<td><span class="badge '+(o.status==='confirmed'?'b-ok':'b-pend')+'">'+(o.status==='confirmed'?'✅':'⏳')+'</span>'+(o.status==='confirmed'&&o.confirmedAt?'<div style="font-size:.58rem;color:var(--g3);margin-top:.15rem;white-space:nowrap">🕒 '+fmtCAt(o.confirmedAt)+'</div>':'')+'</td>'
       +'<td style="color:var(--g3);max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
@@ -3149,7 +3543,7 @@ function renderStmt(){
 function renderRecon(){
   var c=client();if(!c)return;
   var ops=c.ops||[];
-  var roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  var roll=(c.rollover?parseFloat(c.rollover.amount)||0:0)+(c.archNetRun||0); // 🗓️ + صافي المؤرشف
   var conf=ops.filter(function(o){return o.status==='confirmed';});
   var pend=ops.filter(function(o){return o.status==='pending';});
   var sysConf=roll+conf.reduce(function(s,o){return o.type==='in'?s+o.amount:s-o.amount;},0);
@@ -3624,7 +4018,7 @@ function getPdfOps(){
 function buildPdfHtml(c,ops){
   var tIn=ops.filter(function(o){return o.type==='in';}).reduce(function(s,o){return s+o.amount;},0);
   var tOut=ops.filter(function(o){return o.type==='out';}).reduce(function(s,o){return s+o.amount;},0);
-  var roll=c.rollover?parseFloat(c.rollover.amount)||0:0;
+  var roll=(c.rollover?parseFloat(c.rollover.amount)||0:0)+(c.archNetRun||0); // 🗓️ + صافي المؤرشف
   var net=roll+tIn-tOut;
   return '<div class="ph"><div class="ph-logo">🏦</div><h1>مكتب المختار للصيرفة</h1>'
     +'<p>كشف حساب: '+esc(c.name)+(c.sub?' — '+esc(c.sub):'')+'</p>'
@@ -3642,7 +4036,7 @@ function buildPdfHtml(c,ops){
         +'<td style="font-weight:900;color:'+(o.type==='in'?'#15803D':'#DC2626')+'">'
           +fmt(o.amount)+(o.commission&&o.commission>0?' <span style="font-size:.7em;color:#D97706">(+'+o.commission.toFixed(2)+')</span>':'')
           +'</td>'
-        +'<td>'+(o.walletName||'—')+'</td>'
+        +'<td>'+esc(o.walletName||'—')+'</td>'
         +'<td>'+esc(o.phone||'—')+'</td>'
         +'<td>'+(o.status==='confirmed'?'✅ مؤكد':'⏳ معلق')+'</td>'
         +'<td>'+esc(o.note||'')+'</td></tr>';}).join('')
@@ -3714,6 +4108,7 @@ function buildCurBlock(c, cur){
   var roll    = isLbp
     ? (c.rolloverLbp ? parseFloat(c.rolloverLbp.amount)||0 : 0)
     : (c.rollover ? parseFloat(c.rollover.amount)||0 : 0);
+  roll += isLbp ? (c.archBalLbp||0) : (c.archBalUsd||0);   // 🗓️ صافي الفترات المُقفلة
 
   var tIn   = conf.filter(function(o){return o.type==='in';})
                   .reduce(function(s,o){return s+o.amount;},0);
