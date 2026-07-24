@@ -1419,7 +1419,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=85;
+var APP_BUILD=86;
 var MIN_BUILD=85;        // ⚠️ مرفوع لـ 85 — الإقفال الشهري يتطلب أن كل الأجهزة تفهم archUpto، وإلا الأجهزة القديمة بترجّع العمليات المؤرشفة (ازدواج بالرصيد)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -2678,7 +2678,7 @@ function doLogout(){
 //  النسخ الاحتياطي — تصدير/استيراد كل البيانات
 // ══════════════════════════════════════════════════════
 // ── نسخ احتياطية تلقائية محفوظة بالجهاز (rolling snapshots) ──
-var SNAP_KEY='makhtar_snaps', SNAP_MAX=10;
+var SNAP_KEY='makhtar_snaps', SNAP_MAX=3; // 3 نسخ محلية تكفي — 10 كانت تملأ تخزين الجهاز
 function getSnaps(){ try{return JSON.parse(localStorage.getItem(SNAP_KEY)||'[]');}catch(e){return [];} }
 function saveSnaps(snaps){
   try{ localStorage.setItem(SNAP_KEY, JSON.stringify(snaps)); return true; }
@@ -2687,6 +2687,13 @@ function saveSnaps(snaps){
     catch(e2){ console.warn('snap quota',e2); return false; }
   }
 }
+// ── تنظيف تلقائي عند التشغيل: قصّ النسخ المخزنة القديمة على الحد الجديد ──
+(function(){
+  try{
+    var s=getSnaps();
+    if(s.length>SNAP_MAX){ saveSnaps(s.slice(-SNAP_MAX)); console.log('🗑️ نُظّفت النسخ المحلية القديمة ('+(s.length-SNAP_MAX)+' نسخة) — البيانات بالسحابة سليمة'); }
+  }catch(e){}
+})();
 function autoSnapshot(reason){
   try{
     if(!DB.length && !GW.length) return; // لا تحفظ نسخة فاضية
@@ -2694,6 +2701,11 @@ function autoSnapshot(reason){
     var dP=lzPack(dStr), gP=lzPack(gStr), pP=lzPack(pStr);
     var snaps=getSnaps();
     if(snaps.length){ var last=snaps[snaps.length-1]; if(last && last._d===dP && last._g===gP) return; } // ما تغيّر شي
+    // حماية: لو تخزين الجهاز اقترب من الامتلاء (>3MB) — أبقِ آخر نسخة فقط قبل الإضافة
+    try{
+      var _used=0; for(var _k in localStorage){ if(localStorage.hasOwnProperty(_k)) _used+=((localStorage[_k]||'').length*2); }
+      if(_used>3*1024*1024 && snaps.length>1){ snaps=snaps.slice(-1); console.log('⚠️ تخزين الجهاز مرتفع — قُصّت النسخ المحلية'); }
+    }catch(e){}
     snaps.push({ts:Date.now(), reason:reason||'تلقائي', nC:DB.length, nW:GW.length, _d:dP, _g:gP, _p:pP});
     while(snaps.length>SNAP_MAX) snaps.shift();
     saveSnaps(snaps);
