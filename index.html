@@ -1419,7 +1419,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=87;
+var APP_BUILD=88;
 var MIN_BUILD=87;        // ⚠️ مرفوع لـ 87 — مستندات العملاء/المحافظ صارت مضغوطة LZ1: والنسخ الأقدم لا تقرأها؛ منعها من الكتابة يحمي من الدهس بنسخ قديمة (وقبلها 85: archUpto)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -2203,8 +2203,8 @@ function renderReports(){
   var dbStr=JSON.stringify(DB), gwStr=JSON.stringify(GW), prStr=JSON.stringify(PROFITS), usStr=JSON.stringify(USERS||{});
   var cloudBytes=blobSize(dbStr)+blobSize(gwStr)+blobSize(prStr)+blobSize(usStr);
   var docCount=DB.length+GW.length+4; // عملاء + محافظ + (profits+users+meta+v4)
-  var maxCB=0, maxCName='—';
-  DB.forEach(function(c){ if(c.deleted)return; var b=blobSize(JSON.stringify(c)); if(b>maxCB){maxCB=b;maxCName=c.name||'—';} });
+  var maxCB=0, maxCName='—', maxCRaw=0;
+  DB.forEach(function(c){ if(c.deleted)return; var raw=JSON.stringify(c); var b=blobSize(lzPack(raw)); if(b>maxCB){maxCB=b;maxCName=c.name||'—';maxCRaw=blobSize(raw);} });
   var lsBytes=0; try{ for(var li=0;li<localStorage.length;li++){ var lk=localStorage.key(li); lsBytes+=blobSize(lk)+blobSize(localStorage.getItem(lk)||''); } }catch(e){}
   var snapBytes=0; try{ snapBytes=blobSize(localStorage.getItem('makhtar_snaps')||''); }catch(e){}
   var lzOn = (typeof LZString!=='undefined');
@@ -2229,9 +2229,9 @@ function renderReports(){
   h+=srow('بيانات السحابة (Firebase)', fmtBytes(cloudBytes), 'من أصل ١ جيجابايت مجاني — '+cloudPct.toFixed(3)+'%', cloudPct, '#2563EB');
   h+=srow('عدد المستندات', docCount+' مستند', activeClients().length+' عميل • '+activeWallets().length+' محفظة • ٤ نظام', null, '#0B1F3A');
   var warn = maxCB>838860; // > 0.8 MB تحذير
-  h+=srow('أكبر ملف عميل'+(warn?' ⚠️':''), fmtBytes(maxCB), (maxCName!=='—'?'العميل: '+esc(maxCName):'')+(warn?' — اقترب من حد ١ ميجا، يُنصح بأرشفة عملياته':' — الحد لكل عميل ١ ميجا'), docPct, warn?'#DC2626':'#0B7A4B');
+  h+=srow('أكبر ملف عميل (بالسحابة)'+(warn?' ⚠️':''), fmtBytes(maxCB), (maxCName!=='—'?'العميل: '+esc(maxCName):'')+(maxCRaw?' • قبل الضغط: '+fmtBytes(maxCRaw):'')+(warn?' — اقترب من حد ١ ميجا، يُنصح بأرشفة عملياته':' — الحد الفعلي المخزّن لكل عميل ١ ميجا'), docPct, warn?'#DC2626':'#0B7A4B');
   h+=srow('تخزين الجهاز (localStorage)'+(lzOn?' 🗜️':''), fmtBytes(lsBytes), 'من أصل ~٥ ميجا — '+lsPct.toFixed(1)+'%'+(lzOn&&saved>0?' • مضغوط (وفّرنا ~'+saved+'%)':'')+' (مشترك مع تطبيقاتك على نفس النطاق)', lsPct, lsPct>80?'#DC2626':'#F59E0B');
-  h+=srow('النسخ الاحتياطية المحفوظة', fmtBytes(snapBytes), 'آخر ١٠ نسخ تلقائية بهالجهاز', null, '#9333EA');
+  h+=srow('النسخ الاحتياطية المحفوظة', fmtBytes(snapBytes), 'آخر ٣ نسخ تلقائية بهالجهاز', null, '#9333EA');
   h+='<div style="font-size:.68rem;color:#94A3B8;background:#F8FAFC;border-radius:10px;padding:.6rem .8rem;line-height:1.6;margin-top:.2rem">ℹ️ القراءات والكتابات اليومية ما فينا نقيسها من داخل البرنامج — شوفها بدقة من <b>Firebase Console → Firestore → Usage</b>. هالأرقام فوق تقدير لحجم بياناتك.</div>';
   box.innerHTML=h;
 }
