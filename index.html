@@ -1419,8 +1419,8 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=86;
-var MIN_BUILD=85;        // ⚠️ مرفوع لـ 85 — الإقفال الشهري يتطلب أن كل الأجهزة تفهم archUpto، وإلا الأجهزة القديمة بترجّع العمليات المؤرشفة (ازدواج بالرصيد)
+var APP_BUILD=87;
+var MIN_BUILD=87;        // ⚠️ مرفوع لـ 87 — مستندات العملاء/المحافظ صارت مضغوطة LZ1: والنسخ الأقدم لا تقرأها؛ منعها من الكتابة يحمي من الدهس بنسخ قديمة (وقبلها 85: archUpto)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
@@ -1637,7 +1637,7 @@ function pushChanges(){
     if(!c||!c.id)return; ids[c.id]=1;
     var j=JSON.stringify(c);
     if(_syncCl[c.id]!==j){ _syncCl[c.id]=j; n++;
-      try{ addW('cl_'+c.id, _mkCol.doc('cl_'+c.id).set({j:j,u:Date.now(),_b:APP_BUILD})); }catch(e){}
+      try{ addW('cl_'+c.id, _mkCol.doc('cl_'+c.id).set({j:lzPack(j),u:Date.now(),_b:APP_BUILD})); }catch(e){} // مضغوط LZ1
     }
   });
   Object.keys(_syncCl).forEach(function(id){
@@ -1647,7 +1647,7 @@ function pushChanges(){
     if(!w||!w.id)return; wids[w.id]=1;
     var j=JSON.stringify(w);
     if(_syncWl[w.id]!==j){ _syncWl[w.id]=j; n++;
-      try{ addW('wl_'+w.id, _mkCol.doc('wl_'+w.id).set({j:j,u:Date.now(),_b:APP_BUILD})); }catch(e){}
+      try{ addW('wl_'+w.id, _mkCol.doc('wl_'+w.id).set({j:lzPack(j),u:Date.now(),_b:APP_BUILD})); }catch(e){} // مضغوط LZ1
     }
   });
   Object.keys(_syncWl).forEach(function(id){
@@ -1868,8 +1868,8 @@ function applyCollectionSnap(snap){
     var did=doc.id;
     if(did==='users'){ var uj=doc.data().j; if(uj&&_syncUsers!==uj){_syncUsers=uj;try{USERS=JSON.parse(uj);localStorage.setItem('makhtar_users',uj);}catch(e){}} return; }
     if(did==='profits'){ var pj=doc.data().j; if(pj&&_syncPr!==pj){_syncPr=pj;try{PROFITS=JSON.parse(pj);changed=true;}catch(e){}} return; }
-    if(did.indexOf('cl_')===0){ var cid=did.slice(3); ids[cid]=1; var cj=doc.data().j; if(cj&&_syncCl[cid]!==cj){_syncCl[cid]=cj;try{upsertClientLocal(JSON.parse(cj));changed=true;}catch(e){}} return; }
-    if(did.indexOf('wl_')===0){ var wid=did.slice(3); wids[wid]=1; var wj=doc.data().j; if(wj&&_syncWl[wid]!==wj){_syncWl[wid]=wj;try{upsertWalletLocal(JSON.parse(wj));changed=true;}catch(e){}} return; }
+    if(did.indexOf('cl_')===0){ var cid=did.slice(3); ids[cid]=1; var cj=lzUnpack(doc.data().j); if(cj&&_syncCl[cid]!==cj){_syncCl[cid]=cj;try{upsertClientLocal(JSON.parse(cj));changed=true;}catch(e){}} return; }
+    if(did.indexOf('wl_')===0){ var wid=did.slice(3); wids[wid]=1; var wj=lzUnpack(doc.data().j); if(wj&&_syncWl[wid]!==wj){_syncWl[wid]=wj;try{upsertWalletLocal(JSON.parse(wj));changed=true;}catch(e){}} return; }
   });
   // أمان: السحب لا يحذف أبداً (اتحاد فقط). الحذف يتم فقط عبر حدث حذف صريح من المستمع.
   if(changed){persistLocal();afterRemoteChange();}
@@ -1923,14 +1923,14 @@ function startGranularListeners(){
       if(did.indexOf('cl_')===0){
         var cid=did.slice(3);
         if(ch.type==='removed'){ if(clientExists(cid)){removeClientLocal(cid);touched=true;} delete _syncCl[cid]; return; }
-        var cd=ch.doc.data(); var cj=cd&&cd.j; if(!cj||_syncCl[cid]===cj)return;
+        var cd=ch.doc.data(); var cj=cd&&cd.j; if(cj)cj=lzUnpack(cj); if(!cj||_syncCl[cid]===cj)return;
         _syncCl[cid]=cj; try{upsertClientLocal(JSON.parse(cj));touched=true;}catch(e){console.warn('parse cl',e);}
         return;
       }
       if(did.indexOf('wl_')===0){
         var wid=did.slice(3);
         if(ch.type==='removed'){ removeWalletLocal(wid); delete _syncWl[wid]; touched=true; return; }
-        var wd=ch.doc.data(); var wj=wd&&wd.j; if(!wj||_syncWl[wid]===wj)return;
+        var wd=ch.doc.data(); var wj=wd&&wd.j; if(wj)wj=lzUnpack(wj); if(!wj||_syncWl[wid]===wj)return;
         _syncWl[wid]=wj; try{upsertWalletLocal(JSON.parse(wj));touched=true;}catch(e){console.warn('parse wl',e);}
         return;
       }
