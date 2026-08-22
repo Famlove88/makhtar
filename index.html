@@ -1427,8 +1427,8 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=89;
-var MIN_BUILD=87;        // ⚠️ مرفوع لـ 87 — مستندات العملاء/المحافظ صارت مضغوطة LZ1: والنسخ الأقدم لا تقرأها؛ منعها من الكتابة يحمي من الدهس بنسخ قديمة (وقبلها 85: archUpto)
+var APP_BUILD=90;
+var MIN_BUILD=90;        // ⚠️ مرفوع لـ 90 — قفل ملكية التأكيد + حماية الازدواج: نسخة أقدم بتتجاوزهن وبتكسر الانضباط المالي (وقبلها 87: ضغط LZ1، و85: archUpto)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
@@ -1885,12 +1885,18 @@ function applyCollectionSnap(snap){
 }
 function pullAll(then){
   if(!_mkCol){if(then)then();return;}
-  _mkCol.get().then(function(snap){
+  // 📡 قراءة من السيرفر مباشرةً — الجهاز الراجع من سبات طويل ما يعلق على كاش IndexedDB قديم
+  _mkCol.get({source:'server'}).then(function(snap){
     applyCollectionSnap(snap);
     hideSyncErr();
     setSyncUI(navigator.onLine?'online':'offline');
     if(then)then();
-  }).catch(function(e){console.warn('pullAll',e);setSyncUI(navigator.onLine?'online':'offline');if(then)then();});
+  }).catch(function(e){
+    console.warn('pullAll server:',e&&e.code);
+    // السيرفر غير متاح (نت مقطوع فعلاً) — الكاش المحلي مع مؤشر صادق، بلا ادعاء تزامن
+    _mkCol.get().then(function(snap){ applyCollectionSnap(snap); setSyncUI('offline'); if(then)then(); })
+      .catch(function(e2){ console.warn('pullAll cache:',e2); setSyncUI('offline'); if(then)then(); });
+  });
 }
 // نبضة احتياطية: كل ١٠ ثواني تفحص علامة التغيير (rev) بمستند meta، وإذا تغيّرت تسحب تلقائياً
 function startHeartbeat(){
@@ -3242,6 +3248,7 @@ function doSaveOp(){
     walletName:wName,
     commission:opComm,  // العمولة المسجلة على العميل
     applied:false,
+    by:CUR_USER||'',        // 👤 منشئ العملية — أساس قفل الملكية للتأكيد
     createdAt:Date.now(),   // 📥 وقت الإدخال الفعلي عالبرنامج — تلقائي من ساعة الجهاز
     updatedAt:Date.now()
   };
@@ -3288,10 +3295,21 @@ function renderPend(){
       +'</tr>';}).join('')
     :'<tr class="empty-row"><td colspan="8">✅ لا توجد معلقة — كل العمليات مؤكدة</td></tr>';
 }
+function _uname(u){ return (USERS&&USERS[u]&&USERS[u].name)?USERS[u].name:(u||''); }
 function doQuickConfirm(id){
   var c=client();if(!c)return;
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
+  // 🛡️ حماية الازدواج: مؤكدة أصلاً (من جهاز أو شخص تاني)؟ لا تكرار للتطبيق ولا للعمولة
+  if(op.status==='confirmed'){
+    toast('✔️ مؤكدة أصلاً'+(op.confirmedBy?' — أكّدها '+_uname(op.confirmedBy):''),'inf');
+    renderPend(); refreshDash(); return;
+  }
+  // 🔒 قفل الملكية: يلي فتح العملية هو يلي بيأكدها (المدير مستثنى للضرورة)
+  if(op.by && CUR_USER!==op.by && CUR_ROLE!=='manager'){
+    toast('🔒 هالعملية فاتحها '+_uname(op.by)+' — هو يلي بيأكدها','warn'); return;
+  }
   op.status='confirmed';
+  op.confirmedBy=CUR_USER||'';    // 👤 مين أكّدها — للتدقيق والشفافية
   op.confirmedAt=Date.now();      // 🕒 وقت التأكيد الفعلي — تلقائي
   op.updatedAt=Date.now();
   logAudit('op.confirm', c.name, padCode(op.code));
@@ -3436,6 +3454,11 @@ function doSaveEdit(){
   var amt=parseFloat($v('eAmt'));
   if(isNaN(amt)||amt<=0){toast('مبلغ غير صحيح','err');return;}
 
+  // 🔒 قفل الملكية: تحويل معلّقة → مؤكدة محصور بمنشئها (المدير مستثنى) — قبل أي لمس للمحفظة
+  if(eStatus==='confirmed' && op.status!=='confirmed' && op.by && CUR_USER!==op.by && CUR_ROLE!=='manager'){
+    toast('🔒 هالعملية فاتحها '+_uname(op.by)+' — هو يلي بيأكدها','warn'); return;
+  }
+
   // عكس التأثير القديم على المحفظة (إن كان مطبّقاً) — بالقيم القديمة
   reverseWallet(op);
 
@@ -3454,8 +3477,8 @@ function doSaveEdit(){
   op.phone=$v('ePhone').trim();
   op.note=$v('eNote').trim();
   // 🕒 وقت التأكيد: إذا انقلبت من معلقة لمؤكدة → سجّل الوقت تلقائياً. وإذا رجعت معلقة → شيلو.
-  if(eStatus==='confirmed' && op.status!=='confirmed'){op.confirmedAt=Date.now();}
-  else if(eStatus==='pending'){delete op.confirmedAt;}
+  if(eStatus==='confirmed' && op.status!=='confirmed'){op.confirmedAt=Date.now(); op.confirmedBy=CUR_USER||'';}
+  else if(eStatus==='pending'){delete op.confirmedAt; delete op.confirmedBy;}
   op.status=eStatus;
   op.account=eAcc||'gen';
   op.walletId=eWid;
