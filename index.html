@@ -1427,11 +1427,12 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=90;
-var MIN_BUILD=90;        // ⚠️ مرفوع لـ 90 — قفل ملكية التأكيد + حماية الازدواج: نسخة أقدم بتتجاوزهن وبتكسر الانضباط المالي (وقبلها 87: ضغط LZ1، و85: archUpto)
+var APP_BUILD=91;
+var MIN_BUILD=91;        // ⚠️ مرفوع لـ 91 — الكتابة صارت دمج-ثم-كتابة ذرّية: نسخة أقدم بتكتب كتابة عمياء وبتدوس دمج غيرها (وقبلها 90: قفل الملكية، 87: LZ1، 85: archUpto)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
+var _lastServerBeat=Date.now(), _hbMiss=0, _syncStale=false, _unsubCol=null, _unsubMeta=null; // 🩺 مراقبة صحة الاتصال الفعلية
 try{
   // Firebase تم تحميله عبر CDN في رأس الصفحة
   firebase.initializeApp({
@@ -1464,7 +1465,12 @@ window.addEventListener('online', function(){ setSyncUI('syncing'); if(_mkCol)ma
 window.addEventListener('offline', function(){ setSyncUI('offline'); });
 // أمان: كل ما يرجع المستخدم للتطبيق (يفتح التبويب / يفك قفل الموبايل) — اسحب الأحدث
 document.addEventListener('visibilitychange', function(){
-  if(document.visibilityState==='visible' && _mkCol && navigator.onLine){ try{pullAll();}catch(e){} }
+  if(document.visibilityState==='visible' && _mkCol && navigator.onLine){
+    try{
+      if(Date.now()-_lastServerBeat>45000){ _reviveListeners(); }  // غياب طويل عن السيرفر → إحياء كامل
+      else { pullAll(); }
+    }catch(e){}
+  }
   // 📱 عند الاختفاء: ادفش أي تغيير معلّق فوراً (ما تستنى الـ debounce)
   if(document.visibilityState==='hidden'){ try{ clearTimeout(saveTimer); pushChanges(); }catch(e){} }
 });
@@ -1634,6 +1640,34 @@ function save(){
   saveTimer=setTimeout(pushChanges,500);
 }
 // رفع التغييرات بشكل granular — كل عميل/محفظة لحالو، فما في تضارب بين المستخدمين
+// 🔀 دمج-ثم-كتابة ذرّية: قبل رفع أي مستند، ندمج نسخة السيرفر الحالية فيه داخل transaction
+// (قراءة الـ transaction دائماً من السيرفر — لا كاش) ثم نكتب الناتج المدموج.
+// هذا يلغي "آخر كاتب يدوس" نهائياً: ما في جهاز بيقدر يمحي عمليات جهاز تاني ما شافها.
+function _txMergePush(did, id, kind){
+  var ref=_mkCol.doc(did);
+  return firebase.firestore().runTransaction(function(t){
+    return t.get(ref).then(function(s){
+      if(s && s.exists && s.data() && s.data().j){
+        try{
+          var cloud=JSON.parse(lzUnpack(s.data().j));
+          if(kind==='cl') upsertClientLocal(cloud); else upsertWalletLocal(cloud); // نفس منطق الاستقبال حرفياً
+        }catch(e){}
+      }
+      var cur=(kind==='cl')?DB.find(function(x){return x.id===id;}):GW.find(function(x){return x.id===id;});
+      if(!cur) return; // اختفى بالدمج (محذوف بشاهدة) — مساره مسار الحذف
+      var j2=JSON.stringify(cur);
+      if(kind==='cl') _syncCl[id]=j2; else _syncWl[id]=j2;
+      t.set(ref,{j:lzPack(j2),u:Date.now(),_b:APP_BUILD});
+    });
+  }).catch(function(e){
+    // نت مقطوع أو تعارض متكرر — سقوط آمن للسلوك القديم (كتابة مؤجّلة بالطابور) والتقارب يكمل أول ما يرجع السيرفر
+    var cur=(kind==='cl')?DB.find(function(x){return x.id===id;}):GW.find(function(x){return x.id===id;});
+    if(!cur) return;
+    var j2=JSON.stringify(cur);
+    if(kind==='cl') _syncCl[id]=j2; else _syncWl[id]=j2;
+    return ref.set({j:lzPack(j2),u:Date.now(),_b:APP_BUILD});
+  });
+}
 function pushChanges(){
   if(!_mkCol)return;
   if(_blocked){ console.log('🛑 نسخة قديمة — الكتابة ممنوعة'); return; } // حارس النسخة
@@ -1644,8 +1678,8 @@ function pushChanges(){
   DB.forEach(function(c){
     if(!c||!c.id)return; ids[c.id]=1;
     var j=JSON.stringify(c);
-    if(_syncCl[c.id]!==j){ _syncCl[c.id]=j; n++;
-      try{ addW('cl_'+c.id, _mkCol.doc('cl_'+c.id).set({j:lzPack(j),u:Date.now(),_b:APP_BUILD})); }catch(e){} // مضغوط LZ1
+    if(_syncCl[c.id]!==j){ n++;
+      try{ addW('cl_'+c.id, _txMergePush('cl_'+c.id, c.id, 'cl')); }catch(e){} // 🔀 دمج ذرّي ثم كتابة مضغوطة
     }
   });
   Object.keys(_syncCl).forEach(function(id){
@@ -1654,8 +1688,8 @@ function pushChanges(){
   GW.forEach(function(w){
     if(!w||!w.id)return; wids[w.id]=1;
     var j=JSON.stringify(w);
-    if(_syncWl[w.id]!==j){ _syncWl[w.id]=j; n++;
-      try{ addW('wl_'+w.id, _mkCol.doc('wl_'+w.id).set({j:lzPack(j),u:Date.now(),_b:APP_BUILD})); }catch(e){} // مضغوط LZ1
+    if(_syncWl[w.id]!==j){ n++;
+      try{ addW('wl_'+w.id, _txMergePush('wl_'+w.id, w.id, 'wl')); }catch(e){} // 🔀 دمج ذرّي ثم كتابة مضغوطة
     }
   });
   Object.keys(_syncWl).forEach(function(id){
@@ -1676,6 +1710,8 @@ function pushChanges(){
   Promise.allSettled(writes).then(function(res){
     var failed=[];
     res.forEach(function(r,i){ if(r.status==='rejected'){ failed.push(wKeys[i]); console.warn('فشل رفع',wKeys[i],r.reason);} });
+    // الدمج الذرّي ممكن يكون أدخل عمليات من أجهزة تانية — حدّث الشاشة
+    try{ buildSidebar(); if(activeId){ refreshActiveView(); } }catch(e){}
     if(failed.length){
       // أرجع منع الصدى للكتابات الفاشلة حتى تُعاد محاولتها
       failed.forEach(function(k){
@@ -1903,21 +1939,33 @@ function startHeartbeat(){
   clearInterval(_hbT);
   _hbT=setInterval(function(){
     if(!_metaDoc || !navigator.onLine || document.visibilityState!=='visible') return;
-    _metaDoc.get().then(function(s){
+    _metaDoc.get({source:'server'}).then(function(s){   // 📡 من السيرفر حصراً — الكاش ما بينطلي علينا
+      _lastServerBeat=Date.now(); _hbMiss=0;
+      if(_syncStale){ _syncStale=false; setSyncUI('online'); console.log('🩺 رجع الاتصال الحقيقي — سحب شامل'); pullAll(); }
       if(!s.exists)return; var d=s.data()||{};
       var b=d.build||0; if(b>APP_BUILD) showUpdateBanner();
       if(d.minBuild){ _cloudMinBuild=d.minBuild; enforceVersionGuard(); }
       var r=d.rev||0;
       if(r && r!==_lastRev){ _lastRev=r; if(r!==_myRev){ console.log('💓 نبضة: تغيير وارد — سحب تلقائي'); pullAll(); } }
-    }).catch(function(){});
+    }).catch(function(){
+      // السيرفر ما ردّ رغم إن المتصفح يقول "أونلاين" — اتصال زومبي محتمل
+      _hbMiss++;
+      if(_hbMiss>=3 && !_syncStale){
+        _syncStale=true; setSyncUI('stale');
+        console.warn('🧟 اتصال زومبي مكشوف — إحياء المستمعين');
+        _reviveListeners();
+      }
+    });
   }, 10000);
 }
 // مستمع واحد على مجموعة makhtar — العملاء cl_ والمحافظ wl_ والأرباح profits
 function startGranularListeners(){
   console.log('☁️ المزامنة: تفعيل المستمع (granular)');
   setTimeout(function(){ _notifReady=true; }, 4000);
+  try{ if(_unsubCol){_unsubCol(); _unsubCol=null;} }catch(e){}
   try{
-  _mkCol.onSnapshot(function(snap){
+  _unsubCol=_mkCol.onSnapshot(function(snap){
+    if(snap && snap.metadata && !snap.metadata.fromCache){ _lastServerBeat=Date.now(); } // 🩺 نبضة سيرفر حقيقية
     var touched=false, prCh=false;
     snap.docChanges().forEach(function(ch){
       var did=ch.doc.id;
@@ -1964,10 +2012,17 @@ function setSyncUI(state){
   var m={
     online:['#10B981','rgba(16,185,129,.15)','🟢 متزامن'],
     syncing:['#F59E0B','rgba(245,158,11,.15)','🟡 يزامن'],
+    stale:['#F59E0B','rgba(245,158,11,.22)','⚠️ مش محدّث — عم أعيد الاتصال'],
     offline:['#EF4444','rgba(239,68,68,.15)','🔴 غير متصل'],
     error:['#EF4444','rgba(239,68,68,.18)','🔴 خطأ — حاول']
   }[state]||['#94A3B8','rgba(148,163,184,.15)','—'];
   el.style.color=m[0];el.style.background=m[1];el.textContent=m[2];
+}
+// 🧟→🩺 إحياء المستمعين بعد موت الاتصال الصامت: فك التسجيل، إعادة التسجيل، سحب شامل من السيرفر
+function _reviveListeners(){
+  try{ startGranularListeners(); }catch(e){}
+  try{ watchVersion(); }catch(e){}
+  try{ pullAll(); }catch(e){}
 }
 // ── مزامنة يدوية (اضغط المؤشر) — تسحب كل الوثائق ──
 function manualSync(){
@@ -1983,8 +2038,9 @@ function manualSync(){
 // ── فحص التحديثات (نسخة جديدة) — يستعمل وثيقة منفصلة حتى لا يتداخل مع بيانات المزامنة ──
 function watchVersion(){
   if(!_metaDoc)return;
+  try{ if(_unsubMeta){_unsubMeta(); _unsubMeta=null;} }catch(e){}
   try{
-    _metaDoc.onSnapshot(function(snap){
+    _unsubMeta=_metaDoc.onSnapshot(function(snap){
       var dd=(snap&&snap.exists&&snap.data())||{};
       var b=dd.build||0;
       if(dd.minBuild) _cloudMinBuild=dd.minBuild;          // الحد الأدنى من السحابة
