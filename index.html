@@ -19,6 +19,7 @@
 <!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -732,6 +733,70 @@ body.role-cashier .mgr-only{display:none !important;}
 .rvbtn:hover{border-color:var(--green)}
 .rvbtn.rv-on{background:var(--green);border-color:var(--green);color:#fff}
 tr.rv-row td{background:rgba(34,197,94,.07)}
+
+/* ── 🏢 لوحة الحسابات ── */
+.board-tot{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:.8rem;margin-bottom:1.1rem}
+.bt{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:.8rem 1rem;box-shadow:var(--sh)}
+.bt-l{font-size:.66rem;font-weight:800;color:var(--g3);margin-bottom:.25rem}
+.bt-v{font-size:1.15rem;font-weight:900}
+.board-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.9rem}
+.bcard{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:.85rem 1rem;box-shadow:var(--sh);cursor:pointer;transition:transform .12s}
+.bcard:active{transform:scale(.98)}
+.bc-nm{font-weight:900;font-size:.9rem;display:flex;align-items:center;gap:.4rem}
+.bc-sub{font-size:.68rem;color:var(--g3);margin:.1rem 0 .5rem}
+.bc-bal{font-size:1.1rem;font-weight:900}
+.bc-pend{font-size:.7rem;color:#D97706;font-weight:700;margin-top:.3rem}
+.bc-lbp{font-size:.72rem;color:var(--g3);font-weight:700;margin-top:.2rem}
+/* ── 👥 الفريق ── */
+.tm-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.9rem}
+.tm-card{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:.9rem 1rem;box-shadow:var(--sh);cursor:pointer}
+.tm-nm{font-weight:900;font-size:.95rem}
+.tm-role{display:inline-block;font-size:.6rem;font-weight:800;padding:.12rem .5rem;border-radius:99px;background:var(--teal2);color:var(--teal);margin-right:.4rem}
+.tm-line{font-size:.74rem;color:var(--g4);margin-top:.35rem;font-weight:700}
+.tm-tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.8rem;margin:1rem 0}
+.tm-tile{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:.75rem .9rem;box-shadow:var(--sh)}
+.tm-tl{font-size:.63rem;font-weight:800;color:var(--g3);margin-bottom:.25rem}
+.tm-tv{font-size:1rem;font-weight:900}
+.tm-ts{font-size:.66rem;color:var(--g3);margin-top:.15rem}
+
+
+/* ── ⚙️ صفحة الإدارة ── */
+.adm-grp{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:1rem;margin-bottom:1rem;box-shadow:var(--sh)}
+.adm-ttl{font-size:.82rem;font-weight:900;margin-bottom:.7rem}
+.adm-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:.7rem}
+.adm-btn{border:none;border-radius:10px;padding:.75rem .6rem;font-weight:800;font-size:.8rem;cursor:pointer;font-family:inherit;transition:transform .12s}
+.adm-btn:active{transform:scale(.97)}
+/* ── 📊 موزّع التقارير ── */
+.rp-sec{display:none}
+.rp-sec.rp-on{display:block}
+.rp-hub{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.9rem;margin-bottom:.8rem}
+.rp-hcard{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:1rem;box-shadow:var(--sh);cursor:pointer;transition:transform .12s}
+.rp-hcard:active{transform:scale(.97)}
+.rp-hi{font-size:1.5rem;margin-bottom:.35rem}
+.rp-ht{font-weight:900;font-size:.88rem}
+.rp-hs{font-size:.68rem;color:var(--g3);font-weight:700;margin-top:.2rem}
+.bh-row{background:#fff;border:1px solid #E8EDF3;border-radius:12px;padding:.7rem .9rem;margin-bottom:.55rem;display:flex;justify-content:space-between;align-items:center;font-size:.78rem}
+.bh-l{font-weight:700;color:#0B1F3A}
+.bh-v{font-weight:800}
+
+
+/* ── ⏳ بطاقات التأكيد الكبيرة ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1rem}
+.pcard{background:var(--white);border:1px solid var(--g2);border-radius:var(--r);padding:1rem;box-shadow:var(--sh);cursor:pointer;position:relative;transition:transform .12s,box-shadow .12s}
+.pcard:active{transform:scale(.98)}
+.pcard.pc-in{border-top:3px solid var(--green)}
+.pcard.pc-out{border-top:3px solid var(--red)}
+.pc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:.6rem}
+.pc-amt{font-size:1.45rem;font-weight:900;text-align:center;margin:.4rem 0 .2rem}
+.pc-comm{text-align:center;font-size:.66rem;color:var(--amber,#D97706);font-weight:700;margin-bottom:.3rem}
+.pc-meta{display:flex;flex-direction:column;gap:.25rem;margin:.5rem 0 .7rem}
+.pc-mrow{display:flex;justify-content:space-between;font-size:.72rem}
+.pc-ml{color:var(--g3);font-weight:700}
+.pc-mv{font-weight:800;color:var(--g4,#334155);max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pc-actions{display:flex;gap:.5rem}
+.pc-actions .btn{flex:1;padding:.6rem .4rem;font-size:.8rem}
+@media(max-width:480px){.pgrid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -790,16 +855,8 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
     </div>
     <div class="clist" id="cList"></div>
     <div class="sb-foot">
-      <div style="display:flex;gap:.5rem;margin-bottom:.6rem">
-        <button onclick="exportBackup()" style="flex:1;padding:.6rem .4rem;border:none;border-radius:10px;background:rgba(16,185,129,.15);color:#34D399;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">💾 نسخة احتياطية</button>
-        <button onclick="document.getElementById('importFile').click()" style="flex:1;padding:.6rem .4rem;border:none;border-radius:10px;background:rgba(59,130,246,.15);color:#60A5FA;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">📥 استرجاع</button>
-      </div>
-      <button onclick="openBackup()" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(168,85,247,.15);color:#C084FC;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🕐 النسخ التلقائية</button>
-      <button onclick="openAudit()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(99,102,241,.15);color:#818CF8;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">📜 سجل التدقيق</button>
-      <button onclick="recomputeNow()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(245,158,11,.15);color:#D97706;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">♻️ إعادة حساب الأرصدة</button>
-      <button onclick="openTrash()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(239,68,68,.13);color:#EF4444;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🗑️ سلة المحذوفات</button>
       <input type="file" id="importFile" accept="application/json,.json" style="display:none" onchange="importBackupFile(this)"/>
-      <button onclick="openUsers()" class="mgr-only" style="width:100%;padding:.6rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(13,148,136,.15);color:#14B8A6;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">👥 إدارة المستخدمين</button>
+      <button onclick="goTab('admin');sbClose()" style="width:100%;padding:.7rem .4rem;margin-bottom:.6rem;border:none;border-radius:10px;background:rgba(148,163,184,.16);color:#CBD5E1;font-weight:800;font-size:.8rem;cursor:pointer;font-family:inherit">⚙️ الإدارة</button>
       <button class="btn-logout" onclick="doLogout()">⏏ تسجيل الخروج</button>
     </div>
   </aside>
@@ -824,9 +881,11 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
         <button class="tabb" onclick="goTab('op')">➕ عملية</button>
         <button class="tabb" onclick="goTab('pend')">⏳ تأكيد</button>
         <button class="tabb" onclick="goTab('wallets')">💳 محافظ</button>
+        <button class="tabb" onclick="goTab('board')">🏢 الحسابات</button>
         <button class="tabb" onclick="goTab('stmt')">📋 الكشف</button>
         <button class="tabb" onclick="goTab('recon')">🧮 مطابقة</button>
         <button class="tabb mgr-only" onclick="goTab('reports')">📊 تقارير</button>
+        <button class="tabb" id="teamTabBtn" onclick="goTab('team')">👥 الفريق</button>
         <button class="tabb" onclick="goTab('pdf')">🖨️ PDF</button>
       </div>
       <div id="syncBadge" onclick="manualSync()" title="حالة المزامنة — اضغط للمزامنة اليدوية" style="white-space:nowrap;padding:.35rem .7rem;border-radius:999px;font-size:.72rem;font-weight:800;cursor:pointer;background:rgba(148,163,184,.15);color:#94A3B8;flex-shrink:0">—</div>
@@ -847,6 +906,7 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 
       <!-- DASHBOARD -->
       <div id="vDash" class="view">
+        <div id="closeRemind" class="mgr-only" style="display:none;background:#FFFBEB;border:1px solid #FCD34D;border-radius:10px;padding:.6rem 1rem;font-size:.78rem;color:#92400E;font-weight:700;margin-bottom:.8rem"></div>
         <!-- أقسام العملات — تتولد ديناميكياً -->
         <div id="curSections"></div>
         <!-- أرباح -->
@@ -911,13 +971,11 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 
       <!-- PENDING -->
       <div id="vPend" class="view">
-        <div class="box">
-          <div class="box-hd"><div class="box-title">⏳ عمليات تنتظر التأكيد</div></div>
-          <div class="tbl-wrap">
-            <table><thead><tr><th>التاريخ</th><th>الكود</th><th>النوع</th><th>المبلغ</th><th>المحفظة</th><th>الهاتف</th><th>ملاحظة</th><th>إجراء</th></tr></thead>
-            <tbody id="pendTbody"><tr class="empty-row"><td colspan="8">✅ لا توجد معلقة</td></tr></tbody></table>
-          </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem">
+          <h2 style="font-size:1rem;font-weight:900;margin:0">⏳ عمليات تنتظر التأكيد</h2>
+          <span id="pendCount" style="font-size:.74rem;font-weight:800;color:var(--g3)"></span>
         </div>
+        <div class="pgrid" id="pendGrid"></div>
       </div>
 
       <!-- WALLETS -->
@@ -1041,12 +1099,64 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
       </div>
 
       <!-- REPORTS -->
+      <!-- 🏢 لوحة الحسابات الشاملة -->
+      <div id="vBoard" class="view">
+        <h2 style="font-size:1rem;font-weight:900;margin-bottom:.9rem">🏢 الحسابات — نظرة شاملة</h2>
+        <div class="board-tot" id="boardTot"></div>
+        <div class="board-grid" id="boardGrid"></div>
+      </div>
+      <!-- 👥 الفريق -->
+      <div id="vTeam" class="view">
+        <div id="teamRoot"></div>
+      </div>
+      <!-- ⚙️ الإدارة -->
+      <div id="vAdmin" class="view">
+        <h2 style="font-size:1rem;font-weight:900;margin-bottom:.9rem">⚙️ الإدارة</h2>
+        <div class="adm-grp">
+          <div class="adm-ttl">💾 البيانات والنسخ</div>
+          <div class="adm-row">
+            <button class="adm-btn" style="background:rgba(16,185,129,.12);color:#0B7A4B" onclick="exportBackup()">💾 نسخة احتياطية (تنزيل)</button>
+            <button class="adm-btn" style="background:rgba(59,130,246,.12);color:#2563EB" onclick="document.getElementById('importFile').click()">📥 استرجاع من ملف</button>
+            <button class="adm-btn" style="background:rgba(168,85,247,.12);color:#9333EA" onclick="openBackup()">🕐 النسخ التلقائية</button>
+          </div>
+        </div>
+        <div class="adm-grp mgr-only">
+          <div class="adm-ttl">🧰 الصيانة</div>
+          <div class="adm-row">
+            <button class="adm-btn" style="background:rgba(245,158,11,.14);color:#B45309" onclick="recomputeNow()">♻️ إعادة حساب الأرصدة</button>
+            <button class="adm-btn" style="background:rgba(239,68,68,.1);color:#DC2626" onclick="openTrash()">🗑️ سلة المحذوفات</button>
+          </div>
+        </div>
+        <div class="adm-grp mgr-only">
+          <div class="adm-ttl">👥 الفريق والرقابة</div>
+          <div class="adm-row">
+            <button class="adm-btn" style="background:rgba(13,148,136,.12);color:#0F766E" onclick="openUsers()">👥 إدارة المستخدمين</button>
+            <button class="adm-btn" style="background:rgba(99,102,241,.12);color:#4F46E5" onclick="openAudit()">📜 سجل التدقيق</button>
+          </div>
+        </div>
+        <div class="adm-grp">
+          <div class="adm-ttl">🔐 التوثيق الرسمي (Firebase Auth)</div>
+          <div class="adm-row">
+            <button class="adm-btn mgr-only" style="background:rgba(11,31,58,.1);color:#0B1F3A" onclick="migrateTeamAuth()">🛂 توثيق كل الفريق</button>
+            <button class="adm-btn" style="background:rgba(37,99,235,.12);color:#2563EB" onclick="changeMyAuthPass()">🔑 تغيير كلمة سرّي</button>
+          </div>
+          <div id="authMigStatus" style="font-size:.68rem;color:var(--g3);font-weight:700;margin-top:.5rem"></div>
+          <div class="mgr-only" style="margin-top:.9rem">
+            <div class="adm-ttl">🎫 صلاحيات حسابات الإيميل</div>
+            <div id="permPanel"></div>
+          </div>
+          <div class="mgr-only" style="font-size:.66rem;color:var(--g3);margin-top:.4rem;line-height:1.7">بعد توثيق الجميع وتسجيل دخولهم مرة — اقفل قواعد Firestore من الـ Console. نسيان كلمة سر لاحقاً: Console → Authentication → Reset password.</div>
+        </div>
+      </div>
       <div id="vReports" class="view">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem">
           <h3 style="margin:0">📊 التقارير والتحليلات</h3>
           <button onclick="renderReports()" style="background:rgba(16,185,129,.12);color:#0B7A4B;border:none;padding:.4rem .8rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">🔄 تحديث</button>
         </div>
         <div style="font-size:.76rem;color:#94A3B8;margin-bottom:.5rem">نظرة شاملة على كل العملاء والمحافظ والأرباح</div>
+        <div id="rpHub" class="rp-hub"></div>
+        <div id="rpBack" style="display:none;margin-bottom:.7rem"><button class="btn btn-ghost btn-sm" onclick="rpGo('hub')">← رجوع للتقارير</button></div>
+        <div class="rp-sec" data-sec="closing">
         <div style="background:#fff;border:1px solid #E8EDF3;border-radius:14px;padding:1rem;margin-bottom:.8rem">
           <h4 style="margin:0 0 .3rem">🗓️ الإقفال الشهري والأرشفة</h4>
           <div style="font-size:.74rem;color:#94A3B8;margin-bottom:.6rem;line-height:1.7">بينقل العمليات المؤكدة القديمة للأرشيف وبيخفف حجم البيانات وبيسرّع المزامنة. الأرصدة ما بتتغير، والعمليات المعلقة بتضل. الأرشيف بيتقرا من زر 📦 بتبويب الكشف.</div>
@@ -1057,6 +1167,7 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
             <button onclick="undoCloseAll()" style="background:rgba(220,38,38,.08);color:#DC2626;border:1px solid rgba(220,38,38,.25);padding:.55rem .9rem;border-radius:8px;font-weight:700;font-size:.78rem;cursor:pointer;font-family:inherit">⏮️ تراجع كامل عن الأرشفة</button>
           </div>
           <div id="closePreview"></div>
+        </div>
         </div>
         <div id="reportsBox"></div>
       </div>
@@ -1312,6 +1423,9 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
   <div class="modal" style="max-width:360px">
     <div class="modal-hd"><h3>⋯ المزيد</h3><button class="modal-x" onclick="closeModal('mMore')">✕</button></div>
     <div class="more-grid">
+      <button class="more-btn" onclick="closeModal('mMore');goTab('admin')"><span>⚙️</span><span>الإدارة</span></button>
+      <button class="more-btn" onclick="closeModal('mMore');goTab('board')"><span>🏢</span><span>الحسابات</span></button>
+      <button class="more-btn" onclick="closeModal('mMore');goTab('team')"><span>👥</span><span>الفريق</span></button>
       <button class="more-btn" onclick="closeModal('mMore');goTab('recon')"><span>🧮</span><span>مطابقة</span></button>
       <button class="more-btn mgr-only" onclick="closeModal('mMore');goTab('reports')"><span>📊</span><span>تقارير</span></button>
       <button class="more-btn" onclick="closeModal('mMore');goTab('pdf')"><span>🖨️</span><span>PDF</span></button>
@@ -1428,8 +1542,8 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=92;
-var MIN_BUILD=91;        // ⚠️ مرفوع لـ 91 — الكتابة صارت دمج-ثم-كتابة ذرّية: نسخة أقدم بتكتب كتابة عمياء وبتدوس دمج غيرها (وقبلها 90: قفل الملكية، 87: LZ1، 85: archUpto)
+var APP_BUILD=97;
+var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
 var _lastRev=0, _myRev=0, _hbT=null;
@@ -1460,6 +1574,14 @@ try{
   _auditCol=db.collection('makhtar_audit');          // سجل التدقيق — مجموعة منفصلة، append-only
   console.log('🔥 Firebase: متصل — المزامنة جاهزة');
 }catch(e){console.warn('🔥 Firebase N/A — offline mode',e);}
+// 🔐 جلسة التوثيق الرسمي بتنحفظ بالجهاز وبترجع لحالها — ولما ترجع منسحب من السيرفر
+try{
+  if(typeof firebase!=='undefined'&&firebase.auth){
+    firebase.auth().onAuthStateChanged(function(au){
+      if(au){ console.log('🔐 جلسة رسمية مستعادة'); _authWarned=false; try{ if(_mkCol) pullAll(); }catch(e){} }
+    });
+  }
+}catch(e){}
 
 // مؤشر المزامنة يتفاعل مع حالة شبكة الجهاز
 window.addEventListener('online', function(){ setSyncUI('syncing'); if(_mkCol)manualSync(); });
@@ -1468,6 +1590,7 @@ window.addEventListener('offline', function(){ setSyncUI('offline'); });
 document.addEventListener('visibilitychange', function(){
   if(document.visibilityState==='visible' && _mkCol && navigator.onLine){
     try{
+      presBeat();
       if(Date.now()-_lastServerBeat>45000){ _reviveListeners(); }  // غياب طويل عن السيرفر → إحياء كامل
       else { pullAll(); }
     }catch(e){}
@@ -1703,6 +1826,7 @@ function pushChanges(){
   // أعد محاولة الحذف المعلّق (فشل سابقاً)
   Object.keys(_pendDel).forEach(function(did){ try{_mkCol.doc(did).delete().then(function(){delete _pendDel[did];}).catch(function(){});}catch(e){} });
   if(n>0){
+    window._lastPushAt=Date.now();
     console.log('⬆️ المزامنة: رُفع '+n+' تغيير');
     _myRev=Date.now()+'_'+Math.random().toString(36).slice(2,7);
     try{ _metaDoc.set({rev:_myRev},{merge:true}); }catch(e){}
@@ -1911,6 +2035,7 @@ function applyCollectionSnap(snap){
   var changed=false, ids={}, wids={};
   snap.forEach(function(doc){
     var did=doc.id;
+    if(did==='presence'){ try{_presence=doc.data()||{};}catch(e){} return; }
     if(did==='users'){ var uj=doc.data().j; if(uj&&_syncUsers!==uj){_syncUsers=uj;try{USERS=JSON.parse(uj);localStorage.setItem('makhtar_users',uj);}catch(e){}} return; }
     if(did==='profits'){ var pj=doc.data().j; if(pj&&_syncPr!==pj){_syncPr=pj;try{PROFITS=JSON.parse(pj);changed=true;}catch(e){}} return; }
     if(did.indexOf('cl_')===0){ var cid=did.slice(3); ids[cid]=1; var cj=lzUnpack(doc.data().j); if(cj&&_syncCl[cid]!==cj){_syncCl[cid]=cj;try{upsertClientLocal(JSON.parse(cj));changed=true;}catch(e){}} return; }
@@ -1930,6 +2055,7 @@ function pullAll(then){
     if(then)then();
   }).catch(function(e){
     console.warn('pullAll server:',e&&e.code);
+    if(e&&e.code==='permission-denied'&&!_authWarned){ _authWarned=true; toast('🔐 القاعدة مقفولة — سجّل خروج ودخول لتوثيق هالجهاز','warn'); }
     // السيرفر غير متاح (نت مقطوع فعلاً) — الكاش المحلي مع مؤشر صادق، بلا ادعاء تزامن
     _mkCol.get().then(function(snap){ applyCollectionSnap(snap); setSyncUI('offline'); if(then)then(); })
       .catch(function(e2){ console.warn('pullAll cache:',e2); setSyncUI('offline'); if(then)then(); });
@@ -1971,10 +2097,28 @@ function startGranularListeners(){
     snap.docChanges().forEach(function(ch){
       var did=ch.doc.id;
       if(did==='v4'||did==='meta')return; // تجاهل القديم والميتا
+      if(did==='presence'){
+        try{ _presence=ch.doc.data()||{}; var ov=document.querySelector('.view.on');
+          if(ov&&ov.id==='vTeam')renderTeam(); }catch(e){}
+        return;
+      }
       if(did==='users'){
         if(ch.type==='removed')return;
         var ud=ch.doc.data(); var uj=ud&&ud.j; if(!uj||_syncUsers===uj)return;
         _syncUsers=uj; try{USERS=JSON.parse(uj);localStorage.setItem('makhtar_users',uj);}catch(e){}
+        // 📧 ربط ذاتي لمستخدم إيميل جديد (بعد وصول القائمة الكاملة — ما منمسح حدا)
+        try{
+          if(window._pendingSelfMap && !USERS[window._pendingSelfMap]){
+            USERS[window._pendingSelfMap]={name:window._pendingSelfMap.split('@')[0], role:'cashier'};
+            saveUsers(); window._pendingSelfMap=null;
+          }
+          // 🎫 صلاحية لحظية: إذا المدير غيّر دوري — بتنطبق فوراً
+          if(USERS[CUR_USER]&&USERS[CUR_USER].role&&USERS[CUR_USER].role!==CUR_ROLE){
+            CUR_ROLE=USERS[CUR_USER].role; applyRole();
+            toast('🎫 صلاحيتك اتحدثت: '+(CUR_ROLE==='manager'?'مدير':'صندوق'),'inf');
+          }
+          if(document.querySelector('.view.on')&&document.querySelector('.view.on').id==='vAdmin') renderPermPanel();
+        }catch(e){}
         return;
       }
       if(did==='profits'){
@@ -2003,7 +2147,11 @@ function startGranularListeners(){
     if(touched){ persistLocal(); afterRemoteChange(); console.log('✅ مزامنة: تحديث وارد'); if(_notifReady)toast('🔔 وصل تحديث من جهاز آخر','inf'); }
     else if(prCh){ persistLocal(); if(activeId)refreshDash(); }
     setSyncUI(navigator.onLine?'online':'offline'); lastSync=Date.now();
-  },function(e){console.warn('❌ listener',e);setSyncUI(navigator.onLine?'error':'offline');});
+  },function(e){
+    console.warn('❌ listener',e);
+    if(e&&e.code==='permission-denied'&&!_authWarned){ _authWarned=true; toast('🔐 القاعدة مقفولة — سجّل خروج ودخول لتوثيق هالجهاز','warn'); }
+    setSyncUI(navigator.onLine?'error':'offline');
+  });
   }catch(e){console.warn('listener sub',e);}
 }
 // ── الترحيل خلص من زمان — مُلغى نهائياً حتى ما يرجع يقرا v4 أو يدوس الداتا الجديدة ──
@@ -2177,6 +2325,75 @@ function fmtBytes(n){
   if(n<1048576) return (n/1024).toFixed(1)+' KB';
   return (n/1048576).toFixed(2)+' MB';
 }
+
+// ══════════════════════════════════════════════════════
+//  📊 موزّع التقارير — كل تقرير بصفحته
+// ══════════════════════════════════════════════════════
+function rpGo(s){ window._rpSec=s; renderReports(); }
+function _maxArchUpto(){
+  var mx=''; DB.forEach(function(c){ if(c&&!c.deleted&&(c.archUpto||'')>mx)mx=c.archUpto; }); return mx;
+}
+function _rpApply(){
+  var sec=window._rpSec||'hub';
+  var hub=$id('rpHub'), back=$id('rpBack');
+  document.querySelectorAll('#vReports .rp-sec').forEach(function(d){
+    d.classList.toggle('rp-on', d.getAttribute('data-sec')===sec);
+  });
+  if(back)back.style.display=(sec==='hub')?'none':'block';
+  if(hub){
+    if(sec!=='hub'){ hub.style.display='none'; return; }
+    hub.style.display='grid';
+    var au=_maxArchUpto();
+    hub.innerHTML=
+       '<div class="rp-hcard" onclick="rpGo(\'stats\')"><div class="rp-hi">📈</div><div class="rp-ht">الإحصاءات والأرباح</div><div class="rp-hs">أرباح الشهر: '+fmt(profitMonth())+'</div></div>'
+      +'<div class="rp-hcard" onclick="rpGo(\'storage\')"><div class="rp-hi">💾</div><div class="rp-ht">التخزين</div><div class="rp-hs">الأحجام والاستهلاك</div></div>'
+      +'<div class="rp-hcard" onclick="rpGo(\'closing\')"><div class="rp-hi">🗓️</div><div class="rp-ht">الإقفال الشهري</div><div class="rp-hs">'+(au?('مُقفل حتى: '+au):'لم يُنفذ بعد')+'</div></div>'
+      +'<div class="rp-hcard" onclick="rpGo(\'behind\')"><div class="rp-hi">🩺</div><div class="rp-ht">خلف الشاشة</div><div class="rp-hs">صحة الاتصال والمزامنة</div></div>';
+  }
+}
+function _behindHtml(){
+  function row(l,v,c){ return '<div class="bh-row"><span class="bh-l">'+l+'</span><span class="bh-v" style="color:'+(c||'#0B1F3A')+'">'+v+'</span></div>'; }
+  var h='<h4 style="margin:.2rem 0 .8rem">🩺 خلف الشاشة — صحة النظام لحظياً</h4>';
+  var conn=_syncStale?['⚠️ مش محدّث — إعادة اتصال','#D97706']:(navigator.onLine?['🟢 سليم','#0B7A4B']:['🔴 أوفلاين','#DC2626']);
+  h+=row('حالة الاتصال الحقيقية', conn[0], conn[1]);
+  h+=row('آخر نبضة سيرفر مؤكدة', _ago(_lastServerBeat));
+  h+=row('آخر سحب من السحابة', lastSync?_ago(lastSync):'—');
+  h+=row('آخر رفع للسحابة', window._lastPushAt?_ago(window._lastPushAt):'—');
+  h+=row('مستمع البيانات الحي', _unsubCol?'🟢 شغال':'🔴 متوقف', _unsubCol?'#0B7A4B':'#DC2626');
+  h+=row('مستمع النسخة/الإعدادات', _unsubMeta?'🟢 شغال':'🔴 متوقف', _unsubMeta?'#0B7A4B':'#DC2626');
+  h+=row('نسخة البرنامج', 'Build '+APP_BUILD+' • الحد الأدنى بالسحابة: '+(_cloudMinBuild||MIN_BUILD));
+  h+=row('الجلسة', esc(_uname(CUR_USER))+' ('+(CUR_ROLE==='manager'?'مدير':'صندوق')+')');
+  var _au=(typeof firebase!=='undefined'&&firebase.auth&&firebase.auth().currentUser);
+  h+=row('التوثيق الرسمي (Auth)', _au?'🔐 موثّق'+(_au.email&&_au.email.indexOf('@makhtar-auth.app')<0?' ('+esc(_au.email)+')':''):'⚠️ غير موثّق — سجّل خروج ودخول', _au?'#0B7A4B':'#D97706');
+  var _onNames=Object.keys(_presence||{}).filter(function(k){return isOnline(k);}).map(function(k){return _uname(k);});
+  h+=row('🟢 أونلاين الآن ('+_onNames.length+')', _onNames.length?esc(_onNames.join('، ')):'—', '#0B7A4B');
+  h+=row('الحجم بالذاكرة', activeClients().length+' عميل • '+GW.filter(function(w){return !w.deleted;}).length+' محفظة');
+  // أكبر 5 عملاء بالسحابة
+  var sizes=DB.filter(function(c){return !c.deleted;}).map(function(c){
+    var raw=JSON.stringify(c); return {n:c.name, b:blobSize(lzPack(raw))};
+  }).sort(function(a,b){return b.b-a.b;}).slice(0,5);
+  h+='<div style="font-size:.72rem;font-weight:800;margin:.8rem 0 .4rem;color:#0B1F3A">📦 أكبر 5 ملفات بالسحابة (مضغوطة)</div>';
+  sizes.forEach(function(s){ h+=row(esc(s.n), fmtBytes(s.b), s.b>838860?'#DC2626':'#0B7A4B'); });
+  h+='<button class="adm-btn" style="background:rgba(37,99,235,.12);color:#2563EB;margin-top:.5rem" onclick="_reviveListeners();toast(\'🔄 تم إحياء الاتصال والسحب من السيرفر\',\'ok\');setTimeout(renderReports,900)">🔄 إحياء الاتصال الآن</button>';
+  return h;
+}
+// ══════════════════════════════════════════════════════
+//  🗓️ مذكّر الإقفال الشهري — أول 7 أيام من الشهر
+// ══════════════════════════════════════════════════════
+function updateCloseRemind(){
+  var el=$id('closeRemind'); if(!el)return;
+  var now=new Date();
+  if(now.getDate()>7){ el.style.display='none'; return; }
+  var pe=new Date(now.getFullYear(), now.getMonth(), 0);           // آخر يوم بالشهر الماضي
+  var peStr=pe.getFullYear()+'-'+String(pe.getMonth()+1).padStart(2,'0')+'-'+String(pe.getDate()).padStart(2,'0');
+  var au=_maxArchUpto();
+  if(au>=peStr){ el.style.display='none'; return; }
+  var arName=['كانون الثاني','شباط','آذار','نيسان','أيار','حزيران','تموز','آب','أيلول','تشرين الأول','تشرين الثاني','كانون الأول'];
+  el.style.display='flex'; el.style.alignItems='center'; el.style.gap='.6rem'; el.style.flexWrap='wrap';
+  el.innerHTML='🗓️ خلص شهر <b>'+arName[pe.getMonth()]+'</b> — حان وقت الإقفال الشهري (بيخفف الأحجام وبيسرّع المزامنة)'
+    +'<button class="btn btn-sm btn-teal" style="margin-right:auto" onclick="goTab(\'reports\');rpGo(\'closing\')">🗓️ نفّذ الإقفال</button>';
+}
+
 function renderReports(){
   var box=$id('reportsBox'); if(!box)return;
   var pTotal=PROFITS.total||0, pMonth=profitMonth(), pToday=profitToday();
@@ -2226,6 +2443,7 @@ function renderReports(){
   function grid(cards){ return '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:.7rem">'+cards+'</div>'; }
 
   var h='';
+  h+='<div class="rp-sec" data-sec="stats">';
   // الأرباح
   h+=sectionTitle('💰 الأرباح');
   h+=grid(card('أرباح اليوم',fmt(pToday),'من العمولات','#10B981')+card('أرباح الشهر',fmt(pMonth),thisMonth,'#10B981')+card('إجمالي الأرباح',fmt(pTotal),'منذ البداية','#0B7A4B'));
@@ -2298,6 +2516,7 @@ function renderReports(){
       +(sub?'<div style="font-size:.66rem;color:#94A3B8;margin-top:.15rem">'+sub+'</div>':'')
       +(pct!=null?bar(pct,color):'')+'</div>';
   }
+  h+='</div><div class="rp-sec" data-sec="storage">';
   h+=sectionTitle('💾 التخزين');
   h+=srow('بيانات السحابة (Firebase)', fmtBytes(cloudBytes), 'من أصل ١ جيجابايت مجاني — '+cloudPct.toFixed(3)+'%', cloudPct, '#2563EB');
   h+=srow('عدد المستندات', docCount+' مستند', activeClients().length+' عميل • '+activeWallets().length+' محفظة • ٤ نظام', null, '#0B1F3A');
@@ -2306,7 +2525,10 @@ function renderReports(){
   h+=srow('تخزين الجهاز (localStorage)'+(lzOn?' 🗜️':''), fmtBytes(lsBytes), 'من أصل ~٥ ميجا — '+lsPct.toFixed(1)+'%'+(lzOn&&saved>0?' • مضغوط (وفّرنا ~'+saved+'%)':'')+' (مشترك مع تطبيقاتك على نفس النطاق)', lsPct, lsPct>80?'#DC2626':'#F59E0B');
   h+=srow('النسخ الاحتياطية المحفوظة', fmtBytes(snapBytes), 'آخر ٣ نسخ تلقائية بهالجهاز', null, '#9333EA');
   h+='<div style="font-size:.68rem;color:#94A3B8;background:#F8FAFC;border-radius:10px;padding:.6rem .8rem;line-height:1.6;margin-top:.2rem">ℹ️ القراءات والكتابات اليومية ما فينا نقيسها من داخل البرنامج — شوفها بدقة من <b>Firebase Console → Firestore → Usage</b>. هالأرقام فوق تقدير لحجم بياناتك.</div>';
+  h+='</div>';
+  h+='<div class="rp-sec" data-sec="behind">'+_behindHtml()+'</div>';
   box.innerHTML=h;
+  _rpApply();
 }
 // حساب رصيد عملة معينة (cur = 'usd'|'lbp'|'all')
 function calcBalCur(c, cur){
@@ -2684,26 +2906,158 @@ function delUser(u){
     toast('تم حذف المستخدم ✓','ok');
   });
 }
+
+// ══════════════════════════════════════════════════════
+//  🔐 التوثيق الرسمي — Firebase Authentication
+//  تجربة الدخول نفسها (اسم عربي + كلمة سر) — التوثيق تحت السطح:
+//  بريد اصطناعي حتمي مشتق من الاسم + كلمة السر مكمَّلة للحد الأدنى.
+// ══════════════════════════════════════════════════════
+function _authEmail(u){
+  var b=unescape(encodeURIComponent(String(u))), hex='';
+  for(var i=0;i<b.length;i++){ var h=b.charCodeAt(i).toString(16); hex+=(h.length<2?'0':'')+h; }
+  return 'u'+hex+'@makhtar-auth.app';
+}
+function _authPass(p){ return String(p)+'\u00b7MK#7'; } // إكمال تقني للحد الأدنى ٦ — السرية بكلمة سرّك نفسها
+function _secApp(){
+  try{ return firebase.app('sec'); }catch(e){ return firebase.initializeApp(firebase.app().options,'sec'); }
+}
+var _authWarned=false;
+function _fbSignIn(u,p){
+  if(typeof firebase==='undefined'||!firebase.auth) return;
+  try{
+    var cur=firebase.auth().currentUser;
+    if(cur && cur.email===_authEmail(u)){ return; } // موثّق أصلاً
+    firebase.auth().signInWithEmailAndPassword(_authEmail(u), _authPass(p))
+      .then(function(){ console.log('🔐 موثّق رسمياً'); _authWarned=false; try{pullAll();}catch(e){} })
+      .catch(function(e){
+        var c=(e&&e.code)||'';
+        if(c==='auth/user-not-found'){
+          // أول دخول بعد التحديث — إنشاء حسابه الرسمي تلقائياً عبر تطبيق ثانوي (ما بيقطع جلسة حدا)
+          try{
+            var sa=_secApp();
+            sa.auth().createUserWithEmailAndPassword(_authEmail(u), _authPass(p))
+              .then(function(){ try{sa.auth().signOut();}catch(_){}
+                return firebase.auth().signInWithEmailAndPassword(_authEmail(u), _authPass(p));
+              })
+              .then(function(){ toast('🔐 تم توثيق حسابك رسمياً','ok'); try{pullAll();}catch(e){} })
+              .catch(function(e2){ console.warn('auth create',(e2&&e2.code)||e2); });
+          }catch(e3){}
+        } else if(c==='auth/wrong-password'||c==='auth/invalid-credential'||c==='auth/invalid-login-credentials'){
+          toast('🔐 كلمة السر الرسمية مختلفة — إذا انعملت Reset من Firebase Console استعمل الجديدة','warn');
+        } else { console.warn('auth',c); }
+      });
+  }catch(e){}
+}
+function migrateTeamAuth(){
+  if(CUR_ROLE!=='manager'){ toast('للمدير فقط','err'); return; }
+  if(typeof firebase==='undefined'||!firebase.auth){ toast('Auth غير محمّل — تأكد من تفعيله بالـ Console أولاً','err'); return; }
+  var names=Object.keys(USERS||{}).filter(function(k){return k.indexOf('@')===-1;}); // الإيميلات موثّقة أصلاً من الـ Console
+  if(!names.length){ toast('كل الحسابات إيميلات موثّقة أصلاً — ما في شي للترحيل','inf'); return; }
+  toast('⏳ عم نوثّق الفريق ('+names.length+')...','inf');
+  var sa=_secApp(), made=0, had=0, fail=0;
+  (function next(i){
+    if(i>=names.length){
+      try{sa.auth().signOut();}catch(_){}
+      var msg='🛂 التوثيق خلص — جديد: '+made+' • موثّق مسبقاً: '+had+(fail?' • فشل: '+fail:'');
+      toast(msg, fail?'warn':'ok');
+      var st=$id('authMigStatus'); if(st)st.textContent=msg;
+      return;
+    }
+    var nm=names[i], pw=(USERS[nm]&&USERS[nm].pw)||'';
+    sa.auth().createUserWithEmailAndPassword(_authEmail(nm), _authPass(pw))
+      .then(function(){ made++; try{sa.auth().signOut();}catch(_){}; next(i+1); })
+      .catch(function(e){
+        if(e&&e.code==='auth/email-already-in-use'){ had++; }
+        else { fail++; console.warn('توثيق فشل:',nm,(e&&e.code)||e); }
+        next(i+1);
+      });
+  })(0);
+}
+function changeMyAuthPass(){
+  var isEm=(CUR_USER||'').indexOf('@')>-1;
+  var np=prompt('🔑 كلمة السر الجديدة'+(isEm?' (٦ أحرف/أرقام على الأقل):':' (يفضَّل ٦ أو أكثر):'));
+  if(np===null)return;
+  np=String(np).trim();
+  if(isEm && np.length<6){ toast('حساب الإيميل يتطلب ٦ على الأقل','err'); return; }
+  if(!isEm && np.length<4){ toast('قصيرة كتير','err'); return; }
+  var cur=(firebase.auth&&firebase.auth().currentUser);
+  if(!cur){ toast('🔐 سجّل خروج ودخول أولاً لتوثيق الجلسة','warn'); return; }
+  // ⚠️ حساب الإيميل: كلمة السر خام كما هي. الاسم القديم: مع الإكمال التقني.
+  cur.updatePassword(isEm ? np : _authPass(np)).then(function(){
+    if(!isEm && USERS[CUR_USER]){ USERS[CUR_USER].pw=np; try{ saveUsers(); }catch(e){} }
+    toast('🔐 تغيّرت كلمة سرّك بنجاح','ok');
+  }).catch(function(e){
+    if(e&&e.code==='auth/requires-recent-login') toast('🔐 لأمانك: سجّل خروج ودخول ثم جرّب فوراً','warn');
+    else toast('فشل التغيير: '+((e&&e.code)||''),'err');
+  });
+}
+
+// المسار المشترك بعد نجاح أي دخول
+
+// ══════════════════════════════════════════════════════
+//  🟢 مين أونلاين — نبضة حضور كل دقيقة بمستند واحد صغير
+// ══════════════════════════════════════════════════════
+var _presence={}, _presT=null;
+function presBeat(off){
+  if(!_mkCol||_blocked||!CUR_USER) return;
+  try{
+    var o={}; o[CUR_USER]={t: off?0:Date.now(), n:_uname(CUR_USER)};
+    _mkCol.doc('presence').set(o,{merge:true}).catch(function(){});
+  }catch(e){}
+}
+function presStart(){ presBeat(); clearInterval(_presT); _presT=setInterval(presBeat,60000); }
+function isOnline(u){ var p=_presence&&_presence[u]; return !!(p&&p.t&&(Date.now()-p.t)<150000); }
+function presLine(u, fallbackTs){
+  var p=_presence&&_presence[u];
+  if(isOnline(u)) return '<span style="color:#0B7A4B">🟢 أونلاين الآن</span>';
+  var ts=(p&&p.t)||fallbackTs||0;
+  return '<span style="color:var(--g3)">⚪ آخر ظهور: '+(ts?_ago(ts):'—')+'</span>';
+}
+
+function _enterApp(u, role){
+  var err=$id('loginErr'); if(err)err.style.display='none';
+  $id('loginWrap').style.display='none';
+  $id('appWrap').style.display='block';
+  CUR_USER=u; CUR_ROLE=role||'manager'; applyRole();
+  try{localStorage.setItem('makhtar_session',u);}catch(e){}
+  loadLocal();
+  ensureOpCodes(false);
+  migrateWalletApplied(false);
+  buildSidebar();
+  if(DB.length)pickClient(DB[0].id);
+  var td=dateStr(new Date());
+  ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
+  var ot=$id('opTime');if(ot)ot.value=nowTime();
+  presStart();          // 🟢 مؤشر الأونلاين
+  loadCloud();
+}
+// 📧 دخول بإيميل رسمي مُضاف من Firebase Console
+function doEmailLogin(em,p){
+  var err=$id('loginErr');
+  if(typeof firebase==='undefined'||!firebase.auth){ toast('Auth غير محمّل','err'); return; }
+  if(!navigator.onLine){ toast('📧 دخول الإيميل بحاجة إنترنت أول مرة','warn'); return; }
+  firebase.auth().signInWithEmailAndPassword(em,p).then(function(){
+    var ent=USERS[em];
+    if(!ent){ window._pendingSelfMap=em; ent={name:em.split('@')[0], role:'cashier'}; } // صلاحية افتراضية: صندوق — لحد ما يعيّنك المدير
+    _enterApp(em, ent.role||'cashier');
+  }).catch(function(e){
+    var c=(e&&e.code)||'';
+    if(err)err.style.display='block';
+    var lp=$id('lp');if(lp)lp.value='';
+    if(c==='auth/user-not-found') toast('📧 هالإيميل مش مضاف — ضيفه من Firebase Console → Authentication → Add user','err');
+    else if(c==='auth/wrong-password'||c==='auth/invalid-credential'||c==='auth/invalid-login-credentials') toast('🔑 كلمة السر غلط','err');
+    else if(c==='auth/too-many-requests') toast('⏳ محاولات كتيرة — استنى دقيقة','warn');
+    else toast('فشل الدخول: '+c,'err');
+  });
+}
 function doLogin(){
   var u=($v('lu')||'').trim();
   var p=($v('lp')||'').trim();
   var err=$id('loginErr');
+  if(u.indexOf('@')>-1){ doEmailLogin(u.toLowerCase(), p); return; }   // 📧 مسار الإيميل الرسمي
   if(USERS[u]!==undefined&&USERS[u].pw===p){
-    if(err)err.style.display='none';
-    $id('loginWrap').style.display='none';
-    $id('appWrap').style.display='block';
-    CUR_USER=u; CUR_ROLE=USERS[u].role||'manager'; applyRole();
-    // حفظ الجلسة
-    try{localStorage.setItem('makhtar_session',u);}catch(e){}
-    loadLocal();
-    ensureOpCodes(false);
-    migrateWalletApplied(false);
-    buildSidebar();
-    if(DB.length)pickClient(DB[0].id);
-    var td=dateStr(new Date());
-    ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
-    var ot=$id('opTime');if(ot)ot.value=nowTime();
-    loadCloud();
+    _fbSignIn(u,p);   // 🔐 توثيق رسمي بالتوازي (المسار القديم)
+    _enterApp(u, USERS[u].role||'manager');
   }else{
     if(err)err.style.display='block';
     var lp=$id('lp');if(lp)lp.value='';
@@ -2717,10 +3071,13 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
 (function autoLogin(){
   try{
     var saved=localStorage.getItem('makhtar_session');
-    if(saved&&USERS[saved]!==undefined){
+    var isEm=saved&&saved.indexOf('@')>-1;
+    if(saved&&(USERS[saved]!==undefined||isEm)){
       $id('loginWrap').style.display='none';
       $id('appWrap').style.display='block';
-      CUR_USER=saved; CUR_ROLE=USERS[saved].role||'manager'; applyRole();
+      CUR_USER=saved;
+      CUR_ROLE=(USERS[saved]&&USERS[saved].role)||(isEm?'cashier':'manager'); applyRole();
+      try{presStart();}catch(e){}
       loadLocal();
       try{
         ensureOpCodes(false);
@@ -2739,6 +3096,8 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
 setInterval(function(){ try{autoSnapshot('تلقائي');}catch(e){} }, 900000);
 setTimeout(function(){ try{autoSnapshot('بدء التشغيل');}catch(e){} }, 6000);
 function doLogout(){
+  try{ presBeat(true); clearInterval(_presT); }catch(e){}
+  try{ if(typeof firebase!=='undefined'&&firebase.auth) firebase.auth().signOut(); }catch(e){}
   try{localStorage.removeItem('makhtar_session');}catch(e){}
   $id('appWrap').style.display='none';
   $id('loginWrap').style.display='flex';
@@ -3027,7 +3386,7 @@ document.addEventListener('click',function(e){
 //  NAVIGATION
 // ══════════════════════════════════════════════════════
 var TABS=['dash','op','pend','wallets','stmt','recon','reports','pdf'];
-var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',reports:'vReports',pdf:'vPdf'};
+var VIEWS={dash:'vDash',op:'vOp',pend:'vPend',wallets:'vWallets',stmt:'vStmt',recon:'vRecon',reports:'vReports',pdf:'vPdf',board:'vBoard',team:'vTeam',admin:'vAdmin'};
 function showView(id){document.querySelectorAll('.view').forEach(function(v){v.classList.remove('on');});var e=$id(id);if(e)e.classList.add('on');}
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(function(b){b.classList.remove('on');});
@@ -3037,20 +3396,216 @@ function setTabActive(tab){
   if(tabBtns[idx])tabBtns[idx].classList.add('on');
   var mb=$id('mbn-'+tab);if(mb)mb.classList.add('mon');
 }
+
+// ══════════════════════════════════════════════════════
+//  🏢 لوحة الحسابات الشاملة — عرض واشتقاق فقط
+// ══════════════════════════════════════════════════════
+
+// ══════════════════════════════════════════════════════
+//  🎫 صلاحيات حسابات الإيميل — يديرها المدير من هون
+// ══════════════════════════════════════════════════════
+function renderPermPanel(){
+  var box=$id('permPanel'); if(!box)return;
+  if(CUR_ROLE!=='manager'){ box.innerHTML=''; return; }
+  var ems=Object.keys(USERS||{}).filter(function(k){return k.indexOf('@')>-1;});
+  var h='';
+  if(ems.length){
+    h+='<div class="tbl-wrap"><table class="tbl"><thead><tr><th>الإيميل</th><th>الاسم الظاهر</th><th>الحالة</th><th>الصلاحية</th><th></th></tr></thead><tbody>';
+    ems.forEach(function(em,i){
+      var e2=USERS[em]||{};
+      h+='<tr>'
+        +'<td style="direction:ltr;text-align:right;font-size:.72rem">'+esc(em)+'</td>'
+        +'<td><input id="pmN'+i+'" type="text" value="'+esc(e2.name||'')+'" style="width:110px;padding:.3rem .5rem;border:1px solid var(--g2);border-radius:8px;font-family:inherit;font-size:.75rem"/></td>'
+        +'<td style="font-size:.7rem">'+presLine(em,0)+'</td>'
+        +'<td><select id="pmR'+i+'" style="padding:.3rem .5rem;border:1px solid var(--g2);border-radius:8px;font-family:inherit;font-size:.75rem">'
+          +'<option value="cashier"'+(e2.role!=='manager'?' selected':'')+'>صندوق</option>'
+          +'<option value="manager"'+(e2.role==='manager'?' selected':'')+'>مدير</option>'
+        +'</select></td>'
+        +'<td style="white-space:nowrap"><button class="btn btn-teal btn-xs" onclick="savePerm('+i+',\''+em.replace(/'/g,"\\'")+'\')">💾</button> '
+        +'<button class="btn btn-ghost btn-xs" onclick="delPerm(\''+em.replace(/'/g,"\\'")+'\')">🗑</button></td>'
+        +'</tr>';
+    });
+    h+='</tbody></table></div>';
+  } else {
+    h+='<div style="font-size:.72rem;color:var(--g3);font-weight:700;padding:.4rem 0">ما في حسابات إيميل بعد — ضيف الإيميل من Firebase Console ثم اربطه هون (أو بيرتبط لحاله بأول دخول إله).</div>';
+  }
+  h+='<div style="display:flex;gap:.5rem;flex-wrap:wrap;align-items:flex-end;margin-top:.7rem">'
+    +'<div class="fg" style="margin:0"><label>إيميل جديد</label><input id="pmNewE" type="email" placeholder="name@gmail.com" style="direction:ltr"/></div>'
+    +'<div class="fg" style="margin:0"><label>الاسم الظاهر</label><input id="pmNewN" type="text" placeholder="مثلاً: أبو علي"/></div>'
+    +'<div class="fg" style="margin:0"><label>الصلاحية</label><select id="pmNewR"><option value="cashier">صندوق</option><option value="manager">مدير</option></select></div>'
+    +'<button class="btn btn-navy" onclick="addPerm()">➕ ربط</button>'
+    +'</div>'
+    +'<div style="font-size:.64rem;color:var(--g3);margin-top:.5rem;line-height:1.7">ℹ️ إنشاء الحساب نفسه (الإيميل + كلمة السر) بيصير من Firebase Console → Authentication → <b>Add user</b>. هون بس بتربطه باسم وصلاحية. الحذف هون بيلغي صلاحيته بالبرنامج — وحذف الحساب نهائياً من الـ Console.</div>';
+  box.innerHTML=h;
+}
+function savePerm(i,em){
+  if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;}
+  var nm=($v('pmN'+i)||'').trim()||em.split('@')[0];
+  var rl=$v('pmR'+i)==='manager'?'manager':'cashier';
+  USERS[em]={name:nm, role:rl};
+  try{ saveUsers(); toast('🎫 انحفظت صلاحية '+nm,'ok'); }catch(e){ toast('فشل الحفظ','err'); }
+  renderPermPanel();
+}
+function delPerm(em){
+  if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;}
+  if(!confirm('إلغاء صلاحية '+em+' بالبرنامج؟'))return;
+  delete USERS[em];
+  try{ saveUsers(); toast('انلغت صلاحيته — احذف حسابه من Console إذا بدك منع الدخول نهائياً','warn'); }catch(e){}
+  renderPermPanel();
+}
+function addPerm(){
+  if(CUR_ROLE!=='manager'){toast('للمدير فقط','err');return;}
+  var em=($v('pmNewE')||'').trim().toLowerCase();
+  var nm=($v('pmNewN')||'').trim();
+  var rl=$v('pmNewR')==='manager'?'manager':'cashier';
+  if(em.indexOf('@')<1){toast('إيميل غير صالح','err');return;}
+  USERS[em]={name:nm||em.split('@')[0], role:rl};
+  try{ saveUsers(); toast('🎫 انربط '+(nm||em),'ok'); }catch(e){ toast('فشل الحفظ','err'); }
+  var a=$id('pmNewE');if(a)a.value=''; var b=$id('pmNewN');if(b)b.value='';
+  renderPermPanel();
+}
+
+function renderBoard(){
+  var tot=$id('boardTot'), grid=$id('boardGrid'); if(!tot||!grid)return;
+  var lana=0, alay=0, pendSum=0, pendCnt=0, cards=[];
+  DB.forEach(function(c){
+    if(!c||c.deleted)return;
+    var bal=calcBalCur(c,'usd');
+    if(bal>=0)lana+=bal; else alay+=Math.abs(bal);
+    var pOps=(c.ops||[]).filter(function(o){return o.status==='pending';});
+    var pNet=pOps.reduce(function(s,o){
+      var eff=o.amount+((o.type==='out'&&o.walletId)?(o.commission||COMMISSION):0);
+      return o.type==='in'?s+o.amount:s-eff;
+    },0);
+    pendSum+=Math.abs(pNet); pendCnt+=pOps.length;
+    var hasLbp=c.accounts&&c.accounts.lbp&&c.accounts.lbp.on;
+    cards.push({c:c,bal:bal,pN:pOps.length,pNet:pNet,lbp:hasLbp?calcBalCur(c,'lbp'):null});
+  });
+  cards.sort(function(a,b){return Math.abs(b.bal)-Math.abs(a.bal);});
+  tot.innerHTML=
+     '<div class="bt"><div class="bt-l">💚 لنا (أرصدة موجبة)</div><div class="bt-v pos">'+fmt(lana)+'</div></div>'
+    +'<div class="bt"><div class="bt-l">🔻 علينا (أرصدة سالبة)</div><div class="bt-v neg">'+fmt(alay)+'</div></div>'
+    +'<div class="bt"><div class="bt-l">⚖️ الصافي</div><div class="bt-v '+((lana-alay)>=0?'pos':'neg')+'">'+fmt(lana-alay)+'</div></div>'
+    +'<div class="bt"><div class="bt-l">⏳ معلق ('+pendCnt+')</div><div class="bt-v amb">'+fmt(pendSum)+'</div></div>';
+  grid.innerHTML=cards.length?cards.map(function(x){
+    return '<div class="bcard" onclick="pickClient(\''+x.c.id+'\')">'
+      +'<div class="bc-nm"><span style="width:9px;height:9px;border-radius:50%;background:'+(x.c.color||'#0E7490')+';display:inline-block"></span>'+esc(x.c.name)+'</div>'
+      +'<div class="bc-sub">'+esc(x.c.sub||'')+'</div>'
+      +'<div class="bc-bal '+(x.bal>=0?'pos':'neg')+'">'+fmt(x.bal)+' <span style="font-size:.6rem;color:var(--g3)">'+(x.bal>=0?'(لكم)':'(لنا)')+'</span></div>'
+      +(x.pN?'<div class="bc-pend">⏳ '+x.pN+' معلقة — '+fmt(Math.abs(x.pNet))+'</div>':'')
+      +(x.lbp!==null&&x.lbp!==0?'<div class="bc-lbp">🇱🇧 ل.ل '+fmtNum(Math.abs(x.lbp))+' '+(x.lbp>=0?'(لكم)':'(لنا)')+'</div>':'')
+      +'</div>';
+  }).join(''):'<div style="color:var(--g3);font-size:.85rem">لا عملاء بعد</div>';
+}
+
+// ══════════════════════════════════════════════════════
+//  👥 الفريق — توثيق شغل كل موظف (بيانات by/confirmedBy من Build 90)
+// ══════════════════════════════════════════════════════
+function _ago(ts){
+  if(!ts)return '—';
+  var s=Math.floor((Date.now()-ts)/1000);
+  if(s<60)return 'الآن';
+  if(s<3600)return 'منذ '+Math.floor(s/60)+' د';
+  if(s<86400)return 'منذ '+Math.floor(s/3600)+' س';
+  return 'منذ '+Math.floor(s/86400)+' يوم';
+}
+function _teamStats(){
+  var today=dateStr(new Date()), month=today.slice(0,7);
+  var st={}, legacy=0;
+  function u(name){ if(!st[name])st[name]={oT:0,oM:0,inT:0,outT:0,inM:0,outM:0,cT:0,cM:0,pN:0,pS:0,last:0,rows:[]}; return st[name]; }
+  DB.forEach(function(c){
+    if(!c||c.deleted)return;
+    (c.ops||[]).forEach(function(o){
+      if(!o.by && !o.confirmedBy){ legacy++; return; }
+      if(o.by){
+        var s=u(o.by);
+        var isT=o.date===today, isM=(o.date||'').slice(0,7)===month;
+        if(isT){s.oT++; if(o.type==='in')s.inT+=o.amount; else s.outT+=o.amount;}
+        if(isM){s.oM++; if(o.type==='in')s.inM+=o.amount; else s.outM+=o.amount;}
+        if(o.status==='pending'){s.pN++; s.pS+=o.amount;}
+        if((o.createdAt||0)>s.last)s.last=o.createdAt||0;
+        s.rows.push({cl:c.name, o:o, role:'فتحها'});
+      }
+      if(o.confirmedBy){
+        var s2=u(o.confirmedBy);
+        var cd=o.confirmedAt?dateStr(new Date(o.confirmedAt)):'';
+        if(cd===today)s2.cT++;
+        if(cd.slice(0,7)===month)s2.cM++;
+        if((o.confirmedAt||0)>s2.last)s2.last=o.confirmedAt||0;
+        if(o.confirmedBy!==o.by) s2.rows.push({cl:c.name, o:o, role:'أكّدها'});
+        else { var r=s2.rows[s2.rows.length-1]; if(r&&r.o===o)r.role='فتحها وأكّدها'; }
+      }
+    });
+  });
+  return {st:st, legacy:legacy};
+}
+function renderTeam(){
+  var root=$id('teamRoot'); if(!root)return;
+  if(CUR_ROLE!=='manager'){ renderTeamDetail(CUR_USER,false); return; }
+  var d=_teamStats(), st=d.st;
+  var names=Object.keys(USERS||{});
+  Object.keys(st).forEach(function(k){ if(names.indexOf(k)===-1)names.push(k); });
+  var h='<h2 style="font-size:1rem;font-weight:900;margin-bottom:.9rem">👥 الفريق — توثيق الشغل</h2><div class="tm-grid">';
+  names.forEach(function(name){
+    var s=st[name]||{oT:0,cT:0,pN:0,last:0};
+    var role=(USERS[name]&&USERS[name].role)||'';
+    h+='<div class="tm-card" onclick="renderTeamDetail(\''+name.replace(/'/g,"\\'")+'\',true)">'
+      +'<div class="tm-nm">'+esc(_uname(name))+'<span class="tm-role">'+(role==='manager'?'مدير':'صندوق')+'</span></div>'
+      +'<div class="tm-line">اليوم: فتح <b>'+s.oT+'</b> • أكّد <b>'+s.cT+'</b></div>'
+      +'<div class="tm-line">⏳ معلقاته: <b>'+s.pN+'</b></div>'
+      +'<div class="tm-line">'+presLine(name, s.last)+'</div>'
+      +'</div>';
+  });
+  h+='</div>';
+  if(d.legacy>0) h+='<div style="margin-top:.9rem;font-size:.72rem;color:var(--g3);font-weight:700">ℹ️ '+d.legacy+' عملية قديمة (قبل نظام الختم) غير محسوبة بالتوثيق — أرصدتها سليمة طبعاً</div>';
+  root.innerHTML=h;
+}
+function renderTeamDetail(name, withBack){
+  var root=$id('teamRoot'); if(!root)return;
+  var d=_teamStats(), s=d.st[name]||{oT:0,oM:0,inT:0,outT:0,inM:0,outM:0,cT:0,cM:0,pN:0,pS:0,last:0,rows:[]};
+  var role=(USERS[name]&&USERS[name].role)||'';
+  var rows=s.rows.slice().sort(function(a,b){return ((b.o.date||'')+(b.o.time||'')).localeCompare((a.o.date||'')+(a.o.time||''));}).slice(0,100);
+  var h='';
+  if(withBack) h+='<button class="btn btn-ghost btn-sm" onclick="renderTeam()" style="margin-bottom:.8rem">← رجوع للفريق</button>';
+  h+='<h2 style="font-size:1rem;font-weight:900;margin-bottom:.2rem">'+(withBack?'👤 ':'👤 صفحتي — ')+esc(_uname(name))+' <span class="tm-role">'+(role==='manager'?'مدير':'صندوق')+'</span></h2>'
+    +'<div style="font-size:.72rem;font-weight:700;margin-bottom:.4rem">'+presLine(name, s.last)+'</div>'
+    +'<div class="tm-tiles">'
+    +'<div class="tm-tile"><div class="tm-tl">📅 اليوم — فتح</div><div class="tm-tv">'+s.oT+' عملية</div><div class="tm-ts">↙ '+fmt(s.inT)+' • ↗ '+fmt(s.outT)+'</div></div>'
+    +'<div class="tm-tile"><div class="tm-tl">📅 اليوم — أكّد</div><div class="tm-tv">'+s.cT+' عملية</div></div>'
+    +'<div class="tm-tile"><div class="tm-tl">🗓️ الشهر — فتح</div><div class="tm-tv">'+s.oM+' عملية</div><div class="tm-ts">↙ '+fmt(s.inM)+' • ↗ '+fmt(s.outM)+'</div></div>'
+    +'<div class="tm-tile"><div class="tm-tl">🗓️ الشهر — أكّد</div><div class="tm-tv">'+s.cM+'</div></div>'
+    +'<div class="tm-tile"><div class="tm-tl">⏳ معلقاته المفتوحة</div><div class="tm-tv amb">'+s.pN+'</div><div class="tm-ts">'+fmt(s.pS)+'</div></div>'
+    +'</div>'
+    +'<div class="tbl-wrap"><table class="tbl"><thead><tr><th>التاريخ</th><th>العميل</th><th>النوع</th><th>المبلغ</th><th>الحالة</th><th>دوره</th></tr></thead><tbody>'
+    +(rows.length?rows.map(function(r){
+      var o=r.o;
+      return '<tr><td>'+esc(o.date||'')+' '+esc(o.time||'')+'</td><td>'+esc(r.cl)+'</td>'
+        +'<td>'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</td><td>'+fmt(o.amount)+'</td>'
+        +'<td>'+(o.status==='confirmed'?'✅':'⏳')+'</td><td style="font-size:.7rem">'+r.role+'</td></tr>';
+    }).join(''):'<tr><td colspan="6" style="color:var(--g3)">لا عمليات مختومة بعد</td></tr>')
+    +'</tbody></table></div>'
+    +(s.rows.length>100?'<div style="font-size:.7rem;color:var(--g3);font-weight:700;margin-top:.4rem">معروض أحدث 100 من '+s.rows.length+'</div>':'');
+  root.innerHTML=h;
+}
+
 function goTab(tab){
   if(tab==='reports'&&CUR_ROLE==='cashier'){toast('التقارير للمدير فقط','err');return;}
-  if(!activeId&&tab!=='wallets'&&tab!=='reports'){toast('اختر عميلاً أولاً','err');return;}
+  if(!activeId&&tab!=='wallets'&&tab!=='reports'&&tab!=='board'&&tab!=='team'&&tab!=='admin'){toast('اختر عميلاً أولاً','err');return;}
   setTabActive(tab);showView(VIEWS[tab]);
-  if(tab==='dash')refreshDash();
+  if(tab==='dash'){refreshDash();updateCloseRemind();}
   if(tab==='pend'){renderPend();updatePendDot();}
   if(tab==='recon')renderRecon();
   if(tab==='stmt')renderStmt();
   if(tab==='wallets')renderWallets();
   if(tab==='reports')renderReports();
+  if(tab==='board')renderBoard();
+  if(tab==='team')renderTeam();
+  if(tab==='admin')renderPermPanel();
 }
 // إعادة رسم الشاشة المفتوحة حالياً (تُستخدم وقت تصل تحديثات لايف من جهاز تاني)
 function refreshActiveView(){
   refreshDash();
+  try{updateCloseRemind();}catch(e){}
   var onView=document.querySelector('.view.on');
   var vid=onView?onView.id:'';
   if(vid==='vPend')renderPend();
@@ -3058,6 +3613,8 @@ function refreshActiveView(){
   else if(vid==='vRecon')renderRecon();
   else if(vid==='vWallets')renderWallets();
   else if(vid==='vReports')renderReports();
+  else if(vid==='vBoard')renderBoard();
+  else if(vid==='vTeam')renderTeam();
 }
 function pickClient(id){
   var _t=DB.find(function(c){return c.id===id;});
@@ -3339,20 +3896,37 @@ function renderPend(){
   var c=client();if(!c)return;
   var pend=(c.ops||[]).filter(function(o){return o.status==='pending';})
     .sort(function(a,b){return(b.date+(b.time||'')).localeCompare(a.date+(a.time||''));});
-  var tb=$id('pendTbody');if(!tb)return;
-  tb.innerHTML=pend.length?pend.map(function(o){
-    var comm=o.type==='out'&&o.walletId?'<div style="font-size:.63rem;color:var(--amber);margin-top:.15rem">+0.5$ ربح (مُسجّل)</div>':'';
-    return '<tr data-oid="'+o.id+'">'
-      +'<td><b>'+fmtD(o.date)+'</b> <span style="color:var(--g3)">'+(o.time||'')+'</span></td>'
-      +'<td><span class="code-badge">'+padCode(o.code)+'</span></td>'
-      +'<td><span class="badge '+(o.type==='in'?'b-in':'b-out')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span></td>'
-      +'<td class="'+(o.type==='in'?'v-in':'v-out')+'"><b>'+fmt(o.amount)+'</b>'+(o.commission&&o.commission>0?'<span style="font-size:.65rem;color:var(--amber);display:block">+'+o.commission.toFixed(2)+' عمولة</span>':'')+'</td>'
-      +'<td>'+(o.walletName?'<span class="wbadge">'+esc(o.walletName)+'</span>':'—')+'</td>'
-      +'<td style="color:var(--g3)">'+esc(o.phone||'—')+'</td>'
-      +'<td style="color:var(--g3);max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(o.note||'—')+'</td>'
-      +'<td><button class="btn btn-green btn-xs" data-qc="'+o.id+'" onclick="event.stopPropagation()">✅ تأكيد</button>'+comm+'</td>'
-      +'</tr>';}).join('')
-    :'<tr class="empty-row"><td colspan="8">✅ لا توجد معلقة — كل العمليات مؤكدة</td></tr>';
+  var grid=$id('pendGrid');if(!grid)return;
+  var cnt=$id('pendCount'); if(cnt)cnt.textContent=pend.length?(pend.length+' معلقة'):'';
+  grid.innerHTML=pend.length?pend.map(function(o){
+    var isIn=o.type==='in';
+    var mine=!o.by || o.by===CUR_USER || CUR_ROLE==='manager';   // بيقدر يأكدها؟
+    return '<div class="pcard '+(isIn?'pc-in':'pc-out')+'" data-oid="'+o.id+'">'
+      // الأعلى: النوع + الكود
+      +'<div class="pc-top">'
+        +'<span class="badge '+(isIn?'b-in':'b-out')+'">'+(isIn?'↙ دخول':'↗ خروج')+'</span>'
+        +'<span class="code-badge">'+padCode(o.code)+'</span>'
+      +'</div>'
+      // المبلغ الكبير
+      +'<div class="pc-amt '+(isIn?'v-in':'v-out')+'">'+fmt(o.amount)+'</div>'
+      +(o.type==='out'&&o.walletId?'<div class="pc-comm">+0.5$ عمولة (ربح مُسجّل)</div>':'')
+      // التفاصيل
+      +'<div class="pc-meta">'
+        +'<div class="pc-mrow"><span class="pc-ml">📅 التاريخ</span><span class="pc-mv">'+fmtD(o.date)+' '+(o.time||'')+'</span></div>'
+        +(o.walletName?'<div class="pc-mrow"><span class="pc-ml">💳 المحفظة</span><span class="pc-mv">'+esc(o.walletName)+'</span></div>':'')
+        +(o.phone?'<div class="pc-mrow"><span class="pc-ml">📞 الهاتف</span><span class="pc-mv">'+esc(o.phone)+'</span></div>':'')
+        +(o.by?'<div class="pc-mrow"><span class="pc-ml">👤 فاتحها</span><span class="pc-mv">'+esc(_uname(o.by))+'</span></div>':'')
+        +(o.note?'<div class="pc-mrow"><span class="pc-ml">📝 ملاحظة</span><span class="pc-mv">'+esc(o.note)+'</span></div>':'')
+      +'</div>'
+      // الأزرار — روح الرسمة: غير مؤكد (تعديل) | مؤكد
+      +'<div class="pc-actions">'
+        +'<button class="btn btn-ghost" onclick="event.stopPropagation();openEdit(\''+o.id+'\')">⏳ غير مؤكد ✏️</button>'
+        +(mine
+          ?'<button class="btn btn-green" data-qc="'+o.id+'" onclick="event.stopPropagation()">✅ تأكيد</button>'
+          :'<button class="btn btn-ghost" style="opacity:.55" onclick="event.stopPropagation();toast(\'🔒 هالعملية فاتحها \'+_uname(\''+(o.by||'')+'\')+\' — هو يلي بيأكدها\',\'warn\')">🔒 '+esc(_uname(o.by))+'</button>')
+      +'</div>'
+      +'</div>';}).join('')
+    :'<div style="grid-column:1/-1;text-align:center;color:var(--g3);padding:2.2rem;font-size:.9rem;background:var(--white);border:1px dashed var(--g2);border-radius:var(--r)">✅ لا توجد معلقة — كل العمليات مؤكدة</div>';
 }
 function _uname(u){ return (USERS&&USERS[u]&&USERS[u].name)?USERS[u].name:(u||''); }
 function doQuickConfirm(id){
