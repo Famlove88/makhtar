@@ -201,7 +201,7 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--dark);min-h
 }
 .tb-ham:active{background:var(--g1)}
 .tb-client{flex:1;min-width:0}
-.tb-cname{font-size:.95rem;font-weight:800;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tb-cname{font-size:1.45rem;font-weight:900;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.3px}
 .tb-csub{font-size:.7rem;color:var(--g3);margin-top:.05rem}
 .tb-tabs{
   display:flex;gap:.2rem;background:var(--g1);
@@ -797,6 +797,12 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 .pc-actions .btn{flex:1;padding:.6rem .4rem;font-size:.8rem}
 @media(max-width:480px){.pgrid{grid-template-columns:1fr}}
 
+@media(max-width:640px){.tb-cname{font-size:1.1rem}}
+/* 🏢 لوحة أجمل: بطاقات موحدة الارتفاع بلا فجوات */
+.board-grid{grid-auto-rows:1fr}
+.bcard{min-height:126px;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem}
+.bc-nm{font-size:1.02rem}
+.bc-bal{font-size:1.3rem}
 </style>
 </head>
 <body>
@@ -877,16 +883,16 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
         <div class="tb-csub" id="tbSub">انقر على اسم العميل في القائمة</div>
       </div>
       <div class="tb-tabs">
-        <button class="tabb on" onclick="goTab('dash')">📊 الرئيسية</button>
-        <button class="tabb" onclick="goTab('op')">➕ عملية</button>
-        <button class="tabb" onclick="goTab('pend')">⏳ تأكيد</button>
-        <button class="tabb" onclick="goTab('wallets')">💳 محافظ</button>
-        <button class="tabb" onclick="goTab('board')">🏢 الحسابات</button>
-        <button class="tabb" onclick="goTab('stmt')">📋 الكشف</button>
-        <button class="tabb" onclick="goTab('recon')">🧮 مطابقة</button>
-        <button class="tabb mgr-only" onclick="goTab('reports')">📊 تقارير</button>
-        <button class="tabb" id="teamTabBtn" onclick="goTab('team')">👥 الفريق</button>
-        <button class="tabb" onclick="goTab('pdf')">🖨️ PDF</button>
+        <button class="tabb" data-tab="board" onclick="goTab('board')">🏢 الحسابات</button>
+        <button class="tabb" data-tab="dash" onclick="goTab('dash')">📊 الرئيسية</button>
+        <button class="tabb" data-tab="op" onclick="goTab('op')">➕ عملية</button>
+        <button class="tabb" data-tab="pend" onclick="goTab('pend')">⏳ تأكيد</button>
+        <button class="tabb" data-tab="wallets" onclick="goTab('wallets')">💳 محافظ</button>
+        <button class="tabb" data-tab="stmt" onclick="goTab('stmt')">📋 الكشف</button>
+        <button class="tabb" data-tab="recon" onclick="goTab('recon')">🧮 مطابقة</button>
+        <button class="tabb mgr-only" data-tab="reports" onclick="goTab('reports')">📊 تقارير</button>
+        <button class="tabb" id="teamTabBtn" data-tab="team" onclick="goTab('team')">👥 الفريق</button>
+        <button class="tabb" data-tab="pdf" onclick="goTab('pdf')">🖨️ PDF</button>
       </div>
       <div id="syncBadge" onclick="manualSync()" title="حالة المزامنة — اضغط للمزامنة اليدوية" style="white-space:nowrap;padding:.35rem .7rem;border-radius:999px;font-size:.72rem;font-weight:800;cursor:pointer;background:rgba(148,163,184,.15);color:#94A3B8;flex-shrink:0">—</div>
     </div>
@@ -1542,7 +1548,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=97;
+var APP_BUILD=98;
 var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -3024,7 +3030,7 @@ function _enterApp(u, role){
   ensureOpCodes(false);
   migrateWalletApplied(false);
   buildSidebar();
-  if(DB.length)pickClient(DB[0].id);
+  if(DB.length){ goTab('board'); } else { pickClient(null); }   // 🏢 الافتتاحية: لوحة الحسابات
   var td=dateStr(new Date());
   ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
   var ot=$id('opTime');if(ot)ot.value=nowTime();
@@ -3083,7 +3089,7 @@ $id('lu').addEventListener('keydown',function(e){if(e.key==='Enter')$id('lp').fo
         ensureOpCodes(false);
         migrateWalletApplied(false);
         buildSidebar();
-        if(DB.length)pickClient(DB[0].id);
+        if(DB.length){ goTab('board'); } else { pickClient(null); }   // 🏢 الافتتاحية: لوحة الحسابات
         var td=dateStr(new Date());
         ['opDate','rDate','rcDate'].forEach(function(id){var e=$id(id);if(e)e.value=td;});
         var ot=$id('opTime');if(ot)ot.value=nowTime();
@@ -3391,9 +3397,9 @@ function showView(id){document.querySelectorAll('.view').forEach(function(v){v.c
 function setTabActive(tab){
   document.querySelectorAll('.tabb').forEach(function(b){b.classList.remove('on');});
   document.querySelectorAll('.mob-btn[id^="mbn-"]').forEach(function(b){b.classList.remove('mon');});
-  var idx=(typeof TABS!=='undefined'&&TABS)?TABS.indexOf(tab):['dash','op','pend','wallets','stmt','recon','reports','pdf'].indexOf(tab);
-  var tabBtns=document.querySelectorAll('.tabb');
-  if(tabBtns[idx])tabBtns[idx].classList.add('on');
+  // 🎯 تظليل بالاسم (data-tab) — ما بينكسر مهما زدنا أو رتّبنا تبويبات
+  var btn=document.querySelector('.tabb[data-tab="'+tab+'"]');
+  if(btn)btn.classList.add('on');
   var mb=$id('mbn-'+tab);if(mb)mb.classList.add('mon');
 }
 
@@ -3598,7 +3604,7 @@ function goTab(tab){
   if(tab==='stmt')renderStmt();
   if(tab==='wallets')renderWallets();
   if(tab==='reports')renderReports();
-  if(tab==='board')renderBoard();
+  if(tab==='board'){renderBoard(); $set('tbName','🏢 كل الحسابات'); $set('tbSub','اضغط أي بطاقة لفتح ملف الزبون');}
   if(tab==='team')renderTeam();
   if(tab==='admin')renderPermPanel();
 }
