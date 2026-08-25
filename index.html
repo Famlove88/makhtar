@@ -202,6 +202,12 @@ body{font-family:'Cairo',sans-serif;background:var(--bg);color:var(--dark);min-h
 .tb-ham:active{background:var(--g1)}
 .tb-client{flex:1;min-width:0}
 .tb-cname{font-size:1.45rem;font-weight:900;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:-.3px}
+/* 🏷️ اسم الحساب بمنتصف الشريط — على الشاشات الواسعة */
+@media(min-width:1100px){
+  .topbar{position:relative}
+  .tb-client{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);text-align:center;max-width:34%;z-index:1}
+  .tb-cname{justify-content:center}
+}
 .tb-csub{font-size:.7rem;color:var(--g3);margin-top:.05rem}
 .tb-tabs{
   display:flex;gap:.2rem;background:var(--g1);
@@ -886,7 +892,6 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
       </div>
       <div class="tb-tabs">
         <button class="tabb" data-tab="board" onclick="goTab('board')">🏠 الرئيسية</button>
-        <button class="tabb" data-tab="dash" onclick="goTab('dash')">📇 ملف الزبون</button>
         <button class="tabb" data-tab="op" onclick="goTab('op')">➕ عملية</button>
         <button class="tabb" data-tab="pend" onclick="goTab('pend')">⏳ تأكيد</button>
         <button class="tabb" data-tab="wallets" onclick="goTab('wallets')">💳 محافظ</button>
@@ -1551,7 +1556,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=99;
+var APP_BUILD=100;
 var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
