@@ -803,6 +803,8 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 .bcard{min-height:126px;display:flex;flex-direction:column;justify-content:space-between;padding:1rem 1.1rem}
 .bc-nm{font-size:1.02rem}
 .bc-bal{font-size:1.3rem}
+.bc-av{width:36px;height:36px;border-radius:50%;color:#fff;font-weight:900;display:inline-flex;align-items:center;justify-content:center;font-size:1rem;flex:none;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.bc-nm{display:flex;align-items:center;gap:.55rem}
 </style>
 </head>
 <body>
@@ -883,8 +885,8 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
         <div class="tb-csub" id="tbSub">انقر على اسم العميل في القائمة</div>
       </div>
       <div class="tb-tabs">
-        <button class="tabb" data-tab="board" onclick="goTab('board')">🏢 الحسابات</button>
-        <button class="tabb" data-tab="dash" onclick="goTab('dash')">📊 الرئيسية</button>
+        <button class="tabb" data-tab="board" onclick="goTab('board')">🏠 الرئيسية</button>
+        <button class="tabb" data-tab="dash" onclick="goTab('dash')">📇 ملف الزبون</button>
         <button class="tabb" data-tab="op" onclick="goTab('op')">➕ عملية</button>
         <button class="tabb" data-tab="pend" onclick="goTab('pend')">⏳ تأكيد</button>
         <button class="tabb" data-tab="wallets" onclick="goTab('wallets')">💳 محافظ</button>
@@ -1525,7 +1527,8 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
 <!-- MOBILE NAV -->
 <nav class="mob-nav">
   <div class="mob-inner">
-    <button class="mob-btn mon" id="mbn-dash" onclick="goTab('dash')"><span class="mob-icon">📊</span><span class="mob-lbl">الرئيسية</span></button>
+    <button class="mob-btn mon" id="mbn-board" onclick="goTab('board')"><span class="mob-icon">🏠</span><span class="mob-lbl">الرئيسية</span></button>
+    <button class="mob-btn" id="mbn-dash" onclick="goTab('dash')"><span class="mob-icon">📇</span><span class="mob-lbl">الزبون</span></button>
     <button class="mob-btn" id="mbn-op" onclick="goTab('op')"><span class="mob-icon">➕</span><span class="mob-lbl">عملية</span></button>
     <button class="mob-btn" id="mbn-wallets" onclick="goTab('wallets')"><span class="mob-icon">💳</span><span class="mob-lbl">محافظ</span></button>
     <button class="mob-btn" id="mbn-stmt" onclick="goTab('stmt')"><span class="mob-icon">📋</span><span class="mob-lbl">الكشف</span></button>
@@ -1548,7 +1551,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=98;
+var APP_BUILD=99;
 var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -3489,13 +3492,15 @@ function renderBoard(){
   });
   cards.sort(function(a,b){return Math.abs(b.bal)-Math.abs(a.bal);});
   tot.innerHTML=
-     '<div class="bt"><div class="bt-l">💚 لنا (أرصدة موجبة)</div><div class="bt-v pos">'+fmt(lana)+'</div></div>'
-    +'<div class="bt"><div class="bt-l">🔻 علينا (أرصدة سالبة)</div><div class="bt-v neg">'+fmt(alay)+'</div></div>'
-    +'<div class="bt"><div class="bt-l">⚖️ الصافي</div><div class="bt-v '+((lana-alay)>=0?'pos':'neg')+'">'+fmt(lana-alay)+'</div></div>'
-    +'<div class="bt"><div class="bt-l">⏳ معلق ('+pendCnt+')</div><div class="bt-v amb">'+fmt(pendSum)+'</div></div>';
+     '<div class="bt" style="background:#ECFDF5;border-color:#A7F3D0"><div class="bt-l">💚 لنا (أرصدة موجبة)</div><div class="bt-v pos">'+fmt(lana)+'</div></div>'
+    +'<div class="bt" style="background:#FEF2F2;border-color:#FECACA"><div class="bt-l">🔻 علينا (أرصدة سالبة)</div><div class="bt-v neg">'+fmt(alay)+'</div></div>'
+    +'<div class="bt" style="background:#EFF6FF;border-color:#BFDBFE"><div class="bt-l">⚖️ الصافي</div><div class="bt-v '+((lana-alay)>=0?'pos':'neg')+'">'+fmt(lana-alay)+'</div></div>'
+    +'<div class="bt" style="background:#FFFBEB;border-color:#FCD34D"><div class="bt-l">⏳ معلق ('+pendCnt+')</div><div class="bt-v amb">'+fmt(pendSum)+'</div></div>';
   grid.innerHTML=cards.length?cards.map(function(x){
-    return '<div class="bcard" onclick="pickClient(\''+x.c.id+'\')">'
-      +'<div class="bc-nm"><span style="width:9px;height:9px;border-radius:50%;background:'+(x.c.color||'#0E7490')+';display:inline-block"></span>'+esc(x.c.name)+'</div>'
+    var col=x.c.color||'#0E7490';
+    var initial=(x.c.name||'؟').trim().charAt(0);
+    return '<div class="bcard" onclick="pickClient(\''+x.c.id+'\')" style="border-right:5px solid '+col+';background:linear-gradient(270deg,'+col+'14,#fff 60%)">'
+      +'<div class="bc-nm"><span class="bc-av" style="background:'+col+'">'+esc(initial)+'</span><span>'+esc(x.c.name)+'</span></div>'
       +'<div class="bc-sub">'+esc(x.c.sub||'')+'</div>'
       +'<div class="bc-bal '+(x.bal>=0?'pos':'neg')+'">'+fmt(x.bal)+' <span style="font-size:.6rem;color:var(--g3)">'+(x.bal>=0?'(لكم)':'(لنا)')+'</span></div>'
       +(x.pN?'<div class="bc-pend">⏳ '+x.pN+' معلقة — '+fmt(Math.abs(x.pNet))+'</div>':'')
@@ -3604,7 +3609,7 @@ function goTab(tab){
   if(tab==='stmt')renderStmt();
   if(tab==='wallets')renderWallets();
   if(tab==='reports')renderReports();
-  if(tab==='board'){renderBoard(); $set('tbName','🏢 كل الحسابات'); $set('tbSub','اضغط أي بطاقة لفتح ملف الزبون');}
+  if(tab==='board'){renderBoard(); $set('tbName','🏠 كل الحسابات'); $set('tbSub','اضغط أي بطاقة لفتح ملف الزبون');}
   if(tab==='team')renderTeam();
   if(tab==='admin')renderPermPanel();
 }
