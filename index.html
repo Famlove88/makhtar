@@ -1567,7 +1567,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=105;
+var APP_BUILD=107;
 var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -3977,7 +3977,7 @@ function renderPend(){
       // الأعلى: النوع + الكود
       +'<div class="pc-top">'
         +'<span class="badge '+(isIn?'b-in':'b-out')+'">'+(isIn?'↙ دخول':'↗ خروج')+'</span>'
-        +'<span class="code-badge">'+padCode(o.code)+'</span>'
+        +'<span style="display:flex;align-items:center;gap:.35rem">'+(isIn?'<button class="btn btn-ghost btn-xs" title="نسخ رسالة الكروب" onclick="event.stopPropagation();copyOpMsg(\''+o.id+'\')">📋</button>':'')+'<span class="code-badge">'+padCode(o.code)+'</span></span>'
       +'</div>'
       // المبلغ الكبير
       +'<div class="pc-amt '+(isIn?'v-in':'v-out')+'">'+fmt(o.amount)+'</div>'
@@ -4001,6 +4001,30 @@ function renderPend(){
     :'<div style="grid-column:1/-1;text-align:center;color:var(--g3);padding:2.2rem;font-size:.9rem;background:var(--white);border:1px dashed var(--g2);border-radius:var(--r)">✅ لا توجد معلقة — كل العمليات مؤكدة</div>';
 }
 function _uname(u){ return (USERS&&USERS[u]&&USERS[u].name)?USERS[u].name:(u||''); }
+// 📋 رسالة الكروب — بنفس صيغة فاروق حرفياً: لكم/منكم ثم #الكود ثم الوقت ثم المبلغ$
+function _waOpMsg(o){
+  var t=(o.time||'');
+  var ampm=''; try{ var hh=parseInt(t.split(':')[0],10); if(!isNaN(hh)) ampm=(hh>=12?' PM':' AM'); }catch(e){}
+  var amt=(o.amount%1===0)?String(o.amount):o.amount.toFixed(2);
+  return 'لكم\n\n#'+padCode(o.code)+'\n'+t+ampm+'\n\n'+amt+'$';
+}
+function _copyText(txt){
+  try{
+    if(navigator.clipboard&&navigator.clipboard.writeText){ navigator.clipboard.writeText(txt).catch(function(){_copyFb(txt);}); }
+    else _copyFb(txt);
+  }catch(e){ _copyFb(txt); }
+}
+function _copyFb(txt){
+  try{ var ta=document.createElement('textarea'); ta.value=txt; ta.style.position='fixed'; ta.style.opacity='0';
+    document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta); }catch(e){}
+}
+function copyOpMsg(id){
+  var c=client(); if(!c)return;
+  var o=(c.ops||[]).find(function(x){return x.id===id;}); if(!o)return;
+  if(o.type!=='in'){ toast('النسخ لعمليات الدخول فقط','inf'); return; }
+  _copyText(_waOpMsg(o));
+  toast('📋 انتسخت رسالة الكروب — الصقها بالمجموعة','ok');
+}
 function doQuickConfirm(id){
   var c=client();if(!c)return;
   var op=(c.ops||[]).find(function(x){return x.id===id;});if(!op)return;
@@ -4020,7 +4044,8 @@ function doQuickConfirm(id){
   logAudit('op.confirm', c.name, padCode(op.code));
   applyWallet(op);
   save();buildSidebar();renderPend();refreshDash();renderWallets();
-  toast('✅ تم التأكيد','ok');
+  if(op.type==='in'){ _copyText(_waOpMsg(op)); toast('✅ اتأكدت — 📋 ورسالة الكروب انتسخت، الصقها بالمجموعة','ok'); }
+  else toast('✅ تم التأكيد','ok');
 }
 function updatePendDot(){
   var c=client();
