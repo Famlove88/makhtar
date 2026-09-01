@@ -929,7 +929,6 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
       <!-- DASHBOARD -->
       <div id="vDash" class="view">
         <div id="closeRemind" class="mgr-only" style="display:none;background:#FFFBEB;border:1px solid #FCD34D;border-radius:10px;padding:.6rem 1rem;font-size:.78rem;color:#92400E;font-weight:700;margin-bottom:.8rem"></div>
-        <div id="archInfo" style="display:none;background:#F0FDFA;border:1px solid #99F6E4;border-radius:10px;padding:.6rem 1rem;font-size:.78rem;color:#0F766E;font-weight:700;margin-bottom:.8rem;align-items:center;gap:.6rem;flex-wrap:wrap"></div>
         <!-- أقسام العملات — تتولد ديناميكياً -->
         <div id="curSections"></div>
         <!-- أرباح -->
@@ -1286,7 +1285,7 @@ tr.rv-row td{background:rgba(34,197,94,.07)}
   <div class="modal"><div class="modal-hd"><h3>✏️ تعديل العملية</h3><button class="modal-x" onclick="closeModal('mEdit')">✕</button></div>
     <div class="modal-body">
       <input type="hidden" id="eId"/>
-      <div style="display:flex;justify-content:flex-end;margin-bottom:.7rem"><span class="code-badge" id="eCode">—</span></div>
+      <div style="display:flex;justify-content:flex-end;align-items:center;gap:.5rem;margin-bottom:.7rem"><button class="btn btn-ghost btn-xs" id="eCopyBtn" style="display:none" onclick="copyOpMsg($id('eId').value)" title="نسخ رسالة الكروب">📋 نسخ</button><span class="code-badge" id="eCode">—</span></div>
       <div id="eMeta" style="display:none;background:var(--g1,#f3f4f6);border-radius:10px;padding:.5rem .8rem;margin-bottom:.8rem;font-size:.72rem;color:var(--g3);line-height:1.9"></div>
 
       <!-- نوع العملية -->
@@ -1567,7 +1566,7 @@ var _syncCl={}, _syncWl={}, _syncPr='';
 var _pendDel={}, _retryT=null;
 var _syncReady=false; // لا نرفع أي شي قبل ما نسحب الأحدث من السحابة (يمنع الدوس بنسخة قديمة)
 if(!Promise.allSettled){ Promise.allSettled=function(ps){ return Promise.all(ps.map(function(p){ return Promise.resolve(p).then(function(v){return {status:'fulfilled',value:v};},function(e){return {status:'rejected',reason:e};}); })); }; }
-var APP_BUILD=107;
+var APP_BUILD=108;
 var MIN_BUILD=96;        // ⚠️ مرفوع لـ 96 — التوثيق الرسمي (Firebase Auth): بعد قفل القواعد، النسخ الأقدم بلا Auth بتنرفض من السيرفر أصلاً (وقبلها 91: الدمج الذرّي، 90: قفل الملكية، 87: LZ1)
 var _cloudMinBuild=0;    // الحد المخزّن بالسحابة
 var lastSync=0;
@@ -2404,14 +2403,6 @@ function _behindHtml(){
 // ══════════════════════════════════════════════════════
 //  🗓️ مذكّر الإقفال الشهري — أول 7 أيام من الشهر
 // ══════════════════════════════════════════════════════
-function updateArchInfo(){
-  var el=$id('archInfo'); if(!el)return;
-  var c=client();
-  if(!c||!c.archUpto){ el.style.display='none'; return; }
-  el.style.display='flex';
-  el.innerHTML='🗄️ حركات هالزبون القديمة <b>محفوظة بالأرشيف</b> حتى <b>'+fmtD(c.archUpto)+'</b> — رصيد مدور: <b>'+fmt(c.archBalUsd||0)+'</b>'
-    +'<button class="btn btn-sm btn-teal" style="margin-right:auto" onclick="openArchList()">📦 عرض الأرشيف</button>';
-}
 function updateCloseRemind(){
   var el=$id('closeRemind'); if(!el)return;
   var now=new Date();
@@ -3664,7 +3655,7 @@ function goTab(tab){
   if(tab==='reports'&&CUR_ROLE==='cashier'){toast('التقارير للمدير فقط','err');return;}
   if(!activeId&&tab!=='wallets'&&tab!=='reports'&&tab!=='board'&&tab!=='team'&&tab!=='admin'){toast('اختر عميلاً أولاً','err');return;}
   setTabActive(tab);showView(VIEWS[tab]);
-  if(tab==='dash'){refreshDash();updateCloseRemind();updateArchInfo();}
+  if(tab==='dash'){refreshDash();updateCloseRemind();}
   if(tab==='pend'){renderPend();updatePendDot();}
   if(tab==='recon')renderRecon();
   if(tab==='stmt')renderStmt();
@@ -3677,7 +3668,7 @@ function goTab(tab){
 // إعادة رسم الشاشة المفتوحة حالياً (تُستخدم وقت تصل تحديثات لايف من جهاز تاني)
 function refreshActiveView(){
   refreshDash();
-  try{updateCloseRemind();updateArchInfo();}catch(e){}
+  try{updateCloseRemind();}catch(e){}
   var onView=document.querySelector('.view.on');
   var vid=onView?onView.id:'';
   if(vid==='vPend')renderPend();
@@ -4006,7 +3997,7 @@ function _waOpMsg(o){
   var t=(o.time||'');
   var ampm=''; try{ var hh=parseInt(t.split(':')[0],10); if(!isNaN(hh)) ampm=(hh>=12?' PM':' AM'); }catch(e){}
   var amt=(o.amount%1===0)?String(o.amount):o.amount.toFixed(2);
-  return 'لكم\n\n#'+padCode(o.code)+'\n'+t+ampm+'\n\n'+amt+'$';
+  return 'لكم\n\n\n\n#'+padCode(o.code)+'\n'+t+ampm+'\n\n\n\n'+amt+'$';
 }
 function _copyText(txt){
   try{
@@ -4069,6 +4060,7 @@ function openEdit(id){
 
   $id('eId').value=id;
   $set('eCode',padCode(op.code));
+  var _ecb=$id('eCopyBtn'); if(_ecb)_ecb.style.display=(op.type==='in')?'inline-flex':'none';   // 📋 للدخول فقط
   // 🕒 الأوقات التلقائية: وقت الإدخال الفعلي + وقت التأكيد (للتدقيق — من ساعة الجهاز، مش يدوي)
   var mEl=$id('eMeta');
   if(mEl){
