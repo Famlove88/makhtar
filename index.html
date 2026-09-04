@@ -244,6 +244,16 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .wChip small{font-weight:700;font-size:.62rem;color:var(--ink3)}
 .wChip.on{border-color:var(--seal);background:var(--seal);color:#fff;box-shadow:0 2px 8px rgba(14,59,46,.28)}
 .wChip.on small{color:rgba(255,255,255,.78)}
+/* 💳 شرائح المحافظ بألوانها: غير المختارة فاتحة بحرف ملوّن، المختارة بتتلوّن كلها */
+.wChip.wl{--wc:#6F7F76;border-inline-start:5px solid var(--wc);padding-inline-start:.65rem;min-width:5.4rem}
+.wChip.wl .wn{font-size:.9rem;letter-spacing:.02em;color:var(--ink)}
+.wChip.wl .wn b{font-size:1.18em;font-weight:900;color:var(--wc)}
+.wChip.wl.on{background:var(--wc);border-color:var(--wc);color:#fff;box-shadow:0 3px 12px color-mix(in srgb,var(--wc) 45%,transparent),0 0 0 2px #fff,0 0 0 4px var(--wc)}
+.wChip.wl.on .wn,.wChip.wl.on .wn b{color:#fff}
+.wChip.wl.on small{color:rgba(255,255,255,.85)}
+.wBadge{--wc:#6F7F76;display:inline-flex;align-items:center;gap:.25rem;background:var(--wc);color:#fff;border-radius:8px;padding:.08rem .45rem;font-size:.72rem;font-weight:800;letter-spacing:.02em;white-space:nowrap;vertical-align:middle}
+.wBadge b{font-size:1.15em;font-weight:900}
+.wBadge.big{font-size:.9rem;padding:.25rem .65rem;border-radius:10px}
 /* ── 🏷️ رقائق بطاقة الزبون — معلومات اليوم جوّا كل بطاقة ── */
 .cChips{display:flex;flex-wrap:wrap;gap:.32rem;margin-top:.2rem}
 .cChip{font-size:.66rem;font-weight:800;padding:.2rem .55rem;border-radius:999px;white-space:nowrap}
@@ -372,7 +382,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=221;
+var APP_BUILD=222;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -780,6 +790,14 @@ function curChipsHtml(c){
     +list.map(function(k){return '<button type="button" class="wChip'+(opCurSel===k?' on':'')+'" onclick="opCurSel=\''+k+'\';renderView()">'+(k==='USD'?'💵':curEmoji(k))+' '+esc(k)+'<small>'+esc(k==='USD'?'دولار':curName(k))+'</small></button>';}).join('')
     +'</div></div>';
 }
+var WPAL=['#B3372F','#1D5FA8','#0B7A4B','#B45309','#6D28D9','#0E7490','#BE185D','#4D7C0F','#A8862F','#334155','#7C2D12','#0F766E'];
+function wColor(id){var w=id?WL[id]:null;return (w&&w.color)||'#6F7F76';}   /* بلا لون = رمادي — حتى تعرف إنها لسا ما تلوّنت */
+function wNum(name){ /* 70815909 → 70 81 <b>5909</b> — العين بتقفل عالجزء المختلف */
+  name=String(name||'');
+  if(/^\d{6,}$/.test(name)){var head=name.slice(0,-4),tail=name.slice(-4);return esc(head.replace(/(\d{2})(?=\d)/g,'$1 '))+' <b>'+esc(tail)+'</b>';}
+  return esc(name);
+}
+function wBadge(id,name,big){var col=wColor(id);return '<span class="wBadge'+(big?' big':'')+' num" style="--wc:'+col+'">💳 '+wNum(name||(WL[id]&&WL[id].name)||'')+'</span>';}
 function activeWallets(){return Object.values(WL).filter(function(w){return w.active!==false;}).sort(function(a,b){return (a._m||0)-(b._m||0);});}
 function dupWalletJobs(){
   var groups={};
@@ -813,10 +831,11 @@ function wChipsHtml(){
   var arr=activeWallets();
   var chips='<button type="button" class="wChip'+(selWallet===''?' on':'')+'" onclick="pickWChip(\'\')">بدون<small>محفظة</small></button>'
     +arr.map(function(w){
-      return '<button type="button" class="wChip'+(selWallet===w.id?' on':'')+'" onclick="pickWChip(\''+w.id+'\')">💳 '+esc(w.name)
+      return '<button type="button" class="wChip wl'+(selWallet===w.id?' on':'')+'" style="--wc:'+wColor(w.id)+'" onclick="pickWChip(\''+w.id+'\')"><span class="wn num">'+wNum(w.name)+'</span>'
         +'<small>'+((opType==='out'&&opCurSel==='USD')?'+'+fmt(SET.commission)+' عمولة':'بلا عمولة')+'</small></button>';
     }).join('');
-  return '<div class="fRow" style="margin-bottom:.75rem"><label>المحفظة — كبسة وحدة</label><div class="wChips">'+chips+'</div></div>';
+  var selW=(selWallet&&WL[selWallet])?WL[selWallet]:null;
+  return '<div class="fRow" style="margin-bottom:.75rem"><label>المحفظة — كبسة وحدة'+(selW?' &nbsp;'+wBadge(selW.id,selW.name):' &nbsp;<span style="color:var(--ink3)">بدون محفظة</span>')+'</label><div class="wChips">'+chips+'</div></div>';
 }
 function pickWChip(id){selWallet=(id&&WL[id])?id:'';renderView();}
 function rClient(){
@@ -866,7 +885,7 @@ function rClient(){
     +'<button class="'+(opType==='out'?'onOut':'')+'" onclick="opType=\'out\';renderView()">↗ خروج</button></div>'
     +curChipsHtml(c)
     +wChipsHtml()
-    +'<div class="grid2"><div class="fRow"><label>المبلغ '+(opCurSel==='USD'?'$':esc(opCurSel))+'</label><input id="opAmt" type="number" inputmode="decimal" placeholder="0.00" dir="ltr" style="text-align:left;font-weight:900;font-size:1.2rem"></div>'
+    +'<div class="grid2"><div class="fRow"><label>المبلغ '+(opCurSel==='USD'?'$':esc(opCurSel))+((selWallet&&WL[selWallet])?' &nbsp;'+wBadge(selWallet,WL[selWallet].name):'')+'</label><input id="opAmt" type="number" inputmode="decimal" placeholder="0.00" dir="ltr" style="text-align:left;font-weight:900;font-size:1.2rem"></div>'
     +'<div class="fRow"><label>الوقت <small id="opTimeHint" style="color:var(--ink3)">'+(_opManual.time?'✍️ يدوي':'— بيتسجّل لحظة الكبسة')+'</small></label><input id="opTime" type="time" value="'+(_opManual.time?_opManual.timeVal:nowTime())+'" dir="ltr" onchange="_opManual.time=true;_opManual.timeVal=this.value;var h=$(\'opTimeHint\');if(h)h.textContent=\'✍️ يدوي\'"></div></div>'
     +'<div class="grid2"><div class="fRow"><label>التاريخ'+(_opManual.date?' <small style="color:var(--ink3)">✍️ يدوي</small>':'')+'</label><input id="opDate" type="date" value="'+(_opManual.date?_opManual.dateVal:todayStr())+'" dir="ltr" onchange="_opManual.date=true;_opManual.dateVal=this.value"></div>'
     +'<div class="fRow"><label>الهاتف (اختياري)</label><input id="opPhone" inputmode="tel" placeholder="+961…" dir="ltr" style="text-align:left"></div></div>'
@@ -896,7 +915,7 @@ function opRowsHtml(ops,compact,showClient){
       +'<div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')
       +(o.phone?' • 📞 '+esc(o.phone):'')
       +(pend?' • ⏳ بانتظار التأكيد — '+esc(o.byName||o.by||''):' • ✔ '+esc(o.confirmedByName||''))
-      +(o.walletName?' • 💳 '+esc(o.walletName):'')+(o.note?' • '+esc(o.note):'')+'</div></div>'
+      +(o.walletName?' • '+wBadge(o.walletId,o.walletName):'')+(o.note?' • '+esc(o.note):'')+'</div></div>'
       +'<div class="acts noPrint">'
       +(o.type==='in'?'<button class="iBtn" title="نسخ رسالة الكروب" onclick="copyOpMsg(\''+o.id+'\')">📋</button>':'')
       +(pend?'<button class="iBtn" title="تأكيد" onclick="askConfirmOp(\''+o.id+'\')">✅</button>':'')
@@ -927,7 +946,8 @@ function rPend(){
       +'<span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
       +'<div class="amtBig num '+(o.type==='in'?'pos':'neg')+'">'+fmtA(o)+'</div>'
       +'<div class="cName">'+esc(c.name)+'</div>'
-      +'<div class="who num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')+(o.walletName?' • 💳 '+esc(o.walletName):'')+'</div>'
+      +'<div class="who num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')+'</div>'
+      +(o.walletName?'<div style="margin-top:.35rem">'+wBadge(o.walletId,o.walletName,true)+'</div>':'')
       +'<div class="who">👤 فتحها: <b>'+esc(o.byName||o.by||'؟')+'</b></div>'
       +(mine
         ?'<div class="rowBtns"><button class="btn btnSeal" onclick="askConfirmOp(\''+o.id+'\')">🔏 مراجعة وتأكيد'+(o.type==='in'?' 📋':'')+'</button>'
@@ -1135,7 +1155,7 @@ function rWallets(){
     for(var k in OPS){var o=OPS[k];if(o.walletId!==w.id||o.deleted)continue;
       if(o.status==='confirmed'){n++;if(opCur(o)==='USD'){vol+=o.amount;comm+=(+o.commission||0);}}
       else pn++;}
-    return '<div class="panel" style="margin:0"><h3>'+esc(w.name)
+    return '<div class="panel" style="margin:0;border-inline-start:6px solid '+wColor(w.id)+'"><h3>'+wBadge(w.id,w.name,true)
       +(isMgr()?' <button class="iBtn noPrint" style="margin-inline-start:auto" onclick="openWalletModal(\''+w.id+'\')">✏️</button>':'')+'</h3>'
       +(w.desc?'<div style="font-size:.78rem;color:var(--ink2);margin-bottom:.5rem">'+esc(w.desc)+'</div>':'')
       +'<div class="grid3 num"><div class="statCell"><div class="v">'+n+'</div><div class="l">عملية</div></div>'
@@ -1355,7 +1375,7 @@ function opSummaryHtml(o){
   var rows='<div class="cfR"><span>الكود</span><b class="num">'+esc(padCode(o.code))+'</b></div>'
     +'<div class="cfR"><span>التاريخ والوقت</span><b class="num">'+esc(o.date||'')+' — '+esc(o.time||'')+(o.timeManual?' <small style="color:var(--pend)">✍️ يدوي</small>':'')+'</b></div>'
     +(o.phone?'<div class="cfR"><span>الهاتف</span><b class="num" dir="ltr">'+esc(o.phone)+'</b></div>':'')
-    +(o.walletName?'<div class="cfR"><span>المحفظة</span><b>💳 '+esc(o.walletName)+(comm?' <small style="color:var(--pend)">+'+fmt(comm)+' عمولة</small>':'')+'</b></div>':'')
+    +(o.walletName?'<div class="cfR"><span>المحفظة</span><b>'+wBadge(o.walletId,o.walletName,true)+(comm?' <small style="color:var(--pend)">+'+fmt(comm)+' عمولة</small>':'')+'</b></div>':'')
     +(o.note?'<div class="cfR"><span>ملاحظة</span><b>'+esc(o.note)+'</b></div>':'')
     +'<div class="cfR"><span>سجّلها</span><b>👤 '+esc(o.byName||o.by||'؟')+'</b></div>';
   return '<div class="cfCard"><span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
@@ -1415,7 +1435,7 @@ function openOpEdit(id){
     +'<div class="fRow"><label>الهاتف</label><input id="ePhone" type="tel" value="'+esc(o.phone||'')+'" dir="ltr" style="text-align:left"></div></div>'
     +'<div class="fRow"><label>المحفظة <small id="eCommHint" style="color:var(--pend)"></small></label><div class="wChips" id="eWl">'
     +'<button type="button" class="wChip'+(_e.wid===''?' on':'')+'" data-w="" onclick="eSetWallet(\'\')">بدون<small>محفظة</small></button>'
-    +activeWallets().map(function(w){return '<button type="button" class="wChip'+(_e.wid===w.id?' on':'')+'" data-w="'+esc(w.id)+'" onclick="eSetWallet(\''+esc(w.id)+'\')">💳 '+esc(w.name)+'</button>';}).join('')+'</div></div>'
+    +activeWallets().map(function(w){return '<button type="button" class="wChip wl'+(_e.wid===w.id?' on':'')+'" style="--wc:'+wColor(w.id)+'" data-w="'+esc(w.id)+'" onclick="eSetWallet(\''+esc(w.id)+'\')"><span class="wn num">'+wNum(w.name)+'</span></button>';}).join('')+'</div></div>'
     +'<div class="fRow"><label>ملاحظة</label><input id="eNote" value="'+esc(o.note||'')+'"></div>'
     +'<div class="cfWarn">التعديل بيغيّر الرصيد فوراً وبينسجّل بسجل المراجعة باسمك'+(o.status==='confirmed'?' — العملية مؤكدة، دقّق منيح':'')+'</div>'
     +'<div style="display:flex;gap:.5rem">'
@@ -1858,17 +1878,21 @@ function archiveClient(id){
 }
 
 /* ── المحافظ ── */
+var _wColor='';
 function openWalletModal(id){
-  var w=id?WL[id]:null;
+  var w=id?WL[id]:null;_wColor=(w&&w.color)||'';
   openModal('<h3>'+(w?'✏️ تعديل محفظة':'＋ محفظة جديدة')+'</h3>'
     +'<div class="fRow"><label>الاسم</label><input id="wName" value="'+esc(w?w.name:'')+'"></div>'
     +'<div class="fRow"><label>وصف (اختياري)</label><input id="wDesc" value="'+esc(w?w.desc||'':'')+'"></div>'
+    +'<div class="fRow"><label>🎨 لون المحفظة — للتمييز بلمحة</label><div class="swRow">'
+    +WPAL.map(function(cc){return '<button type="button" class="sw'+(cc===_wColor?' on':'')+'" style="background:'+cc+'" onclick="pickWSw(this,\''+cc+'\')" aria-label="لون"></button>';}).join('')+'</div></div>'
     +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="saveWallet(\''+(id||'')+'\')">حفظ</button>');
 }
+function pickWSw(el,c){_wColor=c;document.querySelectorAll('.sw').forEach(function(s){s.classList.remove('on');});el.classList.add('on');}
 function saveWallet(id){
   var name=$('wName').value.trim();if(!name){toast('الاسم مطلوب','err');return;}
   var ref=id?C_WL.doc(id):C_WL.doc(uid());
-  ref.set({name:name,desc:$('wDesc').value.trim(),_m:Date.now()},{merge:true})
+  ref.set({name:name,desc:$('wDesc').value.trim(),color:_wColor||'',_m:Date.now()},{merge:true})
     .then(function(){closeModal();toast('✓ '+name,'ok');});
 }
 
