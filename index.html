@@ -68,6 +68,7 @@ label{font-size:.78rem;font-weight:700;color:var(--ink2);display:block;margin-bo
 .tbBrand small{display:block;font-size:.62rem;color:#C8C2A8;font-weight:600;line-height:1}
 .tbName{flex:1;text-align:center;font-weight:900;font-size:1.2rem;color:#F7F3E4;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 .4rem}
 .tbName small{font-size:.68rem;font-weight:600;color:#B9C7B4;display:block;line-height:1.1}
+#clockChip{flex-shrink:0;display:inline-flex;align-items:center;gap:.25rem;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:.28rem .6rem;font-size:.74rem;font-weight:900;color:#F0EBD8;font-variant-numeric:tabular-nums;white-space:nowrap;margin-inline-end:.35rem}
 #syncJewel{flex-shrink:0;display:flex;align-items:center;gap:.4rem;background:rgba(0,0,0,.22);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:.28rem .7rem;font-size:.72rem;font-weight:800;color:#D8D2B8;white-space:nowrap}
 #syncJewel .dot{width:9px;height:9px;border-radius:50%;background:#8a927f;flex-shrink:0}
 #syncJewel.live .dot{background:#3DDC84;box-shadow:0 0 7px #3DDC84}
@@ -299,6 +300,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
         <div><b>المختار للصيرفة</b><small id="tbUser">—</small></div>
       </div>
       <div class="tbName" id="tbName"></div>
+      <span id="clockChip" title="توقيت بيروت — مهما كان إعداد الجهاز">🕐 <span id="clockT">--:--</span></span>
       <button id="syncJewel" onclick="reviveSync()" title="حالة المزامنة — اضغط لإعادة الاتصال"><span class="dot"></span><span id="syncTxt">…</span></button>
     </div>
     <nav class="tbTabs" id="tbTabs">
@@ -370,7 +372,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=219;
+var APP_BUILD=221;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -410,8 +412,28 @@ var _unsubs=[], _pendWrites=0, _fromCache=false, _lastSnap=0, _staleT=null;
 function $(id){return document.getElementById(id);}
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];});}
 function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
-function todayStr(){var d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
-function nowTime(){var d=new Date();return String(d.getHours()).padStart(2,'0')+':'+String(d.getMinutes()).padStart(2,'0');}
+/* 🕐 التوقيت مثبّت عبيروت مهما كان إعداد الجهاز — كل تاريخ ووقت بالبرنامج بيمرّ من هون */
+var TZ='Asia/Beirut';
+var _dtf=null;
+function tzParts(ts){
+  try{
+    if(!_dtf)_dtf=new Intl.DateTimeFormat('en-GB',{timeZone:TZ,year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',hourCycle:'h23'});
+    var o={};_dtf.formatToParts(new Date(ts)).forEach(function(p){o[p.type]=p.value;});
+    if(o.hour==='24')o.hour='00';
+    return o;
+  }catch(e){var d=new Date(ts);return {year:String(d.getFullYear()),month:('0'+(d.getMonth()+1)).slice(-2),day:('0'+d.getDate()).slice(-2),hour:('0'+d.getHours()).slice(-2),minute:('0'+d.getMinutes()).slice(-2)};}
+}
+function todayStr(){var o=tzParts(Date.now());return o.year+'-'+o.month+'-'+o.day;}
+function nowTime(){var o=tzParts(Date.now());return o.hour+':'+o.minute;}
+function dayStart(ds){ /* بداية يوم بيروت (بالـ epoch) — بيراعي التوقيت الصيفي */
+  var y=+ds.slice(0,4),m=+ds.slice(5,7),d=+ds.slice(8,10);
+  var g=Date.UTC(y,m-1,d,0,0,0),p=tzParts(g);   /* عند منتصف ليل UTC، بيروت بتكون +2 أو +3 */
+  var off=(+p.hour)*3600000+(+p.minute)*60000;
+  if(p.day!==('0'+d).slice(-2))off-=86400000;
+  return g-off;
+}
+function dayEnd(ds){var y=+ds.slice(0,4),m=+ds.slice(5,7),d=+ds.slice(8,10);var n=new Date(Date.UTC(y,m-1,d+1));return dayStart(n.toISOString().slice(0,10))-1;}
+function dateAdd(ds,n){var y=+ds.slice(0,4),m=+ds.slice(5,7),d=+ds.slice(8,10);return new Date(Date.UTC(y,m-1,d+n)).toISOString().slice(0,10);}
 function fmt(n){n=+n||0;return n.toLocaleString('en-US',{minimumFractionDigits:0,maximumFractionDigits:2})+' $';}
 function fmtN(n){n=+n||0;return n.toLocaleString('en-US');}
 function balCls(n){return n>0?'pos':(n<0?'neg':'zero');}
@@ -645,7 +667,7 @@ function go(v){
   document.querySelectorAll('.main section').forEach(function(s){s.style.display=(s.id==='v-'+v)?'':'none';});
   renderView();window.scrollTo({top:0});
 }
-function pickClient(id){sel=id;opCurSel='USD';localStorage.setItem('mk2_sel',id);renderTopName();go('client');renderSide();
+function pickClient(id){sel=id;opCurSel='USD';_opManual={time:false,timeVal:'',date:false,dateVal:''};localStorage.setItem('mk2_sel',id);renderTopName();go('client');renderSide();
   var on=document.querySelector('.sClient.on');if(on&&on.scrollIntoView)try{on.scrollIntoView({block:'nearest',behavior:'smooth'});}catch(e){}}
 function openSheet(){$('sheetBk').classList.add('open');}
 function closeSheet(){$('sheetBk').classList.remove('open');}
@@ -672,7 +694,7 @@ function renderView(){
      (تبديل عميل = نموذج نضيف، حتى ما ينكتب مبلغ عميل عغلط عند عميل تاني) */
   var keep=null;
   if(curView==='client'&&_lastFormClient===sel){
-    keep={};['opAmt','opTime','opDate','opPhone','opNote'].forEach(function(i){var el=$(i);if(el)keep[i]=el.value;});
+    keep={};['opAmt','opPhone','opNote'].forEach(function(i){var el=$(i);if(el)keep[i]=el.value;});
   }
   var fn={board:rBoard,client:rClient,pend:rPend,stmt:rStmt,wallets:rWallets,reports:rReports,team:rTeam,admin:rAdmin}[curView];
   if(fn)sec.innerHTML=fn();
@@ -749,6 +771,7 @@ function rBoard(){
 /* ── 📇 ملف الزبون: إدخال عملية + آخر الحركات ── */
 var selWallet='';   /* اختيار المحفظة بيضل ثابت خلال الجلسة — سهولة بالشغل المتكرر */
 var opCurSel='USD'; /* عملة العملية الجديدة — بترجع دولار مع كل تبديل زبون */
+var _opManual={time:false,timeVal:'',date:false,dateVal:''};   /* ✍️ إذا عدّلت الوقت/التاريخ بإيدك، تعديلك بيمشي */
 function curChipsHtml(c){
   var list=clientCurList(c);
   if(list.indexOf(opCurSel)===-1)opCurSel='USD';
@@ -844,8 +867,8 @@ function rClient(){
     +curChipsHtml(c)
     +wChipsHtml()
     +'<div class="grid2"><div class="fRow"><label>المبلغ '+(opCurSel==='USD'?'$':esc(opCurSel))+'</label><input id="opAmt" type="number" inputmode="decimal" placeholder="0.00" dir="ltr" style="text-align:left;font-weight:900;font-size:1.2rem"></div>'
-    +'<div class="fRow"><label>الوقت</label><input id="opTime" type="time" value="'+nowTime()+'" dir="ltr"></div></div>'
-    +'<div class="grid2"><div class="fRow"><label>التاريخ</label><input id="opDate" type="date" value="'+todayStr()+'" dir="ltr"></div>'
+    +'<div class="fRow"><label>الوقت <small id="opTimeHint" style="color:var(--ink3)">'+(_opManual.time?'✍️ يدوي':'— بيتسجّل لحظة الكبسة')+'</small></label><input id="opTime" type="time" value="'+(_opManual.time?_opManual.timeVal:nowTime())+'" dir="ltr" onchange="_opManual.time=true;_opManual.timeVal=this.value;var h=$(\'opTimeHint\');if(h)h.textContent=\'✍️ يدوي\'"></div></div>'
+    +'<div class="grid2"><div class="fRow"><label>التاريخ'+(_opManual.date?' <small style="color:var(--ink3)">✍️ يدوي</small>':'')+'</label><input id="opDate" type="date" value="'+(_opManual.date?_opManual.dateVal:todayStr())+'" dir="ltr" onchange="_opManual.date=true;_opManual.dateVal=this.value"></div>'
     +'<div class="fRow"><label>الهاتف (اختياري)</label><input id="opPhone" inputmode="tel" placeholder="+961…" dir="ltr" style="text-align:left"></div></div>'
     +'<div class="fRow"><label>ملاحظة (اختياري)</label><input id="opNote" placeholder="…"></div>'
     +'<button class="btn btnSeal" style="width:100%;justify-content:center;font-size:1rem" onclick="addOp()">تسجيل العملية — بتنبعت للتأكيد ⏳</button></div>';
@@ -995,12 +1018,13 @@ var stRange={from:todayStr().slice(0,8)+'01',to:todayStr()};
 function stQuick(k){
   var t=todayStr();
   if(k==='month'){stRange={from:t.slice(0,8)+'01',to:t};}
-  else if(k==='prev'){var d=new Date(t.slice(0,4),+t.slice(5,7)-2,1);var y=d.getFullYear(),m=('0'+(d.getMonth()+1)).slice(-2);var last=new Date(y,d.getMonth()+1,0).getDate();stRange={from:y+'-'+m+'-01',to:y+'-'+m+'-'+('0'+last).slice(-2)};}
+  else if(k==='prev'){var last=dateAdd(t.slice(0,8)+'01',-1);stRange={from:last.slice(0,8)+'01',to:last};}
   else{stRange={from:'2000-01-01',to:t};}
   renderView();
 }
-function _ts2d(ts){var d=new Date(ts);return d.getFullYear()+'-'+('0'+(d.getMonth()+1)).slice(-2)+'-'+('0'+d.getDate()).slice(-2);}
-function _ts2t(ts){var d=new Date(ts);return ('0'+d.getHours()).slice(-2)+':'+('0'+d.getMinutes()).slice(-2);}
+function _ts2d(ts){var o=tzParts(ts);return o.year+'-'+o.month+'-'+o.day;}
+function _ts2t(ts){var o=tzParts(ts);return o.hour+':'+o.minute;}
+function _ts2dt(ts){return _ts2d(ts)+' '+_ts2t(ts);}
 function _opTs(o){return o.confirmedAt||o.createdAt||0;}   /* ⏱️ وقت التأكيد — والقديم بلا تأكيد مسجّل بياخد وقت تسجيلو */
 function openStatementPdf(){
   var c=CL[sel];if(!c){toast('اختار عميل أولاً','inf');return;}
@@ -1017,7 +1041,7 @@ function openStatementPdf(){
   });
 }
 function buildStatement(c,all,from,to,offline){
-  var fromTs=new Date(from+'T00:00:00').getTime(), toTs=new Date(to+'T23:59:59.999').getTime();
+  var fromTs=dayStart(from), toTs=dayEnd(to);   /* أيام بيروت */
   var eff=function(o){return o.type==='in'?o.amount:-(o.amount+(opCur(o)==='USD'?(+o.commission||0):0));};
   /* عملات الزبون: قائمتو + أي عملة صارت فيها عمليات */
   var curList=clientCurList(c);
@@ -1174,7 +1198,7 @@ function rReports(){
     +(cls.length?cls.map(function(x){
         return '<div class="opRow"><span style="font-size:1.1rem">'+(x.undone?'↩️':'🗄️')+'</span>'
           +'<div class="mid"><div style="font-weight:800">'+esc(x.period||'؟')+(x.undone?' <small style="color:var(--pend)">— متراجَع عنه</small>':'')+'</div>'
-          +'<div class="meta num">'+new Date(x.at||0).toLocaleDateString('en-GB')+' • '+(x.opCount||0)+' عملية • 💰 ربح '+fmt(x.profit||0)+' • 👤 '+esc(x.byName||'')+'</div></div>'
+          +'<div class="meta num">'+_ts2d(x.at||0)+' • '+(x.opCount||0)+' عملية • 💰 ربح '+fmt(x.profit||0)+' • 👤 '+esc(x.byName||'')+'</div></div>'
           +'<div class="acts noPrint"><button class="iBtn" title="عرض" onclick="openClosingView(\''+x.id+'\')">👁️</button></div></div>';
       }).join('')
       :'<div class="emptyBox"><span>🗄️</span>ما في إقفالات بعد — أول إقفال بيبيّن هون وبيضل مقروء للأبد</div>')
@@ -1183,9 +1207,8 @@ function rReports(){
 }
 function chart14(){ /* آخر ١٤ يوم — أعمدة SVG بسيطة، دخول أزرق فوق خروج أحمر */
   var days=[],max=1;
-  for(var i=13;i>=0;i--){var dt=new Date();dt.setDate(dt.getDate()-i);
-    var s=dt.getFullYear()+'-'+String(dt.getMonth()+1).padStart(2,'0')+'-'+String(dt.getDate()).padStart(2,'0');
-    days.push({d:s,inV:0,outV:0});}
+  var t0=todayStr();
+  for(var i=13;i>=0;i--){days.push({d:dateAdd(t0,-i),inV:0,outV:0});}
   for(var k in OPS){var op=OPS[k];if(op.deleted||op.status!=='confirmed'||opCur(op)!=='USD')continue;
     var f=days.find(function(x){return x.d===op.date;});
     if(f){if(op.type==='in')f.inV+=op.amount;else f.outV+=op.amount;}}
@@ -1306,18 +1329,22 @@ function addOp(){
   if(!amt||amt<=0){toast('اكتب مبلغ صحيح','err');$('opAmt').focus();return;}
   var wid=(selWallet&&WL[selWallet])?selWallet:'';
   var w=wid?WL[wid]:null;
-  var date=$('opDate').value||todayStr(), time=$('opTime').value||nowTime();
+  /* 🕐 الوقت والتاريخ لحظة الكبسة (بتوقيت بيروت) — إلا إذا عدّلتهن بإيدك */
+  var date=_opManual.date?($('opDate').value||todayStr()):todayStr();
+  var time=_opManual.time?($('opTime').value||nowTime()):nowTime();
+  var manual=!!(_opManual.time||_opManual.date);
   var phone=$('opPhone').value.trim(), note=$('opNote').value.trim();
   nextCode().then(function(code){
     var id=uid();
     var op={clientId:c.id,code:code,type:opType,amount:amt,cur:opCurSel||'USD',date:date,time:time,
-      phone:phone,note:note,status:'pending',
+      phone:phone,note:note,status:'pending',timeManual:manual,
       walletId:wid||'',walletName:w?w.name:'',
       commission:(opType==='out'&&wid&&(opCurSel||'USD')==='USD')?SET.commission:0,arch:'',
       by:ME.email,byName:ME.name,createdAt:Date.now(),updatedAt:Date.now(),_m:Date.now()};
     C_OPS.doc(id).set(op).catch(function(e){toast('ما قدر يحفظ — '+e.message,'err');});
     logAudit('op.add',c.name,padCode(code)+' • '+(opType==='in'?'دخول':'خروج')+' '+amt.toFixed(2)+' '+(opCurSel||'USD'));
     $('opAmt').value='';$('opNote').value='';$('opPhone').value='';
+    _opManual={time:false,timeVal:'',date:false,dateVal:''};renderView();   /* العملية الجاية بوقتها هي */
     toast(opType==='out'?'⏳ انسجّل الخروج وانخصم فوراً من الحساب — ناطر تأكيد':'⏳ انسجّلت — بتبيّن عالكل هلّق، ناطرة تأكيد','ok');
   });
 }
@@ -1326,7 +1353,7 @@ function addOp(){
 function opSummaryHtml(o){
   var c=CL[o.clientId]||{name:'؟'};var comm=+o.commission||0;
   var rows='<div class="cfR"><span>الكود</span><b class="num">'+esc(padCode(o.code))+'</b></div>'
-    +'<div class="cfR"><span>التاريخ والوقت</span><b class="num">'+esc(o.date||'')+' — '+esc(o.time||'')+'</b></div>'
+    +'<div class="cfR"><span>التاريخ والوقت</span><b class="num">'+esc(o.date||'')+' — '+esc(o.time||'')+(o.timeManual?' <small style="color:var(--pend)">✍️ يدوي</small>':'')+'</b></div>'
     +(o.phone?'<div class="cfR"><span>الهاتف</span><b class="num" dir="ltr">'+esc(o.phone)+'</b></div>':'')
     +(o.walletName?'<div class="cfR"><span>المحفظة</span><b>💳 '+esc(o.walletName)+(comm?' <small style="color:var(--pend)">+'+fmt(comm)+' عمولة</small>':'')+'</b></div>':'')
     +(o.note?'<div class="cfR"><span>ملاحظة</span><b>'+esc(o.note)+'</b></div>':'')
@@ -1437,6 +1464,18 @@ function doDelOp(id){
 }
 
 /* ── 🤝 المطابقة — بالرصيدين دولار وليرة (مدير فقط لأنها بتعدّل أرصدة) ── */
+/* ── 🕐 الساعة بالشريط — بتوقيت بيروت، وبتحدّث خانة الوقت بالنموذج إذا مش معدّلة يدوياً ── */
+function tickClock(){
+  try{
+    var p=tzParts(Date.now()),t=p.hour+':'+p.minute;
+    var sec=('0'+new Date().getSeconds()).slice(-2);
+    var el=$('clockT');if(el)el.innerHTML=t+'<small style="opacity:.6;font-size:.62em">:'+sec+'</small>';   /* الثواني بتبيّن إنها حيّة */
+    var ti=$('opTime');if(ti&&!_opManual.time&&document.activeElement!==ti&&ti.value!==t)ti.value=t;
+    var di=$('opDate');var ds=p.year+'-'+p.month+'-'+p.day;if(di&&!_opManual.date&&document.activeElement!==di&&di.value!==ds)di.value=ds;
+  }catch(e){}
+}
+tickClock();setInterval(tickClock,1000);   /* كل ثانية — خفيفة جداً، وبتضل حيّة بلا ما تحتاج تنقّل */
+document.addEventListener('visibilitychange',function(){if(!document.hidden)tickClock();});   /* رجعت للتطبيق؟ الساعة بتلحق فوراً */
 /* ── 📲 تثبيت التطبيق عالتلفون (PWA) ── */
 var _installEvt=null;
 window.addEventListener('beforeinstallprompt',function(e){e.preventDefault();_installEvt=e;});
@@ -1475,7 +1514,7 @@ function waReconMsg(c,r){
   var L=['السلام عليكم ورحمة الله وبركاته',RC_SEP,
     '📊 مطابقة الأرصدة','مكتب المختار للصيرفه',RC_SEP,
     'الحساب:',(c.name||'')+(c.sub?' - '+c.sub:''),
-    'تاريخ المطابقة 🕐',(r.date||todayStr())+'   '+pad2(d.getHours())+':'+pad2(d.getMinutes()),RC_SEP,
+    'تاريخ المطابقة 🕐',(r.date||_ts2d(r.at||Date.now()))+'   '+_ts2t(r.at||Date.now()),RC_SEP,
     '💵 الرصيد بالدولار الأمريكي',fmtW(r.agUsd)+' '+tagZ(+r.agUsd||0)];
   /* 🇱🇧 الليرة إذا الزبون بيتعامل فيها — حتى لو صفر، حتى يكون كل شي ظاهر إلو وإلنا */
   if(usesLbp(c)||Math.abs(+r.agLbp||0)>=1)L.push(RC_SEP,'🇱🇧 الرصيد بالليرة اللبنانية',fmtN(Math.abs(+r.agLbp||0))+' '+tagZ(+r.agLbp||0));
@@ -1690,7 +1729,7 @@ function openClosingView(id){
   }).join('');
   openModal('<h3>🗄️ إقفال '+esc(x.period||'')+(x.undone?' <small style="color:var(--pend)">— متراجَع عنه</small>':'')+'</h3>'
     +'<div class="cfCard"><div class="cfRows">'
-    +'<div class="cfR"><span>التاريخ</span><b class="num">'+new Date(x.at||0).toLocaleString('en-GB')+'</b></div>'
+    +'<div class="cfR"><span>التاريخ</span><b class="num">'+_ts2dt(x.at||0)+'</b></div>'
     +'<div class="cfR"><span>العمليات</span><b class="num">'+(x.opCount||0)+'</b></div>'
     +'<div class="cfR"><span>دخول / خروج</span><b class="num">'+fmt(x.totIn||0)+' / '+fmt(x.totOut||0)+'</b></div>'
     +'<div class="cfR"><span>💰 ربح الفترة</span><b class="num" style="color:var(--ok)">'+fmt(x.profit||0)+'</b></div>'
