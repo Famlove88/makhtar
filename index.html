@@ -244,6 +244,46 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .wChip small{font-weight:700;font-size:.62rem;color:var(--ink3)}
 .wChip.on{border-color:var(--seal);background:var(--seal);color:#fff;box-shadow:0 2px 8px rgba(14,59,46,.28)}
 .wChip.on small{color:rgba(255,255,255,.78)}
+/* ── كتلة الرصيد + شريط اليوم ── */
+.balBlock{margin-bottom:.9rem}
+.balBlock .ledger.bal{border-radius:16px 16px 0 0;border-bottom:0;margin:0}
+.balBlock .ledger.bal .v{font-size:1.85rem}
+.balBlock .ledger.strip{border-radius:0 0 16px 16px;border-top:1px dashed var(--line2);margin:0}
+/* ── 🤝 شهادة المطابقة ── */
+.cert{display:grid;grid-template-columns:auto 1fr auto;gap:.9rem;align-items:center;border:2px dashed var(--brass);border-radius:14px;padding:.75rem .95rem;background:linear-gradient(135deg,var(--card),#F3EEDD)}
+.cSeal{width:54px;height:54px;border-radius:50%;background:var(--seal);color:#F5F2E9;display:flex;align-items:center;justify-content:center;font-weight:900;font-size:1.35rem;box-shadow:inset 0 0 0 3px var(--brass),0 0 0 3px #fff,0 0 0 4.5px var(--brass);flex-shrink:0}
+.cBody{min-width:0}
+.cBody .k{font-size:.7rem;color:var(--ink3);font-weight:800}
+.cBody .v{font-size:1.45rem;font-weight:900;color:var(--in);line-height:1.15}
+.cBody .v small{font-size:.75rem;color:var(--ink2);font-weight:800}
+.cBody .v small.ex{color:var(--ink2)}
+.cBody .m{font-size:.72rem;color:var(--ink2);font-weight:700;margin-top:.15rem}
+.cActs{display:flex;flex-direction:column;gap:.35rem;align-items:stretch}
+.cIcons{display:flex;gap:.3rem;justify-content:flex-end}
+@media(max-width:640px){.cert{grid-template-columns:auto 1fr}.cActs{grid-column:1/-1;flex-direction:row;flex-wrap:wrap}.cActs .btnSeal{flex:1}}
+/* ── ➕ عملية جديدة: عناوين المجموعات، المبلغ، الزر ── */
+.segRow button{padding:.7rem;font-size:1rem}
+.segRow .ic{font-size:1.2rem;font-weight:900}
+.segRow button.onIn{box-shadow:0 2px 8px rgba(29,95,168,.3)}
+.segRow button.onOut{box-shadow:0 2px 8px rgba(179,55,47,.3)}
+.group{margin-top:.85rem}
+.gl{font-size:.7rem;font-weight:900;color:var(--ink3);margin-bottom:.4rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap}
+.gl::after{content:'';flex:1;min-width:1rem;height:1px;background:var(--line)}
+.wChips.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(7.3rem,1fr));gap:.45rem}
+.wChips.grid .wChip{min-width:0;padding:.55rem .5rem;justify-content:center}
+.amtIn{display:flex;align-items:center;gap:.4rem;border:1.5px solid var(--line);border-radius:12px;background:var(--card);padding:.2rem .8rem;direction:ltr}
+.amtIn .sym{font-size:.9rem;font-weight:800;color:var(--ink3)}
+.amtIn input{border:0;background:transparent;flex:1;min-width:0;font-family:inherit;font-size:1.55rem;font-weight:900;color:var(--ink);outline:none;padding:.2rem 0;text-align:left;font-variant-numeric:tabular-nums}
+.amtIn.in{border-color:rgba(29,95,168,.45);background:#F6F9FE}.amtIn.in input{color:var(--in)}
+.amtIn.out{border-color:rgba(179,55,47,.45);background:#FFF9F8}.amtIn.out input{color:var(--out)}
+.amtIn:focus-within{box-shadow:0 0 0 3px rgba(14,59,46,.12)}
+.opPrev{font-size:.74rem;font-weight:800;color:var(--ink2);min-height:1.1rem;margin-top:.3rem}
+.opPrev b{color:var(--ink)}
+.btnBig{width:100%;justify-content:center;font-size:1rem;padding:.85rem;border-radius:14px;margin-top:.9rem;box-shadow:0 4px 14px rgba(14,59,46,.22)}
+/* ── 📜 آخر الحركات: فاصل الأيام + علامة معلّقة ── */
+.dayDiv{display:flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:900;color:var(--ink3);margin:.75rem 0 .3rem}
+.dayDiv::after{content:'';flex:1;height:1px;background:var(--line)}
+.pillPend{font-size:.62rem;font-weight:800;background:var(--pendT);color:var(--pend);border-radius:999px;padding:.08rem .45rem;vertical-align:middle}
 /* 💳 شرائح المحافظ بألوانها: غير المختارة فاتحة بحرف ملوّن، المختارة بتتلوّن كلها */
 .wChip.wl{--wc:#6F7F76;--wt:#fff;--we:var(--wc);border-inline-start:5px solid var(--we);padding-inline-start:.65rem;min-width:5.4rem}
 .wChip.wl .wn{direction:ltr;unicode-bidi:isolate;display:inline-block;font-size:.9rem;letter-spacing:.02em;color:var(--ink)}   /* الرقم بيتقرا من اليسار — مش مقلوب */
@@ -383,7 +423,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=224;
+var APP_BUILD=226;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -710,7 +750,7 @@ function renderView(){
   var fn={board:rBoard,client:rClient,pend:rPend,stmt:rStmt,wallets:rWallets,reports:rReports,team:rTeam,admin:rAdmin}[curView];
   if(fn)sec.innerHTML=fn();
   if(keep){for(var i in keep){var el=$(i);if(el&&keep[i]!==''&&keep[i]!==undefined)el.value=keep[i];}}
-  if(curView==='client')_lastFormClient=sel;
+  if(curView==='client'){_lastFormClient=sel;opPrev();}
 }
 document.addEventListener('focusout',function(){
   if(_dirtyView)setTimeout(function(){var ae=document.activeElement,sec=$('v-'+curView);
@@ -844,6 +884,17 @@ function wChipsHtml(){
   return '<div class="fRow" style="margin-bottom:.75rem"><label>المحفظة — كبسة وحدة'+(selW?' &nbsp;'+wBadge(selW.id,selW.name):' &nbsp;<span style="color:var(--ink3)">بدون محفظة</span>')+'</label><div class="wChips">'+chips+'</div></div>';
 }
 function pickWChip(id){selWallet=(id&&WL[id])?id:'';renderView();}
+/* السطر الحي تحت المبلغ: شو رح يصير برصيد الزبون بالظبط */
+function opPrev(){
+  var el=$('opPrev');if(!el)return;
+  var a=parseFloat(($('opAmt')||{}).value)||0,k=opCurSel||'USD';
+  var w=(selWallet&&WL[selWallet])?WL[selWallet]:null;
+  var comm=(opType==='out'&&w&&k==='USD')?SET.commission:0;
+  var fv=function(v){return k==='USD'?fmt(v):(k==='LBP'?fmtN(v)+' ل.ل':fmtW(v)+' '+k);};
+  if(!a){el.innerHTML='<span style="color:var(--ink3)">'+(opType==='out'?'اكتب المبلغ — خروج'+(w?' عبر المحفظة (+'+fmt(SET.commission)+' عمولة)':' بلا محفظة، بلا عمولة'):'اكتب المبلغ — دخول'+(w?' عبر المحفظة':''))+'</span>';return;}
+  if(opType==='in')el.innerHTML='➕ بينضاف للزبون <b>'+fv(a)+'</b>';
+  else el.innerHTML='➖ بينخصم من الزبون <b>'+fv(a+comm)+'</b>'+(comm?' <small>('+fv(a)+' + '+fmt(comm)+' عمولة)</small>':'');
+}
 function rClient(){
   var c=CL[sel];
   if(!c)return '<div class="emptyBox"><span>👈</span>اختار عميل من الرئيسية أو من القائمة لتفتح ملفو</div>';
@@ -856,51 +907,65 @@ function rClient(){
     +'</div>';
   var curs=clientCur(c);
   /* كل زبون بعملاتو هو: الدولار دايماً (من العمليات)، الليرة إذا بيتعامل فيها، وباقي العملات يلي مضافة إلو */
-  h+='<div class="ledger num" style="grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))">'
+  h+='<div class="balBlock"><div class="ledger num bal" style="grid-template-columns:repeat(auto-fit,minmax(10rem,1fr))">'
     +'<div><div class="v '+balCls(b.bal)+'">'+fmt(Math.abs(b.bal))+'</div><div class="l">💵 الرصيد بالدولار '+tagZ(b.bal)+'</div></div>'
     +(usesLbp(c)?'<div><div class="v '+balCls(b.lbp)+'">'+fmtN(Math.abs(b.lbp||0))+'</div><div class="l">🇱🇧 الرصيد بالليرة '+tagZ(b.lbp)+'</div></div>':'')
     +Object.keys(b.cur||{}).map(function(k2){var v=+b.cur[k2]||0;return '<div><div class="v '+balCls(v)+'">'+fmtW(v)+'</div><div class="l">'+curEmoji(k2)+' '+esc(curName(k2))+' '+tagZ(v)+'</div></div>';}).join('')
     +'</div>'
-    +(b.pendOut?'<div style="font-size:.73rem;color:var(--pend);font-weight:800;text-align:center;margin:-.35rem 0 .7rem">⏳ من ضمن الرصيد خروج معلّق '+fmt(b.pendOut)+' — منخصوم فوراً (قاعدة المكتب)</div>':'')
-    +'<div class="ledger num">'
+    +'<div class="ledger num strip">'
     +'<div><div class="v" style="color:var(--in);font-size:1.15rem">'+(b.tIn||0)+'</div><div class="l">↙ دخول اليوم — '+fmt(b.tInV||0)+'</div></div>'
     +'<div><div class="v" style="color:var(--out);font-size:1.15rem">'+(b.tOut||0)+'</div><div class="l">↗ خروج اليوم — '+fmt(b.tOutV||0)+'</div></div>'
     +'<div><div class="v" style="color:var(--pend);font-size:1.15rem">'+(b.pend||0)+'</div><div class="l">⏳ معلّق — '+fmt(b.pendSum||0)+'</div></div>'
     +'<div><div class="v" style="color:var(--ok);font-size:1.15rem">'+fmt(b.tProf||0)+'</div><div class="l">💰 ربحو اليوم</div></div>'
-    +'</div>'
+    +'</div></div>'
+    +(b.pendOut?'<div style="font-size:.73rem;color:var(--pend);font-weight:800;text-align:center;margin:-.35rem 0 .7rem">⏳ من ضمن الرصيد خروج معلّق '+fmt(b.pendOut)+' — منخصوم فوراً (قاعدة المكتب)</div>':'')
     +(b.roll?'<div style="font-size:.72rem;color:var(--ink3);font-weight:700;text-align:center;margin:-.35rem 0 .7rem">🔄 رصيد مدوّر من إقفال سابق: '+fmt(b.roll)+' — والحركات القديمة محفوظة بالأرشيف</div>':'');
   /* 🤝 المطابقة — بالرصيدين دولار وليرة */
   var lastRc=(c.recons&&c.recons.length)?c.recons[c.recons.length-1]:null;
-  h+='<div class="panel noPrint"><h3>🤝 المطابقة</h3>'
+  h+='<div class="panel noPrint"><h3>🤝 المطابقة</h3><div class="cert">'
+    +'<div class="cSeal">م</div>'
+    +'<div class="cBody">'
     +(lastRc
-      ?'<div style="font-size:.82rem;font-weight:700;color:var(--ink2)">آخر مطابقة: <b class="num">'+esc(lastRc.date||'')+'</b> — '
-        +'$ <b class="num">'+fmt(lastRc.agUsd)+'</b> • ل.ل <b class="num">'+fmtN(lastRc.agLbp)+'</b>'
-        +(Math.abs(lastRc.diffUsd||0)>=0.005?' <span style="color:var(--pend)">(فرق '+fmt(lastRc.diffUsd)+' انسوّى)</span>':' <span style="color:var(--ok)">(مطابقة تامة)</span>')
-        +' — 👤 '+esc(lastRc.byName||'')+'</div>'
-      :'<div style="font-size:.82rem;color:var(--ink3);font-weight:700">ما في مطابقة مسجّلة بعد لهالزبون</div>')
-    +'<div style="display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap">'
+      ?'<div class="k">آخر مطابقة معتمدة — <span class="num">'+esc(lastRc.date||'')+'</span></div>'
+        +'<div class="v num">'+fmt(Math.abs(+lastRc.agUsd||0))+' <small>'+tagZ(+lastRc.agUsd||0)+'</small>'
+        +((usesLbp(c)||Math.abs(+lastRc.agLbp||0)>=1)?' <small class="ex">• ل.ل '+fmtN(Math.abs(+lastRc.agLbp||0))+' '+tagZ(+lastRc.agLbp||0)+'</small>':'')
+        +Object.keys(lastRc.agCur||{}).map(function(k2){var v=+lastRc.agCur[k2]||0;return ' <small class="ex">• '+fmtW(v)+' '+esc(k2)+' '+tagZ(v)+'</small>';}).join('')+'</div>'
+        +'<div class="m">'+(Math.abs(lastRc.diffUsd||0)>=0.005?'<span style="color:var(--pend)">⚠️ فرق '+fmt(lastRc.diffUsd)+' انسوّى بعملية ظاهرة</span>':'<span style="color:var(--ok)">✅ مطابقة تامة</span>')+' • 👤 '+esc(lastRc.byName||'')+'</div>'
+      :'<div class="k">المطابقة</div><div class="v" style="font-size:1rem;color:var(--ink3)">ما في مطابقة معتمدة بعد لهالزبون</div><div class="m">إبعتلو رصيدو عالواتساب، ولما يوافق اعتمدها</div>')
+    +'</div>'
+    +'<div class="cActs">'
     +'<button class="btn btnSeal" onclick="sendReconWa(\''+c.id+'\')">📲 إبعت مطابقة واتساب</button>'
-    +(isMgr()?'<button class="btn" onclick="openRecon(\''+c.id+'\')">🤝 اعتماد مطابقة</button>':'')
-    +(lastRc?'<button class="btn btnGhost" onclick="copyReconMsg(\''+c.id+'\')">📋 نسخ آخر مطابقة</button>':'')
-    +((c.recons&&c.recons.length)?'<button class="btn btnGhost" onclick="openReconHist(\''+c.id+'\')">📖 سجل المطابقات ('+c.recons.length+')</button>':'')
-    +'</div></div>';
-  /* نموذج العملية الجديدة */
+    +'<div class="cIcons">'
+    +(isMgr()?'<button class="btn iBtn" title="اعتماد مطابقة" onclick="openRecon(\''+c.id+'\')">🤝</button>':'')
+    +(lastRc?'<button class="btn iBtn" title="نسخ آخر مطابقة" onclick="copyReconMsg(\''+c.id+'\')">📋</button>':'')
+    +((c.recons&&c.recons.length)?'<button class="btn iBtn" title="سجل المطابقات ('+c.recons.length+')" onclick="openReconHist(\''+c.id+'\')">📖</button>':'')
+    +'</div></div></div></div>';
+  /* نموذج العملية الجديدة — نفس الترتيب، بتحديث هادي */
+  var selW=(selWallet&&WL[selWallet])?WL[selWallet]:null;
   h+='<div class="panel noPrint"><h3>➕ عملية جديدة</h3>'
-    +'<div class="segRow" style="margin-bottom:.7rem">'
-    +'<button class="'+(opType==='in'?'onIn':'')+'" onclick="opType=\'in\';renderView()">↙ دخول</button>'
-    +'<button class="'+(opType==='out'?'onOut':'')+'" onclick="opType=\'out\';renderView()">↗ خروج</button></div>'
+    +'<div class="segRow">'
+    +'<button class="'+(opType==='in'?'onIn':'')+'" onclick="opType=\'in\';renderView()"><span class="ic">↙</span> دخول</button>'
+    +'<button class="'+(opType==='out'?'onOut':'')+'" onclick="opType=\'out\';renderView()"><span class="ic">↗</span> خروج</button></div>'
     +curChipsHtml(c)
-    +wChipsHtml()
-    +'<div class="grid2"><div class="fRow"><label>المبلغ '+(opCurSel==='USD'?'$':esc(opCurSel))+((selWallet&&WL[selWallet])?' &nbsp;'+wBadge(selWallet,WL[selWallet].name):'')+'</label><input id="opAmt" type="number" inputmode="decimal" placeholder="0.00" dir="ltr" style="text-align:left;font-weight:900;font-size:1.2rem"></div>'
-    +'<div class="fRow"><label>الوقت <small id="opTimeHint" style="color:var(--ink3)">'+(_opManual.time?'✍️ يدوي':'— بيتسجّل لحظة الكبسة')+'</small></label><input id="opTime" type="time" value="'+(_opManual.time?_opManual.timeVal:nowTime())+'" dir="ltr" onchange="_opManual.time=true;_opManual.timeVal=this.value;var h=$(\'opTimeHint\');if(h)h.textContent=\'✍️ يدوي\'"></div></div>'
-    +'<div class="grid2"><div class="fRow"><label>التاريخ'+(_opManual.date?' <small style="color:var(--ink3)">✍️ يدوي</small>':'')+'</label><input id="opDate" type="date" value="'+(_opManual.date?_opManual.dateVal:todayStr())+'" dir="ltr" onchange="_opManual.date=true;_opManual.dateVal=this.value"></div>'
+    +'<div class="group"><div class="gl">💳 المحفظة — كبسة وحدة &nbsp;'+(selW?wBadge(selW.id,selW.name):'<span>بدون</span>')+(opType==='out'?' &nbsp;• عمولة الخروج عبر محفظة '+fmt(SET.commission):'')+'</div>'
+    +'<div class="wChips grid">'
+    +'<button type="button" class="wChip'+(selWallet===''?' on':'')+'" onclick="pickWChip(\'\')">بدون<small>محفظة</small></button>'
+    +activeWallets().map(function(w){return '<button type="button" class="wChip wl'+(selWallet===w.id?' on':'')+'" style="'+wVars(w.id)+'" onclick="pickWChip(\''+w.id+'\')"><span class="wn num">'+wNum(w.name)+'</span></button>';}).join('')
+    +'</div></div>'
+    +'<div class="group"><div class="gl">💵 المبلغ والوقت</div>'
+    +'<div class="grid2"><div class="fRow"><label>المبلغ '+(opCurSel==='USD'?'$':esc(opCurSel))+'</label>'
+    +'<div class="amtIn '+(opType==='in'?'in':'out')+'"><span class="sym">'+(opCurSel==='USD'?'$':esc(opCurSel))+'</span><input id="opAmt" type="number" inputmode="decimal" placeholder="0.00" dir="ltr" oninput="opPrev()"></div>'
+    +'<div id="opPrev" class="opPrev"></div></div>'
+    +'<div class="fRow"><label>الوقت <small id="opTimeHint" style="color:var(--ink3)">'+(_opManual.time?'✍️ يدوي':'— حيّ، بيتسجّل لحظة الكبسة')+'</small></label><input id="opTime" type="time" value="'+(_opManual.time?_opManual.timeVal:nowTime())+'" dir="ltr" onchange="_opManual.time=true;_opManual.timeVal=this.value;var h=$(\'opTimeHint\');if(h)h.textContent=\'✍️ يدوي\'"></div></div></div>'
+    +'<div class="group"><div class="gl">📅 التفاصيل</div>'
+    +'<div class="grid2"><div class="fRow"><label>التاريخ'+(_opManual.date?' <small style="color:var(--pend)">✍️ يدوي</small>':'')+'</label><input id="opDate" type="date" value="'+(_opManual.date?_opManual.dateVal:todayStr())+'" dir="ltr" onchange="_opManual.date=true;_opManual.dateVal=this.value"></div>'
     +'<div class="fRow"><label>الهاتف (اختياري)</label><input id="opPhone" inputmode="tel" placeholder="+961…" dir="ltr" style="text-align:left"></div></div>'
-    +'<div class="fRow"><label>ملاحظة (اختياري)</label><input id="opNote" placeholder="…"></div>'
-    +'<button class="btn btnSeal" style="width:100%;justify-content:center;font-size:1rem" onclick="addOp()">تسجيل العملية — بتنبعت للتأكيد ⏳</button></div>';
+    +'<div class="fRow" style="margin-top:.7rem"><label>ملاحظة (اختياري)</label><input id="opNote" placeholder="…"></div></div>'
+    +'<button class="btn btnSeal btnBig" onclick="addOp()">تسجيل العملية — بتنبعت للتأكيد ⏳</button></div>';
   /* آخر الحركات */
   var ops=clientOps(c.id);
   h+='<div class="panel"><h3>📜 آخر الحركات <span style="color:var(--ink3);font-weight:600;font-size:.75rem">('+ops.length+')</span></h3>'
-    +opRowsHtml(ops.slice(0,30),true)
+    +opRowsByDay(ops.slice(0,30),true)
     +(ops.length>30?'<button class="btn btnGhost noPrint" style="width:100%;justify-content:center" onclick="go(\'stmt\')">الكشف الكامل ←</button>':'')
     +'</div>';
   return h;
@@ -908,6 +973,18 @@ function rClient(){
 function clientOps(cid){
   var arr=[];for(var k in OPS){var o=OPS[k];if(o.clientId===cid&&!o.deleted&&!o.arch)arr.push(o);}
   arr.sort(function(a,b){return b.createdAt-a.createdAt;});return arr;
+}
+function dayLabel(ds){
+  var t=todayStr();var wd='';try{wd=new Intl.DateTimeFormat('ar-LB',{weekday:'long',timeZone:TZ}).format(new Date(dayStart(ds)+43200000));}catch(e){}
+  var pre=ds===t?'اليوم':(ds===dateAdd(t,-1)?'مبارح':'');
+  return (pre?pre+' — ':'')+wd+' '+ds.slice(8,10)+'-'+ds.slice(5,7);
+}
+function opRowsByDay(ops,compact,showClient){
+  if(!ops.length)return opRowsHtml(ops,compact,showClient);
+  var h='',cur=null,grp=[];
+  var flush=function(){if(grp.length){h+='<div class="dayDiv">📅 '+esc(dayLabel(cur))+'</div>'+opRowsHtml(grp,compact,showClient);grp=[];}};
+  ops.forEach(function(o){var d=o.date||'';if(d!==cur){flush();cur=d;}grp.push(o);});
+  flush();return h;
 }
 function opRowsHtml(ops,compact,showClient){
   if(!ops.length)return '<div class="emptyBox"><span>🗒️</span>ما في حركات بعد — أول عملية بتنكتب هون</div>';
@@ -917,6 +994,7 @@ function opRowsHtml(ops,compact,showClient){
     return '<div class="opRow'+(pend?' isPend':'')+'">'
       +'<span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
       +'<div class="mid"><div class="amt num '+(o.type==='in'?'pos':'neg')+'">'+fmtA(o)+(comm?' <small style="font-size:.68rem;color:var(--pend)">+'+comm+' عمولة</small>':'')
+      +(pend?' <span class="pillPend">⏳ معلّقة</span>':'')
       +(showClient?' <span style="font-size:.78rem;font-weight:800;color:var(--seal)">— '+esc((CL[o.clientId]||{}).name||'؟')+'</span>':'')+'</div>'
       +'<div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')
       +(o.phone?' • 📞 '+esc(o.phone):'')
