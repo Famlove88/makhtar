@@ -285,7 +285,8 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .wChips.grid .wChip{min-width:0;padding:.55rem .5rem;justify-content:center}
 .amtIn{display:flex;align-items:center;gap:.4rem;border:1.5px solid var(--line);border-radius:12px;background:var(--card);padding:.2rem .8rem;direction:ltr}
 .amtIn .sym{font-size:.9rem;font-weight:800;color:var(--ink3)}
-.amtIn input{border:0;background:transparent;flex:1;min-width:0;font-family:inherit;font-size:1.55rem;font-weight:900;color:var(--ink);outline:none;padding:.2rem 0;text-align:left;font-variant-numeric:tabular-nums}
+.amtIn input{border:0;background:transparent;flex:1;min-width:0;font-family:inherit;font-size:1.55rem;font-weight:900;color:var(--ink);outline:none;padding:.2rem 0;text-align:left;font-variant-numeric:tabular-nums;-moz-appearance:textfield;appearance:textfield}
+.amtIn input::-webkit-outer-spin-button,.amtIn input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .amtIn.in{border-color:rgba(29,95,168,.45);background:#F6F9FE}.amtIn.in input{color:var(--in)}
 .amtIn.out{border-color:rgba(179,55,47,.45);background:#FFF9F8}.amtIn.out input{color:var(--out)}
 .amtIn:focus-within{box-shadow:0 0 0 3px rgba(14,59,46,.12)}
@@ -435,7 +436,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=227;
+var APP_BUILD=228;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -1034,7 +1035,10 @@ function rPend(){
     +'<button class="btn'+(!scopeClient?' btnSeal':'')+'" onclick="pendScope=\'all\';renderAll()">🌐 كل الزبائن ('+DRV.pendCount+')</button></div>';
   var src=scopeClient?mineList:DRV.pend;
   if(!src.length)return h+'<div class="emptyBox"><span>✅</span>'+(scopeClient?'ما في شي معلّق لـ'+esc(c.name)+(DRV.pendCount?' — في '+DRV.pendCount+' عند زبائن تانيين':''):'ما في شي معلّق — كل العمليات مؤكدة')+'</div>';
-  var pendList=src.slice().sort(function(a,b){return (b.createdAt||0)-(a.createdAt||0);});  /* الأحدث فوق */
+  var pendList=src.slice().sort(function(a,b){   /* حسب التاريخ والوقت المكتوبين عالبطاقة — الأحدث أول */
+    var ka=(a.date||'')+' '+(a.time||''),kb=(b.date||'')+' '+(b.time||'');
+    if(ka!==kb)return ka<kb?1:-1;
+    return (b.createdAt||0)-(a.createdAt||0);});
   h+='<div class="pGrid">'+pendList.map(function(o){
     var c=CL[o.clientId]||{name:'؟'};
     var mine=(o.by===ME.email)||isMgr();
