@@ -436,7 +436,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=228;
+var APP_BUILD=229;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -1541,7 +1541,8 @@ function openOpEdit(id){
     +'<div style="display:flex;gap:.5rem">'
     +'<button class="btn btnSeal" style="flex:1;justify-content:center" onclick="saveOpEdit(\''+id+'\')">حفظ التعديل</button>'
     +(o.type==='in'?'<button class="btn" onclick="copyOpMsg(\''+id+'\')">📋</button>':'')
-    +'<button class="btn btnDanger" onclick="askDelOp(\''+id+'\')">🗑 حذف</button></div>');
+    +'<button class="btn btnDanger" onclick="askDelOp(\''+id+'\')">🗑 حذف</button></div>'
+    +(o.status==='confirmed'&&canUnconfirm(o)?'<button class="btn btnGhost" style="width:100%;justify-content:center;margin-top:.5rem" onclick="askUnconfirm(\''+id+'\')">↩️ رجّعها بانتظار التأكيد</button>':''));
   eHint();
 }
 function eSetType(t){_e.type=t;var seg=$('eSeg');if(seg){seg.children[0].className=(t==='in'?'onIn':'');seg.children[1].className=(t==='out'?'onOut':'');}eHint();}
@@ -1566,6 +1567,41 @@ function saveOpEdit(id){
   C_OPS.doc(id).update(upd)
     .then(function(){logAudit('op.edit',(CL[o.clientId]||{}).name||'',padCode(o.code)+(chg.length?' • '+chg.join(' • '):''));closeModal();toast('✓ انحفظ التعديل'+(chg.length?' — '+chg.join(' • '):''),'ok');})
     .catch(function(){toast('ما قدر يحفظ','err');});
+}
+/* ── ↩️ إرجاع تأكيد — المدير دايماً، والموظف يلي أكّدها خلال ١٠ دقايق ── */
+var UNCONFIRM_WINDOW=10*60000;
+function canUnconfirm(o){
+  if(!o||o.status!=='confirmed'||o.deleted)return false;
+  if(isMgr())return true;
+  return o.confirmedBy===ME.email&&(Date.now()-(o.confirmedAt||0))<=UNCONFIRM_WINDOW;
+}
+function askUnconfirm(id){
+  var o=OPS[id];if(!o)return;
+  if(!canUnconfirm(o)){toast('الإرجاع للمدير — أو لمين أكّدها خلال ١٠ دقايق','inf');return;}
+  closeModal();
+  setTimeout(function(){
+    openModal('<h3>↩️ إرجاع بانتظار التأكيد</h3>'
+      +opSummaryHtml(o)
+      +'<div class="fRow"><label>السبب (اختياري)</label><input id="ucNote" placeholder="مثلاً: أكّدتها بالغلط"></div>'
+      +'<div class="cfWarn">بترجع معلّقة وبتطلع بصفحة التأكيد — '+(o.type==='in'?'الدخول بيطلع من الرصيد لحد ما يتأكد من جديد':'الخروج بيضل منخصوم (قاعدة المكتب)')+' — وبينسجّل بسجل المراجعة باسمك</div>'
+      +'<div style="display:flex;gap:.5rem">'
+      +'<button class="btn" style="flex:1;justify-content:center" onclick="closeModal()">رجوع</button>'
+      +'<button class="btn btnSeal" style="flex:2;justify-content:center" onclick="doUnconfirm(\''+id+'\')">↩️ رجّعها معلّقة</button></div>');
+  },60);
+}
+function doUnconfirm(id){
+  var o=OPS[id];if(!o||!canUnconfirm(o))return;
+  var note=($('ucNote')&&$('ucNote').value.trim())||'';
+  var prev=o.confirmedByName||o.confirmedBy||'';
+  closeModal();
+  /* ⚡ فوري متل التأكيد — محلياً بلحظتها والسيرفر بالخلفية */
+  o.status='pending';o.confirmedBy='';o.confirmedByName='';o.confirmedAt=0;
+  derive();renderAll();
+  C_OPS.doc(id).update({status:'pending',confirmedBy:'',confirmedByName:'',confirmedAt:0,
+      unconfirmedBy:ME.email,unconfirmedByName:ME.name,unconfirmedAt:Date.now(),unconfirmNote:note,_m:Date.now()})
+    .then(function(){logAudit('op.unconfirm',(CL[o.clientId]||{}).name||'',padCode(o.code)+' (كان أكّدها '+prev+')'+(note?' — '+note:''));})
+    .catch(function(){toast('الإرجاع محفوظ محلياً — بيوصل للسيرفر لما يرجع النت','inf');});
+  toast('↩️ رجعت بانتظار التأكيد','ok');
 }
 function askDelOp(id){
   var o=OPS[id];if(!o)return;
