@@ -442,7 +442,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=230;
+var APP_BUILD=231;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -851,7 +851,15 @@ function curChipsHtml(c){
     +'</div></div>';
 }
 var WPAL=['#FFFFFF','#111111','#B3372F','#1D5FA8','#0B7A4B','#B45309','#6D28D9','#0E7490','#BE185D','#4D7C0F','#A8862F','#334155','#7C2D12','#0F766E'];
-function wColor(id){var w=id?WL[id]:null;return (w&&w.color)||'#6F7F76';}   /* بلا لون = رمادي — حتى تعرف إنها لسا ما تلوّنت */
+function canonWid(id){ /* المكررة يلي اندمجت بتوصّل لأصلها — حتى ما تظهر مرتين */
+  var seen={},n=0;
+  while(id&&WL[id]&&WL[id].active===false&&!seen[id]&&n++<5){seen[id]=1;
+    var m=WL[id].mergedInto;
+    if(!m){var nm=_nq(WL[id].name);var alt=Object.values(WL).find(function(x){return x.active!==false&&_nq(x.name)===nm;});m=alt?alt.id:'';}
+    if(!m||!WL[m])break;id=m;}
+  return id||'';
+}
+function wColor(id){id=canonWid(id);var w=id?WL[id]:null;return (w&&w.color)||'#6F7F76';}   /* بلا لون = رمادي — حتى تعرف إنها لسا ما تلوّنت */
 function wVars(id){ /* اللون + لون الخط (أبيض أو أسود حسب الفتوح) + لون الحافة (للأبيض حافة رمادية حتى تبيّن) */
   var c=wColor(id),h=c.replace('#',''),r=parseInt(h.substr(0,2),16)||0,g=parseInt(h.substr(2,2),16)||0,b=parseInt(h.substr(4,2),16)||0;
   var light=(0.299*r+0.587*g+0.114*b)>170;
@@ -862,7 +870,7 @@ function wNum(name){ /* 70815909 → 70 81 <b>5909</b> — العين بتقفل
   if(/^\d{6,}$/.test(name)){var head=name.slice(0,4),tail=name.slice(4);return '<b>'+esc(head)+'</b> '+esc(tail.replace(/(\d{2})(?=\d)/g,'$1 '));}   /* أول ٤ أرقام غامقة وملوّنة */
   return esc(name);
 }
-function wBadge(id,name,big){return '<span class="wBadge'+(big?' big':'')+' num" style="'+wVars(id)+'">💳 '+wNum(name||(WL[id]&&WL[id].name)||'')+'</span>';}
+function wBadge(id,name,big){id=canonWid(id);return '<span class="wBadge'+(big?' big':'')+' num" style="'+wVars(id)+'">💳 '+wNum((WL[id]&&WL[id].name)||name||'')+'</span>';}
 function activeWallets(){return Object.values(WL).filter(function(w){return w.active!==false;}).sort(function(a,b){return (a._m||0)-(b._m||0);});}
 function dupWalletJobs(){
   var groups={};
@@ -871,6 +879,9 @@ function dupWalletJobs(){
   Object.keys(groups).forEach(function(k){var g=groups[k];if(g.length<2)return;
     g.sort(function(a,b){return ((a.imported?1:0)-(b.imported?1:0))||((a._m||0)-(b._m||0));});   /* الأصلية اليدوية أولاً، وإلا الأقدم */
     g.slice(1).forEach(function(d){jobs.push({dup:d,canon:g[0]});});});
+  /* المكررة المخفية يلي لسا في عمليات مربوطة فيها — بترجع لأصلها */
+  var linked={};for(var k2 in OPS){var wid=OPS[k2].walletId;if(wid&&WL[wid]&&WL[wid].active===false)linked[wid]=1;}
+  Object.keys(linked).forEach(function(wid){var c=canonWid(wid);if(c&&c!==wid&&WL[c])jobs.push({dup:WL[wid],canon:WL[c]});});
   return jobs;
 }
 /* 🧹 دمج المحافظ المكررة: العمليات بترجع للمحفظة الأصلية، والمكررة بتنخفى (ما بتنمحى) */
@@ -1047,7 +1058,7 @@ function rPend(){
     return (b.createdAt||0)-(a.createdAt||0);});
   /* 💳 كل محفظة قسم لحالها — الأكتر معلّقات أول، و"بدون محفظة" بالآخر */
   var groups={},order=[];
-  pendList.forEach(function(o){var k=o.walletId&&WL[o.walletId]?o.walletId:'';if(!groups[k]){groups[k]={ops:[],usd:0,other:0};order.push(k);}
+  pendList.forEach(function(o){var k=canonWid(o.walletId);if(k&&!WL[k])k='';if(!groups[k]){groups[k]={ops:[],usd:0,other:0};order.push(k);}
     groups[k].ops.push(o);if(opCur(o)==='USD')groups[k].usd+=o.amount;else groups[k].other++;});
   order.sort(function(a,b){if(a==='')return 1;if(b==='')return -1;return groups[b].ops.length-groups[a].ops.length||groups[b].usd-groups[a].usd;});
   h+=order.map(function(k){var g=groups[k],col=_pendCollapsed[k];
@@ -1274,7 +1285,7 @@ function rWallets(){
   if(!arr.length)return h+'<div class="emptyBox"><span>💳</span>ما في محافظ — المدير بيضيفها من هون</div>';
   h+='<div class="grid2">'+arr.map(function(w){
     var n=0,vol=0,comm=0,pn=0;
-    for(var k in OPS){var o=OPS[k];if(o.walletId!==w.id||o.deleted)continue;
+    for(var k in OPS){var o=OPS[k];if(canonWid(o.walletId)!==w.id||o.deleted)continue;
       if(o.status==='confirmed'){n++;if(opCur(o)==='USD'){vol+=o.amount;comm+=(+o.commission||0);}}
       else pn++;}
     return '<div class="panel" style="margin:0;border-inline-start:6px solid '+(wVars(w.id).match(/--we:([^;]+)/)[1])+'"><h3>'+wBadge(w.id,w.name,true)
