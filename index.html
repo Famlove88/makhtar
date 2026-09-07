@@ -293,6 +293,12 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .opPrev{font-size:.74rem;font-weight:800;color:var(--ink2);min-height:1.1rem;margin-top:.3rem}
 .opPrev b{color:var(--ink)}
 .btnBig{width:100%;justify-content:center;font-size:1rem;padding:.85rem;border-radius:14px;margin-top:.9rem;box-shadow:0 4px 14px rgba(14,59,46,.22)}
+/* ── ⏳ التأكيد: أقسام حسب المحفظة ── */
+.pendGrp{display:flex;align-items:center;gap:.6rem;margin:1rem 0 .55rem;padding:.45rem .6rem;border-radius:12px;background:var(--paper2);border:1.5px solid var(--line);cursor:pointer;user-select:none}
+.pendGrp:first-of-type{margin-top:.2rem}
+.pendGrp .pgCnt{font-size:.8rem;font-weight:800;color:var(--ink2)}
+.pendGrp .pgChev{margin-inline-start:auto;font-size:.9rem;color:var(--ink3);font-weight:900}
+.pendGrp.col{opacity:.75}
 /* ── 📜 آخر الحركات: فاصل الأيام + علامة معلّقة ── */
 .dayDiv{display:flex;align-items:center;gap:.5rem;font-size:.7rem;font-weight:900;color:var(--ink3);margin:.75rem 0 .3rem}
 .dayDiv::after{content:'';flex:1;height:1px;background:var(--line)}
@@ -436,7 +442,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=229;
+var APP_BUILD=230;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -1039,7 +1045,24 @@ function rPend(){
     var ka=(a.date||'')+' '+(a.time||''),kb=(b.date||'')+' '+(b.time||'');
     if(ka!==kb)return ka<kb?1:-1;
     return (b.createdAt||0)-(a.createdAt||0);});
-  h+='<div class="pGrid">'+pendList.map(function(o){
+  /* 💳 كل محفظة قسم لحالها — الأكتر معلّقات أول، و"بدون محفظة" بالآخر */
+  var groups={},order=[];
+  pendList.forEach(function(o){var k=o.walletId&&WL[o.walletId]?o.walletId:'';if(!groups[k]){groups[k]={ops:[],usd:0,other:0};order.push(k);}
+    groups[k].ops.push(o);if(opCur(o)==='USD')groups[k].usd+=o.amount;else groups[k].other++;});
+  order.sort(function(a,b){if(a==='')return 1;if(b==='')return -1;return groups[b].ops.length-groups[a].ops.length||groups[b].usd-groups[a].usd;});
+  h+=order.map(function(k){var g=groups[k],col=_pendCollapsed[k];
+    var head=k?wBadge(k,WL[k].name,true):'<span class="wBadge big" style="--wc:#6F7F76">بدون محفظة</span>';
+    return '<div class="pendGrp'+(col?' col':'')+'" onclick="togglePendGrp(\''+k+'\')">'+head
+      +'<span class="pgCnt">'+g.ops.length+' '+(g.ops.length===1?'عملية':'عمليات')+(g.usd?' • '+fmt(g.usd):'')+(g.other?' • +'+g.other+' بعملات تانية':'')+'</span>'
+      +'<span class="pgChev">'+(col?'▸':'▾')+'</span></div>'
+      +(col?'':'<div class="pGrid">'+pendCardsHtml(g.ops)+'</div>');
+  }).join('');
+  return h;
+}
+var _pendCollapsed={};
+function togglePendGrp(k){_pendCollapsed[k]=!_pendCollapsed[k];renderView();}
+function pendCardsHtml(list){
+  return list.map(function(o){
     var c=CL[o.clientId]||{name:'؟'};
     var mine=(o.by===ME.email)||isMgr();
     return '<div class="pCard" id="pc_'+o.id+'">'
@@ -1056,8 +1079,7 @@ function rPend(){
         :'<div class="lockNote">🔒 شخص غيرك يؤكد — '+esc(o.byName||o.by||'')+' (المدير مستثنى)</div>'
           +(o.type==='in'?'<div class="rowBtns"><button class="btn" onclick="copyOpMsg(\''+o.id+'\')">📋 نسخ الرسالة</button></div>':''))
       +'</div>';
-  }).join('')+'</div>';
-  return h;
+  }).join('');
 }
 
 /* ── 📋 الكشف الكامل ── */
