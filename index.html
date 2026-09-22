@@ -442,7 +442,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=231;
+var APP_BUILD=232;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -472,7 +472,7 @@ var C_CL=db.collection('mk2_clients'),
 var CL={}, OPS={}, WL={}, TEAM={}, PRES={}, CLS={};
 var _archOn=false;   // لما بيصير true: مستمع العمليات بيجيب الحيّة فقط (arch=='') — الأرشيف بينقرا عالطلب
 var ME=null;               // {uid,email,name,role}
-var SET={commission:0.5};  // إعدادات المكتب (تتزامن)
+var SET={commission:0.5,plan:'spark'};  // إعدادات المكتب (تتزامن) — plan: spark مجاني / blaze مدفوع
 var DRV=null;              // المشتقات المحسوبة محلياً — الأرقام ما منوثق فيها من السلك، منشتقها (قاعدة Build 92)
 var sel=localStorage.getItem('mk2_sel')||'';
 var curView='board', opType='in';
@@ -654,6 +654,7 @@ function attachAll(){
     if((d.build||0)>APP_BUILD)$('updateBanner').style.display='block';
     else if(APP_BUILD>(d.build||0))C_META.doc('app').set({build:APP_BUILD,minBuild:MIN_BUILD,at:Date.now()},{merge:true}).catch(function(){});
     if(d.commission!=null)SET.commission=+d.commission;
+    SET.plan=(d.plan==='blaze')?'blaze':'spark';
     /* ترحيل الأرشفة: مرة وحدة — بيضيف arch:'' للعمليات القديمة، وبعدها كل الأجهزة بتنتقل للمستمع الحيّ */
     if(d.archMig===2&&!_archOn){_archOn=true;attachAll();return;}
     if(d.archMig!==2&&ME&&ME.role==='manager')runArchMig();
@@ -1399,6 +1400,12 @@ function rTeam(){
 /* ── ⚙️ الإدارة (مدير فقط) ── */
 var _dataInfo=null;
 function _mb(bytes){return (bytes/1048576).toFixed(2)+' MB';}
+function planBadge(){return SET.plan==='blaze'?'<span class="cChip cOk" style="vertical-align:middle">🔥 Blaze — مدفوع حسب الاستعمال</span>':'<span class="cChip cPend" style="vertical-align:middle">Spark — مجاني بحدود يومية</span>';}
+function planLine(){
+  return SET.plan==='blaze'
+    ?'الخطة <b>Blaze</b>: المجاني بيضل (1 GB تخزين، 50,000 قراءة و20,000 كتابة باليوم) — ويلي فوقو <b>ما بيوقف</b> عليكن، بيتحسب: 6¢ لكل 100 ألف قراءة، 18¢ لكل 100 ألف كتابة، 18¢ لكل GB إضافي بالشهر.'
+    :'الخطة <b>Spark</b> المجانية: 1 GB تخزين، و50,000 قراءة / 20,000 كتابة باليوم — <b>ولما تخلص الحصة البرنامج بيوقف لليوم التالي</b>.';
+}
 function dataInfoHtml(){
   var i=_dataInfo;if(!i)return '';
   var pct=Math.min(100,Math.round(i.total/1073741824*100*10)/10);
@@ -1407,7 +1414,7 @@ function dataInfoHtml(){
     +row('⚡ العمليات الحيّة',i.live,i.liveB)+row('🗄️ العمليات المؤرشفة',i.arch,i.archB)+row('📇 العملاء',i.cl,i.clB)+row('💳 المحافظ',i.wl,i.wlB)
     +row('🔒 الإقفالات',i.cls,i.clsB)+row('📝 سجل المراجعة (audit)',i.audit,i.auditB)+row('👥 الفريق والحضور',i.team,i.teamB)
     +'<tr style="font-weight:900"><td>المجموع (النسخة الجديدة)</td><td class="num">'+fmtN(i.docs)+'</td><td class="num">'+_mb(i.total)+'</td></tr></table>'
-    +'<div style="margin:.6rem 0 .3rem;font-size:.8rem;font-weight:800">المستخدم ≈ '+_mb(i.total)+' من 1024 MB (الحد المجاني) — '+pct+'%</div>'
+    +'<div style="margin:.6rem 0 .3rem;font-size:.8rem;font-weight:800">المستخدم ≈ '+_mb(i.total)+' من 1024 MB '+(SET.plan==='blaze'?'(المجاني ضمن Blaze — وبعدو بيتحسب بلا انقطاع)':'(الحد المجاني)')+' — '+pct+'%</div>'
     +'<div style="height:10px;border-radius:99px;background:var(--line);overflow:hidden"><div style="height:100%;width:'+Math.max(1,pct)+'%;background:'+(pct>80?'var(--out)':(pct>50?'var(--pend)':'var(--ok)'))+'"></div></div>'
     +'<div style="font-size:.72rem;color:var(--ink3);font-weight:700;margin-top:.5rem">تقدير من حجم المستندات نفسها (+٢٥٪ فهارس). بيانات النسخة القديمة (makhtar) مش محسوبة هون — بتقدر تشيلها من Firebase Console بعد ما تعتمد الجديدة نهائياً. آخر حساب: '+esc(i.at)+'</div>'
     +'<button class="btn btnGhost" style="margin-top:.5rem" onclick="estimateData()">🔄 إعادة الحساب</button>';
@@ -1437,7 +1444,7 @@ function rAdmin(){
         +'<td class="num">'+fmtN(c.lbp||0)+'</td>'
         +'<td style="text-align:left"><button class="iBtn" onclick="openClientModal(\''+c.id+'\')">✏️</button></td></tr>';
     }).join('')+'</table></div>';
-  h+='<div class="panel"><h3>📦 حجم البيانات المخزّنة</h3><div id="dataBox">'+(_dataInfo?dataInfoHtml():'<div style="font-size:.78rem;color:var(--ink2);font-weight:600;margin-bottom:.5rem">الحد المجاني بـ Firestore: <b>1 GB</b> تخزين، و<b>50,000 قراءة</b> / <b>20,000 كتابة</b> باليوم. الحساب بيستهلك قراءات — اعملو من وقت لوقت مش كل شوي.</div><button class="btn btnSeal" onclick="estimateData()">📦 احسب حجم البيانات</button>')+'</div></div>';
+  h+='<div class="panel"><h3>📦 حجم البيانات المخزّنة '+planBadge()+'</h3><div id="dataBox">'+(_dataInfo?dataInfoHtml():'<div style="font-size:.78rem;color:var(--ink2);font-weight:600;margin-bottom:.5rem">'+planLine()+' الحساب بيستهلك قراءات — اعملو من وقت لوقت مش كل شوي.</div><button class="btn btnSeal" onclick="estimateData()">📦 احسب حجم البيانات</button>')+'</div></div>';
   h+='<div class="panel"><h3>🎫 صلاحيات الفريق — بتتطبق لحظياً عالجهاز يلي فاتح</h3>'
     +'<div style="font-size:.75rem;color:var(--ink2);font-weight:600;margin-bottom:.5rem">إنشاء الحسابات نفسو بعدو من Firebase Console ← Authentication ← Add user. أول ما يفوت الحساب، بيطلع هون.</div>'
     +'<table><tr><th>الاسم</th><th>الإيميل</th><th>الدور</th></tr>'
@@ -1449,6 +1456,9 @@ function rAdmin(){
         +'<option value="manager"'+(t.role==='manager'?' selected':'')+'>مدير</option></select></td></tr>';
     }).join('')+'</table></div>';
   h+='<div class="panel"><h3>💰 عمولة الخروج عبر محفظة</h3>'
+    +'<div class="fRow" style="margin-bottom:.6rem"><label>☁️ خطة Firebase (متل ما هي بالـ Console)</label><div class="segRow">'
+    +'<button type="button" class="'+(SET.plan!=='blaze'?'onIn':'')+'" onclick="savePlan(\'spark\')">Spark — مجاني</button>'
+    +'<button type="button" class="'+(SET.plan==='blaze'?'onIn':'')+'" onclick="savePlan(\'blaze\')">🔥 Blaze — مدفوع</button></div></div>'
     +'<div class="grid2"><input id="setComm" type="number" step="0.1" value="'+SET.commission+'" dir="ltr" style="text-align:left">'
     +'<button class="btn btnSeal" onclick="saveComm()">حفظ العمولة</button></div></div>';
   h+='<div class="panel" style="border-color:var(--brass)"><h3>📦 الاستيراد من النسخة القديمة</h3>'
@@ -2068,6 +2078,7 @@ function saveWallet(id){
 /* ── الفريق والإعدادات ── */
 function setTeamRole(u,role){C_TEAM.doc(u).update({role:role}).then(function(){logAudit('team.role',u,role);toast('🎫 تغيّر الدور','ok');});}
 function setTeamName(u,name){name=name.trim();if(!name)return;C_TEAM.doc(u).update({name:name});}
+function savePlan(p){C_META.doc('app').set({plan:p},{merge:true}).then(function(){SET.plan=p;toast(p==='blaze'?'🔥 الخطة Blaze — ما في انقطاع بعد اليوم':'الخطة Spark — انتبهوا للحصة اليومية','ok');renderView();});}
 function saveComm(){
   var v=parseFloat($('setComm').value);if(isNaN(v)||v<0){toast('قيمة غير صحيحة','err');return;}
   C_META.doc('app').set({commission:v},{merge:true}).then(function(){toast('💰 انحفظت العمولة — عالكل فوراً','ok');});
