@@ -318,6 +318,14 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .shiftCard{border:2px solid var(--brass);background:linear-gradient(135deg,var(--card),#F3EEDD)}
 .shTime{font-size:.95rem;font-weight:800;color:var(--ink2);text-align:center;margin-bottom:.6rem}
 .shTime b{color:var(--seal);font-size:1.1rem}
+.shList{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin:.9rem 0 .4rem}
+.shList .shTile{position:relative;width:min(100%,19rem);padding:.75rem .75rem .65rem}
+.shList .shTile img{border-radius:8px}
+.shIdx{position:absolute;top:-.7rem;inset-inline-start:-.7rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--we,#6F7F76);color:var(--wt,#fff);font-weight:900;font-size:.9rem;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--card)}
+.shList .shNum{font-size:1.6rem;margin-top:.45rem}
+.shTileBtns{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem}
+.shTileBtns .btn{flex:1 1 auto;justify-content:center;padding:.42rem .5rem;font-size:.78rem;white-space:nowrap}
+.shHint{font-size:.72rem;color:var(--ink3);font-weight:700;text-align:center;margin-top:.45rem}
 .shGrid{display:grid;gap:.7rem;margin:0 auto .7rem;max-width:40rem}
 .shGrid.n1{grid-template-columns:minmax(0,14rem);justify-content:center}.shGrid.n2,.shGrid.n4{grid-template-columns:1fr 1fr}.shGrid.n3{grid-template-columns:1fr 1fr 1fr}
 .shTile{background:#fff;border:4px solid var(--we,#6F7F76);border-radius:14px;padding:.5rem;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.08)}
@@ -335,8 +343,18 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .shStrip .shT{font-size:.8rem;font-weight:800;color:var(--ink2)}
 .shStrip .shNs{display:flex;gap:.3rem;flex-wrap:wrap;flex:1}
 .shStrip .btn{padding:.35rem .7rem;font-size:.8rem}
-.wCard.isOff{opacity:.55}
-.offTag{font-size:.66rem;font-weight:900;color:var(--out);background:var(--outT);border-radius:999px;padding:.1rem .5rem}
+.wGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(100%,19rem),1fr));gap:.8rem}
+.wGrid>*{min-width:0}
+.wCard .grid3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.wCard .statCell{padding:.6rem .3rem}
+.wCard .statCell .v{white-space:nowrap;font-size:clamp(.95rem,1.4vw + .55rem,1.25rem)}
+.wActs .btn.btnGhost{border:1.5px solid var(--line);background:var(--card)}
+.wCard h3{flex-wrap:wrap}
+.wCard.isOff>*:not(.wActs){opacity:.5}
+.wCard.isOff{background:repeating-linear-gradient(135deg,var(--card),var(--card) 12px,#F1ECDD 12px,#F1ECDD 24px)}
+.wActs{display:flex;gap:.4rem;flex-wrap:wrap;margin-top:.7rem;padding-top:.6rem;border-top:1px dashed var(--line2)}
+.wActs .btn{flex:1 1 auto;justify-content:center;padding:.45rem .6rem;font-size:.8rem;white-space:nowrap}
+.offTag{font-size:.66rem;font-weight:900;color:var(--out);background:var(--outT);border-radius:999px;padding:.12rem .55rem;white-space:nowrap}
 .qrThumb{width:2.2rem;height:2.2rem;border-radius:6px;border:1px solid var(--line);object-fit:contain;background:#fff}
 .qrThumb.big{width:5rem;height:5rem}
 .cropBox{width:min(100%,300px);margin:0 auto;border:3px solid var(--seal);border-radius:10px;overflow:hidden;touch-action:none}
@@ -470,7 +488,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=233;
+var APP_BUILD=235;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -690,7 +708,7 @@ function attachAll(){
     if(d.archMig!==2&&ME&&ME.role==='manager')runArchMig();
   }));
   _unsubs.push(C_META.doc('shift').onSnapshot(function(doc){
-    SHIFT=doc.exists?doc.data():null;_shiftImg=null;
+    SHIFT=doc.exists?doc.data():null;_shImgs=null;
     if(curView==='wallets'||curView==='board')renderView();
   }));
   _unsubs.push(C_CLOSE.onSnapshot(function(s){
@@ -1320,7 +1338,7 @@ function rWallets(){
   if(!arr.length)return h+'<div class="emptyBox"><span>💳</span>ما في محافظ — المدير بيضيفها من هون</div>';
   h+=rShiftCard();
   ensureQR(arr.map(function(w){return w.id;}).filter(function(id){return QRC[id]===undefined&&!_qrLoading[id];}),function(){setTimeout(function(){if(curView==='wallets')renderView();},0);});
-  h+='<div class="grid2">'+arr.map(function(w){
+  h+='<div class="wGrid">'+arr.map(function(w){
     var n=0,vol=0,comm=0,pn=0;
     for(var k in OPS){var o=OPS[k];if(canonWid(o.walletId)!==w.id||o.deleted)continue;
       if(o.status==='confirmed'){n++;if(opCur(o)==='USD'){vol+=o.amount;comm+=(+o.commission||0);}}
@@ -1328,15 +1346,17 @@ function rWallets(){
     var q=QRC[w.id];
     return '<div class="panel wCard'+(w.off?' isOff':'')+'" style="margin:0;border-inline-start:6px solid '+(wVars(w.id).match(/--we:([^;]+)/)[1])+'"><h3>'+wBadge(w.id,w.name,true)
       +(w.off?' <span class="offTag">⛔ خارج الخدمة</span>':'')
-      +'<span style="margin-inline-start:auto;display:inline-flex;gap:.3rem;align-items:center">'
-      +(q?'<img class="qrThumb" src="'+q+'" alt="QR" title="QR">':'')
-      +(isMgr()?'<button class="iBtn noPrint" title="'+(w.off?'رجّعها للخدمة':'خارج الخدمة')+'" onclick="toggleWalletOff(\''+w.id+'\')">'+(w.off?'✅':'⛔')+'</button>'
-        +'<button class="iBtn noPrint" onclick="openWalletModal(\''+w.id+'\')">✏️</button>':'')+'</span></h3>'
+      +(q?'<img class="qrThumb" style="margin-inline-start:auto" src="'+q+'" alt="QR" title="QR">':'')+'</h3>'
       +(w.desc?'<div style="font-size:.78rem;color:var(--ink2);margin-bottom:.5rem">'+esc(w.desc)+'</div>':'')
       +'<div class="grid3 num"><div class="statCell"><div class="v">'+n+'</div><div class="l">عملية</div></div>'
       +'<div class="statCell"><div class="v">'+fmtN(Math.round(vol))+'</div><div class="l">حجم $</div></div>'
       +'<div class="statCell"><div class="v" style="color:var(--ok)">'+fmt(comm)+'</div><div class="l">عمولات</div></div></div>'
-      +(pn?'<div style="font-size:.72rem;color:var(--pend);font-weight:800;margin-top:.45rem">⏳ '+pn+' معلّقة عليها</div>':'')+'</div>';
+      +(pn?'<div style="font-size:.72rem;color:var(--pend);font-weight:800;margin-top:.45rem">⏳ '+pn+' معلّقة عليها</div>':'')
+      +(isMgr()?'<div class="wActs noPrint">'
+        +'<button class="btn '+(w.off?'btnSeal':'btnGhost')+'" onclick="toggleWalletOff(\''+w.id+'\')">'+(w.off?'✅ رجّعها للخدمة':'⛔ خارج الخدمة')+'</button>'
+        +'<button class="btn btnGhost" onclick="pickQrFile(\''+w.id+'\')">📷 '+(q?'تغيير QR':'رفع QR')+'</button>'
+        +'<button class="btn btnGhost" onclick="openWalletModal(\''+w.id+'\')">✏️ تعديل</button></div>':'')
+      +'</div>';
   }).join('')+'</div>';
   return h;
 }
@@ -2110,7 +2130,7 @@ function wDigits(w){return String((w&&w.name)||'').replace(/\s+/g,'');}
 function inServiceWallets(){ /* ترتيب ثابت بالرقم — حتى يكون الدور عادل ومتوقّع */
   return activeWallets().filter(function(w){return !w.off;}).sort(function(a,b){return wDigits(a)<wDigits(b)?-1:(wDigits(a)>wDigits(b)?1:0);});
 }
-function t12(ts){var p=tzParts(ts),h=+p.hour,ap=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return h+':'+p.minute+' '+ap;}
+function t12(ts){var p=tzParts(ts),h=+p.hour,ap=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return '\u200E'+h+':'+p.minute+' '+ap+'\u200E';}
 function shiftActive(){return SHIFT&&SHIFT.to&&Date.now()<SHIFT.to;}
 function shiftMsg(s){
   s=s||SHIFT;if(!s)return '';
@@ -2158,7 +2178,7 @@ function newShift(){
     logAudit('shift.new','',res.nums.join(' • '));
     if(res.nums.length<shiftN)toast('⚠️ بالخدمة '+res.nums.length+' بس — نزلوا كلهن','inf');
     else toast('🔄 وردية جديدة: '+res.nums.length+' أرقام لـ '+t12(res.to),'ok');
-    _shiftImg=null;renderView();
+    _shImgs=null;renderView();
   }).catch(function(e){toast('ما قدر ينشر الوردية — '+((e&&e.message)||''),'err');});
 }
 function toggleWalletOff(id){
@@ -2166,88 +2186,112 @@ function toggleWalletOff(id){
   C_WL.doc(id).set({off:!w.off,_m:w._m||Date.now()},{merge:true})
     .then(function(){logAudit(w.off?'wallet.on':'wallet.off','',w.name);toast(w.off?'✅ رجعت للخدمة':'⛔ صارت خارج الخدمة — ما بتنزل بالوردية','ok');});
 }
-/* ── 🖼️ صورة الوردية — QR كل رقم ورقمو تحتو، بخط Cairo ── */
-var _shiftImg=null; /* {key, blob} */
+/* ── 🖼️ صور الوردية — كل رقم صورة لحالها: الـ QR وتحتو الرقم، بخط Cairo ── */
+var _shImgs=null; /* {key, blobs:{wid:blob}} — بتتجهّز سلف حتى المشاركة تفتح فوراً من الكبسة */
 function shiftKey(s){return s?(s.at+'|'+(s.ids||[]).map(function(id){return (QRC[id]||'').length;}).join(',')):'';}
-function buildShiftImage(){
+function isMobileUA(){return /android|iphone|ipad|ipod/i.test(navigator.userAgent);}
+function qrFileName(num){return 'QR-'+String(num||'').replace(/[^\d]/g,'')+'.png';}
+function _rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
+function drawQrCard(s,i,im){
+  var W=720,H=880,BX=60,BY=60,BS=600;
+  var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
+  var id=s.ids[i],edge=(wVars(id).match(/--we:([^;]+)/)||[])[1]||'#6F7F76';
+  x.fillStyle='#FBFAF4';x.fillRect(0,0,W,H);
+  x.fillStyle='#0E3B2E';x.fillRect(0,0,W,14);x.fillStyle='#A8862F';x.fillRect(0,14,W,5);
+  /* مربع أبيض بإطار بلون المحفظة، والـ QR جوّاه مع هامش أبيض (ضروري للمسح) */
+  _rr(x,BX,BY,BS,BS,30);x.fillStyle='#FFFFFF';x.fill();
+  x.lineWidth=12;x.strokeStyle=edge;_rr(x,BX+6,BY+6,BS-12,BS-12,26);x.stroke();
+  if(im){x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(im,BX+40,BY+40,BS-80,BS-80);}
+  else{x.fillStyle='#EEE9D8';x.fillRect(BX+40,BY+40,BS-80,BS-80);x.fillStyle='#7C877F';x.textAlign='center';x.direction='rtl';x.font='800 34px Cairo, sans-serif';x.fillText('بلا QR',W/2,BY+BS/2+12);}
+  x.textAlign='center';
+  x.direction='ltr';x.fillStyle='#182720';x.font='900 78px Cairo, sans-serif';x.fillText(String(s.nums[i]||''),W/2,BY+BS+98);
+  x.direction='rtl';x.fillStyle='#41504A';x.font='800 30px Cairo, sans-serif';x.fillText('من '+t12(s.from)+' لـ '+t12(s.to),W/2,BY+BS+154);
+  x.fillStyle='#7C877F';x.font='700 24px Cairo, sans-serif';x.fillText('مكتب المختار للصيرفة',W/2,H-30);
+  return new Promise(function(r){c.toBlob(function(b){r(b);},'image/png');});
+}
+function buildShiftImages(){
   var s=SHIFT;if(!s)return Promise.reject('nosh');
   return new Promise(function(resolve){ensureQR(s.ids,resolve);}).then(function(){
-    var fl=(document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('900 44px Cairo'),document.fonts.load('700 26px Cairo')]).catch(function(){}):Promise.resolve();
-    return fl;
+    return (document.fonts&&document.fonts.load)?Promise.all([document.fonts.load('900 78px Cairo'),document.fonts.load('800 30px Cairo'),document.fonts.load('700 24px Cairo')]).catch(function(){}):null;
   }).then(function(){
     return Promise.all(s.ids.map(function(id){return new Promise(function(r){var src=QRC[id];if(!src)return r(null);var im=new Image();im.onload=function(){r(im);};im.onerror=function(){r(null);};im.src=src;});}));
   }).then(function(imgs){
-    var n=s.ids.length,cols=n===4?2:Math.max(1,n),rows=Math.ceil(n/cols);
-    var Q=360,PAD=44,GAP=34,NUMH=86,HEAD=190,FOOT=64;
-    var W=PAD*2+cols*Q+(cols-1)*GAP, H=HEAD+rows*(Q+NUMH)+(rows-1)*GAP+FOOT;
-    var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
-    x.fillStyle='#FBFAF4';x.fillRect(0,0,W,H);
-    x.fillStyle='#0E3B2E';x.fillRect(0,0,W,12);x.fillStyle='#A8862F';x.fillRect(0,12,W,4);
-    x.textAlign='center';x.direction='rtl';
-    x.fillStyle='#0E3B2E';x.font='900 52px Cairo, sans-serif';x.fillText('🟢 الأرقام المعتمدة',W/2,92);
-    x.fillStyle='#41504A';x.font='800 34px Cairo, sans-serif';x.fillText('⏰ من '+t12(s.from)+' لـ '+t12(s.to),W/2,150);
-    s.ids.forEach(function(id,i){
-      var col=i%cols,row=Math.floor(i/cols);
-      var cx=PAD+col*(Q+GAP), cy=HEAD+row*(Q+NUMH+GAP);
-      var edge=(wVars(id).match(/--we:([^;]+)/)||[])[1]||'#6F7F76';
-      x.fillStyle='#FFFFFF';x.fillRect(cx,cy,Q,Q);
-      if(imgs[i])x.drawImage(imgs[i],cx+14,cy+14,Q-28,Q-28);
-      else{x.fillStyle='#EEE9D8';x.fillRect(cx+14,cy+14,Q-28,Q-28);x.fillStyle='#7C877F';x.font='800 28px Cairo, sans-serif';x.fillText('بلا QR',cx+Q/2,cy+Q/2+10);}
-      x.lineWidth=10;x.strokeStyle=edge;x.strokeRect(cx+5,cy+5,Q-10,Q-10);
-      x.direction='ltr';x.fillStyle='#182720';x.font='900 46px Cairo, sans-serif';x.fillText(s.nums[i]||'',cx+Q/2,cy+Q+62);x.direction='rtl';
-    });
-    x.fillStyle='#7C877F';x.font='700 24px Cairo, sans-serif';x.fillText('مكتب المختار للصيرفة',W/2,H-24);
-    return new Promise(function(r){c.toBlob(function(b){r(b);},'image/png');});
-  }).then(function(blob){_shiftImg={key:shiftKey(s),blob:blob};return blob;});
+    return Promise.all(s.ids.map(function(id,i){return drawQrCard(s,i,imgs[i]);}));
+  }).then(function(blobs){
+    var m={};s.ids.forEach(function(id,i){m[id]=blobs[i];});
+    _shImgs={key:shiftKey(s),blobs:m};return m;
+  });
 }
-function prepShiftImage(){if(!SHIFT)return;if(_shiftImg&&_shiftImg.key===shiftKey(SHIFT))return;buildShiftImage().catch(function(){});}
+function shImgsReady(){return !!(_shImgs&&SHIFT&&_shImgs.key===shiftKey(SHIFT));}
+function prepShiftImage(){if(!SHIFT||shImgsReady())return;buildShiftImages().catch(function(){});}
+function withImgs(fn){if(shImgsReady())fn(_shImgs.blobs);else buildShiftImages().then(fn).catch(function(){toast('ما قدر يجهّز الصور — جرّب كمان مرة','err');});}
+function dlBlob(b,name){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);}
 function copyShiftText(){if(!SHIFT)return;copyText(shiftMsg());toast('📋 انتسخت الأرقام — الصقها بالكروب','ok');}
-function copyShiftImage(){
-  if(!SHIFT)return;
-  var ready=(_shiftImg&&_shiftImg.key===shiftKey(SHIFT))?Promise.resolve(_shiftImg.blob):buildShiftImage();
+/* ── أزرار كل صورة لحالها ── */
+function copyTileNum(i){if(!SHIFT)return;copyText(String(SHIFT.nums[i]||''));toast('📋 انتسخ الرقم '+SHIFT.nums[i],'ok');}
+function copyTileImage(i){
+  var s=SHIFT;if(!s)return;var id=s.ids[i],num=s.nums[i];
+  var p=shImgsReady()?Promise.resolve(_shImgs.blobs[id]):buildShiftImages().then(function(m){return m[id];});
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
-      navigator.clipboard.write([new ClipboardItem({'image/png':ready})])
-        .then(function(){toast('🖼️ انتسخت الصورة — Ctrl+V بالواتساب، وبعدها انسخ النص','ok');})
-        .catch(function(){dlShiftImage(ready);});
+      navigator.clipboard.write([new ClipboardItem({'image/png':p})])
+        .then(function(){toast('🖼️ انتسخت صورة '+num+' — Ctrl+V بالواتساب','ok');})
+        .catch(function(){p.then(function(b){dlBlob(b,qrFileName(num));toast('⬇️ نزلت الصورة — ابعتها بالواتساب','ok');});});
       return;
     }
   }catch(e){}
-  dlShiftImage(ready);
+  p.then(function(b){dlBlob(b,qrFileName(num));toast('⬇️ نزلت الصورة — ابعتها بالواتساب','ok');});
 }
-function dlShiftImage(p){
-  (p||buildShiftImage()).then(function(b){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='الوردية-'+_ts2d(SHIFT.from)+'-'+t12(SHIFT.from).replace(/[: ]/g,'')+'.png';
-    document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},800);toast('⬇️ نزلت الصورة — ابعتها بالواتساب','ok');});
+function shareTile(i){
+  var s=SHIFT;if(!s)return;var id=s.ids[i],num=s.nums[i];
+  withImgs(function(m){
+    var f=new File([m[id]],qrFileName(num),{type:'image/png'});
+    if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],text:'📱 '+num}).catch(function(){});
+    else{dlBlob(m[id],f.name);toast('⬇️ نزلت الصورة — ابعتها بالواتساب','ok');}
+  });
 }
-function shareShift(){
-  if(!SHIFT)return;
-  var go=function(b){
-    var f=new File([b],'shift.png',{type:'image/png'});
-    if(navigator.canShare&&navigator.canShare({files:[f]}))
-      navigator.share({files:[f],text:shiftMsg()}).catch(function(){});
-    else{copyText(shiftMsg());dlShiftImage(Promise.resolve(b));}
-  };
-  if(_shiftImg&&_shiftImg.key===shiftKey(SHIFT))go(_shiftImg.blob);
-  else buildShiftImage().then(go);
+function dlTile(i){var s=SHIFT;if(!s)return;withImgs(function(m){dlBlob(m[s.ids[i]],qrFileName(s.nums[i]));});}
+/* ── كل الصور سوا: عالتلفون مشاركة وحدة (صور منفصلة + الأرقام)، عالكمبيوتر تنزيل كل صورة لحالها ── */
+function shareAllShift(){
+  var s=SHIFT;if(!s)return;
+  var ids=s.ids.filter(function(id){return QRC[id];});
+  if(!ids.length){copyShiftText();toast('ما في صور QR مرفوعة — انتسخت الأرقام بس','inf');return;}
+  withImgs(function(m){
+    var files=ids.map(function(id){return new File([m[id]],qrFileName(s.nums[s.ids.indexOf(id)]),{type:'image/png'});});
+    if(isMobileUA()&&navigator.canShare&&navigator.canShare({files:files})){
+      copyText(shiftMsg());   /* احتياط: إذا واتساب ما حط الأرقام مع الصور، بتكون بالحافظة */
+      navigator.share({files:files,text:shiftMsg()}).catch(function(){});
+    }else{
+      ids.forEach(function(id,k){setTimeout(function(){dlBlob(m[id],qrFileName(s.nums[s.ids.indexOf(id)]));},k*450);});
+      toast('⬇️ عم تنزل '+ids.length+' صور لحال كل وحدة — اسحبهن عالواتساب','ok');
+    }
+  });
 }
 function canShareFiles(){try{return !!(navigator.canShare&&navigator.canShare({files:[new File([''],'x.png',{type:'image/png'})]}));}catch(e){return false;}}
-/* ── البطاقة الكاملة (صفحة المحافظ) ── */
+/* ── البطاقة الكاملة (صفحة المحافظ) — QR وتحتو الرقم، واحد تحت التاني ── */
 function rShiftCard(){
-  var s=SHIFT,act=shiftActive();
+  var s=SHIFT,act=shiftActive(),mob=isMobileUA()&&canShareFiles();
   var h='<div class="panel shiftCard noPrint"><h3>🔄 الوردية '+(s?(act?'<span class="cChip cOk">شغّالة</span>':'<span class="cChip cPend">⏰ انتهت</span>'):'')+'</h3>';
   if(s){
     h+='<div class="shTime num">⏰ من <b>'+t12(s.from)+'</b> لـ <b>'+t12(s.to)+'</b></div>'
-      +'<div class="shGrid n'+s.ids.length+'">'+s.ids.map(function(id,i){
-        var q=QRC[id];
-        return '<div class="shTile" style="'+wVars(id)+'">'+(q?'<img src="'+q+'" alt="QR">':'<div class="shNoQr">'+(q===undefined?'…':'بلا QR')+'</div>')
-          +'<div class="shNum num">'+esc(s.nums[i]||'')+'</div></div>';}).join('')+'</div>'
       +'<div class="shBtns">'
       +'<button class="btn btnSeal" onclick="copyShiftText()">📋 نسخ الأرقام</button>'
-      +'<button class="btn" onclick="copyShiftImage()">🖼️ نسخ الصورة</button>'
-      +(canShareFiles()?'<button class="btn" onclick="shareShift()">📲 مشاركة</button>':'')
+      +'<button class="btn" onclick="shareAllShift()">'+(mob?'📲 مشاركة كل الصور':'⬇️ تنزيل كل الصور')+'</button>'
       +'</div>'
+      +(mob?'':'<div class="shHint">عالكمبيوتر: الصق الأرقام بالكروب، وبعدين كل صورة من زرّ «🖼️ نسخ الصورة» تحتها ← Ctrl+V</div>')
+      +'<div class="shList">'+s.ids.map(function(id,i){
+        var q=QRC[id],num=esc(s.nums[i]||'');
+        return '<div class="shTile" style="'+wVars(id)+'">'
+          +'<span class="shIdx num">'+(i+1)+'</span>'
+          +(q?'<img src="'+q+'" alt="QR '+num+'">':'<div class="shNoQr">'+(q===undefined?'…':'بلا QR — ارفعها من «📷 رفع QR»')+'</div>')
+          +'<div class="shNum num">'+num+'</div>'
+          +'<div class="shTileBtns">'
+          +(q&&mob?'<button class="btn btnSeal" onclick="shareTile('+i+')">📲 مشاركة</button>':'')
+          +(q?'<button class="btn" onclick="copyTileImage('+i+')">🖼️ نسخ الصورة</button>':'')
+          +'<button class="btn" onclick="copyTileNum('+i+')">📋 الرقم</button>'
+          +(q&&!mob?'<button class="btn" onclick="dlTile('+i+')">⬇️</button>':'')
+          +'</div></div>';}).join('')+'</div>'
       +'<div class="shMeta">نشرها '+esc(s.byName||'')+' — '+_ts2d(s.at)+' '+t12(s.at)+'</div>';
-    if(s.ids.some(function(id){return QRC[id]==='';}))h+='<div class="cfWarn" style="margin:.4rem 0 0">في رقم بلا صورة QR — ارفعها من ✏️ المحفظة</div>';
   }else h+='<div class="emptyBox" style="padding:.8rem"><span>🔄</span>ما في وردية منشورة بعد'+(isMgr()?' — اختار العدد واكبس «وردية جديدة»':'')+'</div>';
   if(isMgr())h+='<div class="shCtl"><span>العدد:</span><div class="segRow">'
     +[2,3,4].map(function(n){return '<button type="button" class="'+(shiftN===n?'onIn':'')+'" onclick="setShiftN('+n+')">'+n+'</button>';}).join('')+'</div>'
@@ -2307,15 +2351,15 @@ function drawCrop(out){
   x.drawImage(_crop.im,(S-w)/2+_crop.x*k,(S-h)/2+_crop.y*k,w,h);
 }
 function saveCrop(){
-  if(!_crop)return;var c=document.createElement('canvas');c.width=420;c.height=420;drawCrop(c);
-  var url=c.toDataURL('image/jpeg',0.9),id=_crop.id;
+  if(!_crop)return;var c=document.createElement('canvas');c.width=600;c.height=600;drawCrop(c);
+  var url=c.toDataURL('image/jpeg',0.92),id=_crop.id;
   C_QR.doc(id).set({img:url,at:Date.now(),by:ME.email}).then(function(){
-    QRC[id]=url;_shiftImg=null;logAudit('wallet.qr','',(WL[id]||{}).name||'');closeModal();toast('📷 انحفظ الـ QR','ok');renderView();
+    QRC[id]=url;_shImgs=null;logAudit('wallet.qr','',(WL[id]||{}).name||'');closeModal();toast('📷 انحفظ الـ QR','ok');renderView();
   }).catch(function(e){toast('ما قدر يحفظ الصورة — '+((e&&e.message)||''),'err');});
 }
 function delQr(id){
   if(!isMgr()||!confirm('حذف صورة الـ QR لهالمحفظة؟'))return;
-  C_QR.doc(id).delete().then(function(){QRC[id]='';_shiftImg=null;closeModal();toast('انحذفت الصورة','ok');renderView();});
+  C_QR.doc(id).delete().then(function(){QRC[id]='';_shImgs=null;closeModal();toast('انحذفت الصورة','ok');renderView();});
 }
 
 /* ── المحافظ ── */
