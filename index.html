@@ -325,6 +325,9 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .shList .shNum{font-size:1.6rem;margin-top:.45rem}
 .shTileBtns{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem}
 .shTileBtns .btn{flex:1 1 auto;justify-content:center;padding:.42rem .5rem;font-size:.78rem;white-space:nowrap}
+.sgList{display:flex;flex-direction:column;gap:.45rem}
+.sgBtn{width:100%;justify-content:center;padding:.7rem;font-size:.9rem}
+.sgBtn[style*="--wc"]:not(.btnSeal){border-inline-start:6px solid var(--we)}
 .shHint{font-size:.72rem;color:var(--ink3);font-weight:700;text-align:center;margin-top:.45rem}
 .shGrid{display:grid;gap:.7rem;margin:0 auto .7rem;max-width:40rem}
 .shGrid.n1{grid-template-columns:minmax(0,14rem);justify-content:center}.shGrid.n2,.shGrid.n4{grid-template-columns:1fr 1fr}.shGrid.n3{grid-template-columns:1fr 1fr 1fr}
@@ -488,7 +491,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=235;
+var APP_BUILD=236;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -688,8 +691,12 @@ function attachAll(){
   }));
   _unsubs.push(C_TEAM.onSnapshot(function(s){
     TEAM={};s.forEach(function(doc){TEAM[doc.id]=doc.data();TEAM[doc.id].uid=doc.id;});
-    if(ME&&TEAM[ME.uid]){var t=TEAM[ME.uid];
-      if(t.role!==ME.role||t.name!==ME.name){ME.role=t.role;ME.name=t.name;applyRole();toast('🎫 تحدّثت صلاحياتك: '+(ME.role==='manager'?'مدير':'صندوق'),'inf');}}
+    if(ME&&TEAM[ME.uid]){var t=TEAM[ME.uid],was=ME.unsure;
+      if(t.role!==ME.role||t.name!==ME.name||was){
+        var changed=(t.role!==ME.role);
+        ME.role=t.role;ME.name=t.name;ME.unsure=false;applyRole();renderAll();
+        if(changed&&!was)toast('🎫 تحدّثت صلاحياتك: '+(ME.role==='manager'?'مدير':'صندوق'),'inf');
+        return;}}
     if(curView==='team'||curView==='admin')renderView();
   }));
   _unsubs.push(C_PRES.onSnapshot(function(s){
@@ -760,7 +767,7 @@ firebase.auth().onAuthStateChanged(function(au){
   bootstrapMe(au).then(function(){
     $('loginView').style.display='none';$('appView').style.display='block';
     var b=$('loginBtn');b.disabled=false;b.textContent='دخول المكتب';
-    $('tbUser').textContent=ME.name+' — '+(ME.role==='manager'?'مدير':'صندوق');
+    $('tbUser').textContent=roleLabel();
     applyRole();attachAll();presBeat();go(curView);
     logAudit('login','',ME.email);
   });
@@ -775,11 +782,23 @@ function bootstrapMe(au){
       ME={uid:au.uid,email:au.email||'',name:name,role:role};
       return C_TEAM.doc(au.uid).set({email:ME.email,name:name,role:role,at:Date.now()});
     });
-  }).catch(function(){ME={uid:au.uid,email:au.email||'',name:(au.email||'؟').split('@')[0],role:'cashier'};});
+  }).catch(function(){
+    /* ما قدر يقرا الصلاحية (نت ضعيف عالجهاز لحظة الفتح) — منبلّش «صندوق» مؤقتاً ومنعيد المحاولة لحد ما تتأكد */
+    ME={uid:au.uid,email:au.email||'',name:(au.email||'؟').split('@')[0],role:'cashier',unsure:true};
+    setTimeout(retryRole,2500);
+  });
 }
+function retryRole(){
+  if(!ME||!ME.unsure)return;
+  C_TEAM.doc(ME.uid).get().then(function(doc){
+    if(doc.exists){var t=doc.data();ME.role=t.role||'cashier';ME.name=t.name||ME.name;}
+    ME.unsure=false;applyRole();renderAll();
+  }).catch(function(){setTimeout(retryRole,5000);});
+}
+function roleLabel(){return ME?(ME.name+' — '+(isMgr()?'مدير':'صندوق')+(ME.unsure?' ⏳':'')+' · v'+APP_BUILD):'—';}
 function applyRole(){
   document.querySelectorAll('.mgrOnly').forEach(function(el){el.style.display=isMgr()?'':'none';});
-  $('tbUser').textContent=ME.name+' — '+(ME.role==='manager'?'مدير':'صندوق');
+  $('tbUser').textContent=roleLabel();
 }
 
 /* ── التنقل ── */
@@ -1332,6 +1351,7 @@ function buildStatement(c,all,from,to,offline){
 function rWallets(){
   var h='<div class="pgTitle"><h2>💳 المحافظ</h2><div class="sp"></div>'
     +(isMgr()?'<button class="btn btnSeal" onclick="openWalletModal()">＋ محفظة</button>':'')+'</div>';
+  if(!isMgr())h+='<div class="cfWarn noPrint" style="margin:0 0 .8rem;text-align:start">🔒 التعديل، خارج الخدمة، رفع QR والوردية الجديدة للمدير — هالجهاز داخل بحساب «'+esc(ME?ME.name:'؟')+'» كـ «صندوق»'+(ME&&ME.unsure?' (عم يتأكد من الصلاحية…)':'')+'. إذا هيدا حسابك، رقّيه لـ «مدير» من الإدارة ← صلاحيات الفريق.</div>';
   var arr=activeWallets();
   var dups=isMgr()?dupWalletJobs().length:0;
   if(dups)h+='<div class="panel noPrint" style="border-color:var(--pend)"><div class="cfWarn" style="margin:0 0 .5rem">⚠️ في '+dups+' محفظة مكررة بنفس الاسم — الدمج بيرجّع عملياتها للأصلية وبيخفي المكررة (بلا محو)</div><button class="btn btnSeal" onclick="fixDupWallets()">🧹 دمج المحافظ المكررة</button></div>';
@@ -2244,10 +2264,11 @@ function copyTileImage(i){
 }
 function shareTile(i){
   var s=SHIFT;if(!s)return;var id=s.ids[i],num=s.nums[i];
+  if(!canShareFiles()){copyTileImage(i);return;}   /* متصفح بلا مشاركة — منسخ الصورة للحافظة، مش تنزيل */
   withImgs(function(m){
     var f=new File([m[id]],qrFileName(num),{type:'image/png'});
     if(navigator.canShare&&navigator.canShare({files:[f]}))navigator.share({files:[f],text:'📱 '+num}).catch(function(){});
-    else{dlBlob(m[id],f.name);toast('⬇️ نزلت الصورة — ابعتها بالواتساب','ok');}
+    else copyTileImage(i);
   });
 }
 function dlTile(i){var s=SHIFT;if(!s)return;withImgs(function(m){dlBlob(m[s.ids[i]],qrFileName(s.nums[i]));});}
@@ -2256,29 +2277,37 @@ function shareAllShift(){
   var s=SHIFT;if(!s)return;
   var ids=s.ids.filter(function(id){return QRC[id];});
   if(!ids.length){copyShiftText();toast('ما في صور QR مرفوعة — انتسخت الأرقام بس','inf');return;}
+  if(!canShareFiles()){openSendGuide();return;}
   withImgs(function(m){
     var files=ids.map(function(id){return new File([m[id]],qrFileName(s.nums[s.ids.indexOf(id)]),{type:'image/png'});});
-    if(isMobileUA()&&navigator.canShare&&navigator.canShare({files:files})){
+    if(navigator.canShare&&navigator.canShare({files:files})){
       copyText(shiftMsg());   /* احتياط: إذا واتساب ما حط الأرقام مع الصور، بتكون بالحافظة */
       navigator.share({files:files,text:shiftMsg()}).catch(function(){});
-    }else{
-      ids.forEach(function(id,k){setTimeout(function(){dlBlob(m[id],qrFileName(s.nums[s.ids.indexOf(id)]));},k*450);});
-      toast('⬇️ عم تنزل '+ids.length+' صور لحال كل وحدة — اسحبهن عالواتساب','ok');
-    }
+    }else openSendGuide();
   });
+}
+/* متصفح ما بيدعم المشاركة: خطوات نسخ ولصق كبسة كبسة — بلا ولا تنزيل */
+function openSendGuide(){
+  var s=SHIFT;if(!s)return;
+  var steps='<button class="btn btnSeal sgBtn" onclick="copyShiftText()">1 — 📋 نسخ الأرقام</button>';
+  s.ids.forEach(function(id,i){if(QRC[id])steps+='<button class="btn sgBtn" style="'+wVars(id)+'" onclick="copyTileImage('+i+')">'+(i+2)+' — 🖼️ صورة '+esc(s.nums[i])+'</button>';});
+  openModal('<h3>📲 إرسال الوردية للواتساب</h3>'
+    +'<div style="font-size:.82rem;color:var(--ink2);font-weight:700;margin-bottom:.6rem">افتح كروب الواتساب، وكل كبسة من هون ← Ctrl+V بالكروب ← إرسال:</div>'
+    +'<div class="sgList">'+steps+'</div>'
+    +'<button class="btn" style="width:100%;justify-content:center;margin-top:.6rem" onclick="closeModal()">خلصت</button>');
 }
 function canShareFiles(){try{return !!(navigator.canShare&&navigator.canShare({files:[new File([''],'x.png',{type:'image/png'})]}));}catch(e){return false;}}
 /* ── البطاقة الكاملة (صفحة المحافظ) — QR وتحتو الرقم، واحد تحت التاني ── */
 function rShiftCard(){
-  var s=SHIFT,act=shiftActive(),mob=isMobileUA()&&canShareFiles();
+  var s=SHIFT,act=shiftActive(),canSh=canShareFiles(),mob=isMobileUA();
   var h='<div class="panel shiftCard noPrint"><h3>🔄 الوردية '+(s?(act?'<span class="cChip cOk">شغّالة</span>':'<span class="cChip cPend">⏰ انتهت</span>'):'')+'</h3>';
   if(s){
     h+='<div class="shTime num">⏰ من <b>'+t12(s.from)+'</b> لـ <b>'+t12(s.to)+'</b></div>'
       +'<div class="shBtns">'
       +'<button class="btn btnSeal" onclick="copyShiftText()">📋 نسخ الأرقام</button>'
-      +'<button class="btn" onclick="shareAllShift()">'+(mob?'📲 مشاركة كل الصور':'⬇️ تنزيل كل الصور')+'</button>'
+      +'<button class="btn" onclick="shareAllShift()">📲 مشاركة كل الصور</button>'
       +'</div>'
-      +(mob?'':'<div class="shHint">عالكمبيوتر: الصق الأرقام بالكروب، وبعدين كل صورة من زرّ «🖼️ نسخ الصورة» تحتها ← Ctrl+V</div>')
+      +(mob?'':'<div class="shHint">'+(canSh?'عالكمبيوتر: «مشاركة» بتفتح قائمة ويندوز ← اختار WhatsApp. أو «🖼️ نسخ الصورة» ← Ctrl+V بالكروب':'عالكمبيوتر: «مشاركة» بتعطيك خطوات نسخ ولصق — كل كبسة ← Ctrl+V بالكروب')+'</div>')
       +'<div class="shList">'+s.ids.map(function(id,i){
         var q=QRC[id],num=esc(s.nums[i]||'');
         return '<div class="shTile" style="'+wVars(id)+'">'
@@ -2286,10 +2315,9 @@ function rShiftCard(){
           +(q?'<img src="'+q+'" alt="QR '+num+'">':'<div class="shNoQr">'+(q===undefined?'…':'بلا QR — ارفعها من «📷 رفع QR»')+'</div>')
           +'<div class="shNum num">'+num+'</div>'
           +'<div class="shTileBtns">'
-          +(q&&mob?'<button class="btn btnSeal" onclick="shareTile('+i+')">📲 مشاركة</button>':'')
-          +(q?'<button class="btn" onclick="copyTileImage('+i+')">🖼️ نسخ الصورة</button>':'')
+          +(q&&canSh?'<button class="btn btnSeal" onclick="shareTile('+i+')">📲 مشاركة</button>':'')
+          +(q?'<button class="btn'+(canSh?'':' btnSeal')+'" onclick="copyTileImage('+i+')">🖼️ نسخ الصورة</button>':'')
           +'<button class="btn" onclick="copyTileNum('+i+')">📋 الرقم</button>'
-          +(q&&!mob?'<button class="btn" onclick="dlTile('+i+')">⬇️</button>':'')
           +'</div></div>';}).join('')+'</div>'
       +'<div class="shMeta">نشرها '+esc(s.byName||'')+' — '+_ts2d(s.at)+' '+t12(s.at)+'</div>';
   }else h+='<div class="emptyBox" style="padding:.8rem"><span>🔄</span>ما في وردية منشورة بعد'+(isMgr()?' — اختار العدد واكبس «وردية جديدة»':'')+'</div>';
