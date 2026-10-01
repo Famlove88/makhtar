@@ -14,9 +14,9 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet">
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.5.0/lz-string.min.js"></script>
 <style>
 /* ═══════════ دفتر رسمي حديث — هوية المختار للصيرفة ═══════════
@@ -318,13 +318,23 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .shiftCard{border:2px solid var(--brass);background:linear-gradient(135deg,var(--card),#F3EEDD)}
 .shTime{font-size:.95rem;font-weight:800;color:var(--ink2);text-align:center;margin-bottom:.6rem}
 .shTime b{color:var(--seal);font-size:1.1rem}
-.shList{display:flex;flex-direction:column;align-items:center;gap:1.1rem;margin:.9rem 0 .4rem}
-.shList .shTile{position:relative;width:min(100%,19rem);padding:.75rem .75rem .65rem}
+/* الصور جنب بعض، كلهن بنفس الحجم، وبيناتهن مسافة — كل وحدة QR وتحتها الرقم */
+.shList{--n:3;display:flex;flex-wrap:nowrap;justify-content:center;align-items:stretch;gap:1.1rem;margin:1.15rem 0 .4rem}
+.shList .shTile{position:relative;flex:0 0 calc((100% - (var(--n) - 1)*1.1rem)/var(--n));max-width:15rem;min-width:0;display:flex;flex-direction:column;padding:.7rem .7rem .6rem;container-type:inline-size}
 .shList .shTile img{border-radius:8px}
 .shIdx{position:absolute;top:-.7rem;inset-inline-start:-.7rem;width:1.9rem;height:1.9rem;border-radius:50%;background:var(--we,#6F7F76);color:var(--wt,#fff);font-weight:900;font-size:.9rem;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px var(--card)}
-.shList .shNum{font-size:1.6rem;margin-top:.45rem}
-.shTileBtns{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.55rem}
-.shTileBtns .btn{flex:1 1 auto;justify-content:center;padding:.42rem .5rem;font-size:.78rem;white-space:nowrap}
+.shList .shNum{font-size:1.4rem;margin-top:.45rem;white-space:nowrap}
+.shTileBtns{display:grid;grid-template-columns:1fr 1fr;gap:.3rem;margin-top:auto;padding-top:.55rem}
+.shTileBtns .btn{justify-content:center;gap:.25rem;padding:.42rem .3rem;font-size:.78rem;white-space:nowrap;min-width:0;overflow:hidden}
+.shTileBtns .btn:first-child,.shTileBtns .btn:first-child:nth-last-child(2)~.btn{grid-column:1/-1}
+/* ضيّق (تلفون): تنتين بكل صف، نفس الحجم، والفردة بالنص */
+@media(max-width:640px){.shList{flex-wrap:wrap;gap:.95rem .8rem}.shList .shTile{flex-basis:calc((100% - .8rem)/2);max-width:15rem}.shList .shNum{font-size:1.15rem}}
+.shiftCard{container:shc/inline-size}
+@container shc (max-width:41rem){.shList.n4{flex-wrap:wrap;gap:.95rem .8rem}.shList.n4 .shTile{flex-basis:calc((100% - .8rem)/2)}}
+@container shc (max-width:30.5rem){.shList{flex-wrap:wrap;gap:.95rem .8rem}.shList .shTile{flex-basis:calc((100% - .8rem)/2)}}
+/* الرقم والأزرار بيكبرو ويصغرو مع عرض الصورة نفسها (المتصفح القديم بيضل عالقياس فوق) */
+.shList .shNum{font-size:clamp(1rem,14cqi,1.6rem)}
+.shTileBtns .btn{font-size:clamp(.7rem,6.4cqi,.82rem)}
 .sgList{display:flex;flex-direction:column;gap:.45rem}
 .sgBtn{width:100%;justify-content:center;padding:.7rem;font-size:.9rem}
 .sgBtn[style*="--wc"]:not(.btnSeal){border-inline-start:6px solid var(--we)}
@@ -491,7 +501,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=236;
+var APP_BUILD=237;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -1357,7 +1367,7 @@ function rWallets(){
   if(dups)h+='<div class="panel noPrint" style="border-color:var(--pend)"><div class="cfWarn" style="margin:0 0 .5rem">⚠️ في '+dups+' محفظة مكررة بنفس الاسم — الدمج بيرجّع عملياتها للأصلية وبيخفي المكررة (بلا محو)</div><button class="btn btnSeal" onclick="fixDupWallets()">🧹 دمج المحافظ المكررة</button></div>';
   if(!arr.length)return h+'<div class="emptyBox"><span>💳</span>ما في محافظ — المدير بيضيفها من هون</div>';
   h+=rShiftCard();
-  ensureQR(arr.map(function(w){return w.id;}).filter(function(id){return QRC[id]===undefined&&!_qrLoading[id];}),function(){setTimeout(function(){if(curView==='wallets')renderView();},0);});
+  qrLoadThenRender(arr.map(function(w){return w.id;}));   /* 🛡️ بس إذا في صور ناقصة — وإلا كانت الصفحة ترجع ترسم حالها بلا توقف وتموت الكبسات عالكمبيوتر */
   h+='<div class="wGrid">'+arr.map(function(w){
     var n=0,vol=0,comm=0,pn=0;
     for(var k in OPS){var o=OPS[k];if(canonWid(o.walletId)!==w.id||o.deleted)continue;
@@ -2172,6 +2182,12 @@ function ensureQR(ids,cb){ /* بيجيب الناقص بس، وبينادي cb �
   });
   setTimeout(_qrFlush,0);
 }
+/* بيطلب الناقص بس، وبيعيد رسم صفحة المحافظ مرة وحدة لما يوصل. ما في ناقص ← ولا شي (ولا إعادة رسم) */
+function qrLoadThenRender(ids){
+  var miss=(ids||[]).filter(function(id){return id&&QRC[id]===undefined&&!_qrLoading[id];});
+  if(miss.length)ensureQR(miss,function(){setTimeout(function(){if(curView==='wallets')renderView();},0);});
+  return miss.length;
+}
 /* ── 🔄 وردية جديدة — transaction حتى الدور المشترك ما يتلخبط بين جهازين ── */
 function setShiftN(n){shiftN=n;renderView();}
 function newShift(){
@@ -2243,15 +2259,25 @@ function buildShiftImages(){
   });
 }
 function shImgsReady(){return !!(_shImgs&&SHIFT&&_shImgs.key===shiftKey(SHIFT));}
-function prepShiftImage(){if(!SHIFT||shImgsReady())return;buildShiftImages().catch(function(){});}
-function withImgs(fn){if(shImgsReady())fn(_shImgs.blobs);else buildShiftImages().then(fn).catch(function(){toast('ما قدر يجهّز الصور — جرّب كمان مرة','err');});}
+/* تجهيز واحد بالمرة — كل الطلبات بنفس اللحظة بتستنّى نفس التجهيز، ما بيتكرر الرسم */
+var _shBuild=null;
+function shImgsP(){
+  if(shImgsReady())return Promise.resolve(_shImgs.blobs);
+  var k=SHIFT?shiftKey(SHIFT):'';
+  if(_shBuild&&_shBuild.k===k)return _shBuild.p;
+  var p=buildShiftImages(),me={k:k,p:p};_shBuild=me;
+  p.catch(function(){}).then(function(){if(_shBuild===me)_shBuild=null;});
+  return p;
+}
+function prepShiftImage(){if(!SHIFT||shImgsReady())return;shImgsP().catch(function(){});}
+function withImgs(fn){shImgsP().then(fn).catch(function(){toast('ما قدر يجهّز الصور — جرّب كمان مرة','err');});}
 function dlBlob(b,name){var a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;document.body.appendChild(a);a.click();setTimeout(function(){URL.revokeObjectURL(a.href);a.remove();},1500);}
 function copyShiftText(){if(!SHIFT)return;copyText(shiftMsg());toast('📋 انتسخت الأرقام — الصقها بالكروب','ok');}
 /* ── أزرار كل صورة لحالها ── */
 function copyTileNum(i){if(!SHIFT)return;copyText(String(SHIFT.nums[i]||''));toast('📋 انتسخ الرقم '+SHIFT.nums[i],'ok');}
 function copyTileImage(i){
   var s=SHIFT;if(!s)return;var id=s.ids[i],num=s.nums[i];
-  var p=shImgsReady()?Promise.resolve(_shImgs.blobs[id]):buildShiftImages().then(function(m){return m[id];});
+  var p=shImgsP().then(function(m){return m[id];});
   try{
     if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){
       navigator.clipboard.write([new ClipboardItem({'image/png':p})])
@@ -2307,17 +2333,17 @@ function rShiftCard(){
       +'<button class="btn btnSeal" onclick="copyShiftText()">📋 نسخ الأرقام</button>'
       +'<button class="btn" onclick="shareAllShift()">📲 مشاركة كل الصور</button>'
       +'</div>'
-      +(mob?'':'<div class="shHint">'+(canSh?'عالكمبيوتر: «مشاركة» بتفتح قائمة ويندوز ← اختار WhatsApp. أو «🖼️ نسخ الصورة» ← Ctrl+V بالكروب':'عالكمبيوتر: «مشاركة» بتعطيك خطوات نسخ ولصق — كل كبسة ← Ctrl+V بالكروب')+'</div>')
-      +'<div class="shList">'+s.ids.map(function(id,i){
+      +(mob?'':'<div class="shHint">'+(canSh?'عالكمبيوتر: «مشاركة» بتفتح قائمة ويندوز ← اختار WhatsApp. أو «🖼️ نسخ» ← Ctrl+V بالكروب':'عالكمبيوتر: «مشاركة» بتعطيك خطوات نسخ ولصق — كل كبسة ← Ctrl+V بالكروب')+'</div>')
+      +'<div class="shList n'+s.ids.length+'" style="--n:'+s.ids.length+'">'+s.ids.map(function(id,i){
         var q=QRC[id],num=esc(s.nums[i]||'');
         return '<div class="shTile" style="'+wVars(id)+'">'
           +'<span class="shIdx num">'+(i+1)+'</span>'
           +(q?'<img src="'+q+'" alt="QR '+num+'">':'<div class="shNoQr">'+(q===undefined?'…':'بلا QR — ارفعها من «📷 رفع QR»')+'</div>')
           +'<div class="shNum num">'+num+'</div>'
           +'<div class="shTileBtns">'
-          +(q&&canSh?'<button class="btn btnSeal" onclick="shareTile('+i+')">📲 مشاركة</button>':'')
-          +(q?'<button class="btn'+(canSh?'':' btnSeal')+'" onclick="copyTileImage('+i+')">🖼️ نسخ الصورة</button>':'')
-          +'<button class="btn" onclick="copyTileNum('+i+')">📋 الرقم</button>'
+          +(q&&canSh?'<button class="btn btnSeal" title="مشاركة الصورة" onclick="shareTile('+i+')">📲 مشاركة</button>':'')
+          +(q?'<button class="btn'+(canSh?'':' btnSeal')+'" title="نسخ الصورة — بعدين Ctrl+V بالواتساب" onclick="copyTileImage('+i+')">'+(canSh?'🖼️ نسخ':'🖼️ نسخ الصورة')+'</button>':'')
+          +'<button class="btn" title="نسخ الرقم" onclick="copyTileNum('+i+')">📋 الرقم</button>'
           +'</div></div>';}).join('')+'</div>'
       +'<div class="shMeta">نشرها '+esc(s.byName||'')+' — '+_ts2d(s.at)+' '+t12(s.at)+'</div>';
   }else h+='<div class="emptyBox" style="padding:.8rem"><span>🔄</span>ما في وردية منشورة بعد'+(isMgr()?' — اختار العدد واكبس «وردية جديدة»':'')+'</div>';
@@ -2326,11 +2352,7 @@ function rShiftCard(){
     +'<button class="btn btnSeal" onclick="newShift()">🔄 وردية جديدة</button>'
     +'<span class="shAvail">بالخدمة: '+inServiceWallets().length+'</span></div>';
   h+='<button class="btn btnGhost" style="margin-top:.5rem" onclick="openShiftLog()">📖 آخر الورديات</button></div>';
-  if(s){
-    var miss=s.ids.filter(function(id){return QRC[id]===undefined&&!_qrLoading[id];});
-    if(miss.length)ensureQR(miss,function(){setTimeout(function(){if(curView==='wallets')renderView();},0);});
-    else if(s.ids.every(function(id){return QRC[id]!==undefined;}))setTimeout(prepShiftImage,0);
-  }
+  if(s&&!qrLoadThenRender(s.ids)&&s.ids.every(function(id){return QRC[id]!==undefined;})&&!shImgsReady())setTimeout(prepShiftImage,0);
   return h;
 }
 /* ── الشريط الصغير (الرئيسية) ── */
@@ -2399,12 +2421,15 @@ function openWalletModal(id){
     +'<div class="fRow"><label>وصف (اختياري)</label><input id="wDesc" value="'+esc(w?w.desc||'':'')+'"></div>'
     +'<div class="fRow"><label>🎨 لون المحفظة — للتمييز بلمحة</label><div class="swRow">'
     +WPAL.map(function(cc){return '<button type="button" class="sw'+(cc===_wColor?' on':'')+'" style="background:'+cc+'" onclick="pickWSw(this,\''+cc+'\')" aria-label="لون"></button>';}).join('')+'</div></div>'
-    +(w&&isMgr()?'<div class="fRow"><label>📷 صورة الـ QR — بتطلع بصورة الوردية</label><div style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">'
-      +(QRC[id]?'<img class="qrThumb big" src="'+QRC[id]+'" alt="QR">':'<span style="font-size:.78rem;color:var(--ink3);font-weight:700">'+(QRC[id]===undefined?'…':'ما في صورة بعد')+'</span>')
-      +'<button type="button" class="btn" onclick="pickQrFile(\''+id+'\')">📷 '+(QRC[id]?'تغيير':'رفع')+' الصورة</button>'
-      +(QRC[id]?'<button type="button" class="btn btnGhost" onclick="delQr(\''+id+'\')">🗑</button>':'')+'</div></div>':'')
+    +(w&&isMgr()?'<div class="fRow"><label>📷 صورة الـ QR — بتطلع بصورة الوردية</label><div id="wQrBox" data-w="'+id+'" style="display:flex;gap:.5rem;align-items:center;flex-wrap:wrap">'+wQrRow(id)+'</div></div>':'')
     +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="saveWallet(\''+(id||'')+'\')">حفظ</button>');
-  if(w&&QRC[id]===undefined)ensureQR([id],function(){if($('modalBk').classList.contains('open')&&$('wName'))openWalletModal(id);});
+  /* الصورة لسا ما وصلت؟ منحدّث سطرها بس لما توصل — الاسم واللون المختارين ما بينمسحو */
+  if(w&&QRC[id]===undefined)ensureQR([id],function(){var b=$('wQrBox');if(b&&b.getAttribute('data-w')===id&&$('modalBk').classList.contains('open'))b.innerHTML=wQrRow(id);});
+}
+function wQrRow(id){
+  return (QRC[id]?'<img class="qrThumb big" src="'+QRC[id]+'" alt="QR">':'<span style="font-size:.78rem;color:var(--ink3);font-weight:700">'+(QRC[id]===undefined?'…':'ما في صورة بعد')+'</span>')
+    +'<button type="button" class="btn" onclick="pickQrFile(\''+id+'\')">📷 '+(QRC[id]?'تغيير':'رفع')+' الصورة</button>'
+    +(QRC[id]?'<button type="button" class="btn btnGhost" onclick="delQr(\''+id+'\')">🗑</button>':'');
 }
 function pickWSw(el,c){_wColor=c;document.querySelectorAll('.sw').forEach(function(s){s.classList.remove('on');});el.classList.add('on');}
 function saveWallet(id){
