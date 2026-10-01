@@ -501,7 +501,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=237;
+var APP_BUILD=238;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -2162,10 +2162,21 @@ function inServiceWallets(){ /* ترتيب ثابت بالرقم — حتى يك
 }
 function t12(ts){var p=tzParts(ts),h=+p.hour,ap=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return '\u200E'+h+':'+p.minute+' '+ap+'\u200E';}
 function shiftActive(){return SHIFT&&SHIFT.to&&Date.now()<SHIFT.to;}
+/* رسالة الكروب — حرفياً متل ما طلبها المختار، والملاحظة بين نجمتين (بتطلع عريضة بالواتساب) */
+var SHIFT_NOTE='*ملاحظه لايوجد الغاء حتى لو أصبح في خربطه وتحولو على الاسم بدل محفضه*';
 function shiftMsg(s){
   s=s||SHIFT;if(!s)return '';
-  return '🟢 الأرقام المعتمدة\n⏰ من '+t12(s.from)+' لـ '+t12(s.to)+'\n\n'+(s.nums||[]).map(function(n){return '📱 '+n;}).join('\n');
+  return '🟢 الأرقام المعتمدة\n⏰ '+shiftSpan(s)+'\n\n'+(s.nums||[]).map(function(n){return '📱 '+n;}).join('\n')+'\n\n\n'+SHIFT_NOTE;
 }
+/* الوقت بالكلام: «9 صباحن» / «12 ضهرن» / «1 بعد ضهر» / «9 مسائن» — والدقايق بس إذا مش ساعة كاملة */
+function arHour(ts){
+  var p=tzParts(ts),h=+p.hour,m=p.minute;
+  var per=h<5?'بعد نص الليل':(h<12?'صباحن':(h===12?'ضهرن':(h<18?'بعد ضهر':'مسائن')));
+  return (h%12||12)+(m!=='00'?':'+m:'')+' '+per;
+}
+function shiftSpan(s){return 'من '+arHour(s.from)+' حتى الساعه '+arHour(s.to);}
+/* بداية الوردية: إذا انتشرت قريب من الساعة (±15 دقيقة) بتبلّش عالساعة الكاملة (8:50 ← 9)، وإلا من الدقيقة نفسها */
+function shiftStart(t){var H=3600000;t=Math.floor(t/60000)*60000;var r=Math.round(t/H)*H;return Math.abs(t-r)<=15*60000?r:t;}
 /* ── تحميل صور الـ QR عالطلب (مش مع كل تحميل للبرنامج) ── */
 var _qrWait=[];
 function _qrAllIn(ids){return (ids||[]).every(function(id){return !id||QRC[id]!==undefined;});}
@@ -2204,7 +2215,8 @@ function newShift(){
         var nx=list.findIndex(function(w){return wDigits(w)>cur.lastNum;});start=nx>-1?nx:0;}
       var take=Math.min(shiftN,list.length),pick=[];
       for(var i=0;i<take;i++)pick.push(list[(start+i)%list.length]);
-      res={ids:pick.map(function(w){return w.id;}),nums:pick.map(wDigits),n:shiftN,from:now,to:now+SHIFT_HOURS*3600000,
+      var st=shiftStart(now);
+      res={ids:pick.map(function(w){return w.id;}),nums:pick.map(wDigits),n:shiftN,from:st,to:st+SHIFT_HOURS*3600000,
            lastId:pick[pick.length-1].id,lastNum:wDigits(pick[pick.length-1]),by:ME.email,byName:ME.name,at:now};
       t.set(ref,res);
     });
@@ -2229,7 +2241,7 @@ function isMobileUA(){return /android|iphone|ipad|ipod/i.test(navigator.userAgen
 function qrFileName(num){return 'QR-'+String(num||'').replace(/[^\d]/g,'')+'.png';}
 function _rr(x,X,Y,w,h,r){x.beginPath();x.moveTo(X+r,Y);x.arcTo(X+w,Y,X+w,Y+h,r);x.arcTo(X+w,Y+h,X,Y+h,r);x.arcTo(X,Y+h,X,Y,r);x.arcTo(X,Y,X+w,Y,r);x.closePath();}
 function drawQrCard(s,i,im){
-  var W=720,H=880,BX=60,BY=60,BS=600;
+  var W=720,H=860,BX=60,BY=60,BS=600;   /* بلا اسم المكتب تحت — الصورة: QR + الرقم + الوقت بس */
   var c=document.createElement('canvas');c.width=W;c.height=H;var x=c.getContext('2d');
   var id=s.ids[i],edge=(wVars(id).match(/--we:([^;]+)/)||[])[1]||'#6F7F76';
   x.fillStyle='#FBFAF4';x.fillRect(0,0,W,H);
@@ -2241,8 +2253,7 @@ function drawQrCard(s,i,im){
   else{x.fillStyle='#EEE9D8';x.fillRect(BX+40,BY+40,BS-80,BS-80);x.fillStyle='#7C877F';x.textAlign='center';x.direction='rtl';x.font='800 34px Cairo, sans-serif';x.fillText('بلا QR',W/2,BY+BS/2+12);}
   x.textAlign='center';
   x.direction='ltr';x.fillStyle='#182720';x.font='900 78px Cairo, sans-serif';x.fillText(String(s.nums[i]||''),W/2,BY+BS+98);
-  x.direction='rtl';x.fillStyle='#41504A';x.font='800 30px Cairo, sans-serif';x.fillText('من '+t12(s.from)+' لـ '+t12(s.to),W/2,BY+BS+154);
-  x.fillStyle='#7C877F';x.font='700 24px Cairo, sans-serif';x.fillText('مكتب المختار للصيرفة',W/2,H-30);
+  x.direction='rtl';x.fillStyle='#41504A';x.font='800 30px Cairo, sans-serif';x.fillText(shiftSpan(s),W/2,BY+BS+154,W-80);   /* نفس كلام الوقت اللي بالرسالة */
   return new Promise(function(r){c.toBlob(function(b){r(b);},'image/png');});
 }
 function buildShiftImages(){
