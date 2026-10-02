@@ -370,6 +370,45 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .offTag{font-size:.66rem;font-weight:900;color:var(--out);background:var(--outT);border-radius:999px;padding:.12rem .55rem;white-space:nowrap}
 .qrThumb{width:2.2rem;height:2.2rem;border-radius:6px;border:1px solid var(--line);object-fit:contain;background:#fff}
 .qrThumb.big{width:5rem;height:5rem}
+/* ── 💰 رقابة المحافظ ── */
+.wlSum{display:grid;grid-template-columns:auto 1fr;gap:.6rem 1rem;align-items:center;border:2px solid var(--seal);border-radius:var(--r);background:linear-gradient(135deg,var(--card),#EEF3EF);padding:.9rem 1rem;margin-bottom:.9rem}
+.wlSum .k{font-size:.72rem;font-weight:800;color:var(--ink3)}
+.wlSum .v{font-size:clamp(1.5rem,4vw,2rem);font-weight:900;color:var(--seal);line-height:1.1;white-space:nowrap}
+.wlSum .sub{font-size:.72rem;font-weight:700;color:var(--ink2);margin-top:.15rem}
+.wlSum .acts{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
+.wlSum .acts .btn{padding:.45rem .7rem;font-size:.8rem;white-space:nowrap}
+@media(max-width:640px){.wlSum{grid-template-columns:1fr}.wlSum .acts{justify-content:flex-start}}
+.wlBal{border:1.5px dashed var(--line2);border-radius:var(--r2);background:var(--paper2);padding:.55rem .7rem;margin-top:.6rem;text-align:center}
+.wlBal .k{font-size:.68rem;font-weight:800;color:var(--ink3)}
+.wlBal .v{font-size:clamp(1.3rem,3vw,1.7rem);font-weight:900;color:var(--seal);line-height:1.15;white-space:nowrap}
+.wlBal .v.neg{color:var(--out)}
+.wlBal .pOut{font-size:.68rem;font-weight:800;color:var(--pend);margin-top:.15rem}
+.wlLast{font-size:.7rem;font-weight:800;margin-top:.4rem;border-radius:8px;padding:.3rem .5rem}
+.wlLast.ok{background:var(--okT,#E4F3EA);color:var(--ok)}
+.wlLast.bad{background:var(--outT,#F8E4E2);color:var(--out)}
+.wlLast.none{background:var(--pendT,#F7EBD0);color:var(--pend)}
+.wlActs{display:flex;gap:.35rem;flex-wrap:wrap;margin-top:.5rem}
+.wlActs .btn{flex:1 1 auto;justify-content:center;padding:.42rem .5rem;font-size:.78rem;white-space:nowrap}
+.shopGrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,16rem),1fr));gap:.8rem}
+.shopCard{background:var(--card);border:1.5px solid var(--line);border-inline-start:6px solid var(--brass);border-radius:var(--r);padding:.8rem .9rem}
+.shopCard h4{margin:0 0 .35rem;font-size:1rem;display:flex;align-items:center;gap:.4rem}
+.shopCard .bal{font-size:1.5rem;font-weight:900;line-height:1.1;white-space:nowrap}
+.shopCard .bal small{font-size:.75rem;font-weight:800;color:var(--ink2);margin-inline-start:.3rem}
+.shopCard .meta{font-size:.7rem;font-weight:700;color:var(--ink3);margin-top:.15rem}
+.wlRows{max-height:60vh;overflow-y:auto;border:1px solid var(--line);border-radius:10px;background:var(--card)}
+.wlRow{display:grid;grid-template-columns:1fr auto auto;gap:.4rem .7rem;align-items:center;padding:.5rem .7rem;border-bottom:1px solid var(--line);font-size:.8rem}
+.wlRow:last-child{border-bottom:0}
+.wlRow .t{font-size:.68rem;color:var(--ink3);font-weight:700}
+.wlRow .d{font-weight:900;white-space:nowrap}
+.wlRow .d.p{color:var(--in)}.wlRow .d.n{color:var(--out)}
+.wlRow .r{font-weight:800;color:var(--ink2);white-space:nowrap;font-size:.75rem}
+.wlRow .ic{display:flex;gap:.25rem}.wlRow .ic .iBtn{width:1.8rem;height:1.8rem;font-size:.8rem}
+.wlRow.del{opacity:.5;text-decoration:line-through}
+.wlHint{border:1.5px dashed var(--pend);background:var(--pendT,#F7EBD0);border-radius:10px;padding:.5rem .7rem;font-size:.78rem;font-weight:700;color:var(--ink2);text-align:start;margin:.5rem 0}
+.wlHint b{color:var(--ink)}
+.wlDiff{font-size:1.6rem;font-weight:900;text-align:center;margin:.3rem 0}
+#modalBox input[type=number]{-moz-appearance:textfield;appearance:textfield}
+#modalBox input[type=number]::-webkit-outer-spin-button,#modalBox input[type=number]::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .cropBox{width:min(100%,300px);margin:0 auto;border:3px solid var(--seal);border-radius:10px;overflow:hidden;touch-action:none}
 .cropBox canvas{width:100%;height:auto;display:block;cursor:grab}
 @media(max-width:640px){.shGrid.n3{grid-template-columns:1fr 1fr 1fr;gap:.4rem}.shNum{font-size:.95rem}}
@@ -501,7 +540,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=239;
+var APP_BUILD=240;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -527,6 +566,7 @@ var C_CL=db.collection('mk2_clients'),
     C_CLOSE=db.collection('mk2_closings'),  // 🔒 الإقفالات — سجل لكل فترة، ما بينمحى أبداً
     C_QR=db.collection('mk2_wallet_qr'),    // 📷 صور QR المحافظ — مستند لكل محفظة، بينقرا عالطلب
     C_SHIFTS=db.collection('mk2_shift_log'),// 🔄 سجل الورديات
+    C_WLED=db.collection('mk2_wled'),       // 💰 رقابة المحافظ: تحويلات، حركات المحلات، تسويات، مطابقات — منفصلة عن الزبائن
     C_OLD=db.collection('makhtar'); // للقراءة فقط — الاستيراد من النسخة القديمة
 
 /* ── الحالة ── */
@@ -724,6 +764,10 @@ function attachAll(){
     if(d.archMig===2&&!_archOn){_archOn=true;attachAll();return;}
     if(d.archMig!==2&&ME&&ME.role==='manager')runArchMig();
   }));
+  _unsubs.push(C_WLED.onSnapshot(function(s){
+    WLED={};s.forEach(function(doc){WLED[doc.id]=doc.data();WLED[doc.id].id=doc.id;});
+    if(curView==='wallets')renderView();
+  },function(err){console.warn('wled listener:',err);}));
   _unsubs.push(C_META.doc('shift').onSnapshot(function(doc){
     SHIFT=doc.exists?doc.data():null;_shImgs=null;
     if(curView==='wallets'||curView==='board')renderView();
@@ -1366,6 +1410,8 @@ function rWallets(){
   var dups=isMgr()?dupWalletJobs().length:0;
   if(dups)h+='<div class="panel noPrint" style="border-color:var(--pend)"><div class="cfWarn" style="margin:0 0 .5rem">⚠️ في '+dups+' محفظة مكررة بنفس الاسم — الدمج بيرجّع عملياتها للأصلية وبيخفي المكررة (بلا محو)</div><button class="btn btnSeal" onclick="fixDupWallets()">🧹 دمج المحافظ المكررة</button></div>';
   if(!arr.length)return h+'<div class="emptyBox"><span>💳</span>ما في محافظ — المدير بيضيفها من هون</div>';
+  /* 💰 رقابة المحافظ — معزولة: أي خطأ فيها بيوقفها هي بس، وباقي الصفحة بيكمّل */
+  var wlOk=true;try{h+=rWlSummary();}catch(e){wlOk=false;console.warn('wl summary:',e);}
   h+=rShiftCard();
   qrLoadThenRender(arr.map(function(w){return w.id;}));   /* 🛡️ بس إذا في صور ناقصة — وإلا كانت الصفحة ترجع ترسم حالها بلا توقف وتموت الكبسات عالكمبيوتر */
   h+='<div class="wGrid">'+arr.map(function(w){
@@ -1382,12 +1428,14 @@ function rWallets(){
       +'<div class="statCell"><div class="v">'+fmtN(Math.round(vol))+'</div><div class="l">حجم $</div></div>'
       +'<div class="statCell"><div class="v" style="color:var(--ok)">'+fmt(comm)+'</div><div class="l">عمولات</div></div></div>'
       +(pn?'<div style="font-size:.72rem;color:var(--pend);font-weight:800;margin-top:.45rem">⏳ '+pn+' معلّقة عليها</div>':'')
+      +(wlOk?(function(){try{return rWlCardBlock(w.id);}catch(e){console.warn('wl card:',e);return '';}})():'')
       +(isMgr()?'<div class="wActs noPrint">'
         +'<button class="btn '+(w.off?'btnSeal':'btnGhost')+'" onclick="toggleWalletOff(\''+w.id+'\')">'+(w.off?'✅ رجّعها للخدمة':'⛔ خارج الخدمة')+'</button>'
         +'<button class="btn btnGhost" onclick="pickQrFile(\''+w.id+'\')">📷 '+(q?'تغيير QR':'رفع QR')+'</button>'
         +'<button class="btn btnGhost" onclick="openWalletModal(\''+w.id+'\')">✏️ تعديل</button></div>':'')
       +'</div>';
   }).join('')+'</div>';
+  if(wlOk){try{h+='<div style="height:.9rem"></div>'+rWlShops();}catch(e){console.warn('wl shops:',e);}}
   return h;
 }
 
@@ -1971,7 +2019,7 @@ function doClosing(){
   var id=uid();
   var doc={period:period,at:Date.now(),by:ME.email,byName:ME.name,phase:'pending',undone:false,
            opCount:opCount,totIn:totIn,totOut:totOut,profit:profit,clients:snap};
-  C_CLOSE.doc(id).set(doc).then(function(){doc.id=id;applyClosing(doc);})
+  C_CLOSE.doc(id).set(doc).then(function(){doc.id=id;try{wlRoll(id);}catch(e){}applyClosing(doc);})   /* 💰 تدوير أرصدة المحافظ — مستقل، وما بيوقف الإقفال لو فشل */
     .catch(function(e){toast('ما قدر يبلّش الإقفال — '+((e&&e.message)||''),'err');});
 }
 function resumeClosing(id){var x=CLS[id];if(!x)return;applyClosing(x);}
@@ -2046,7 +2094,7 @@ function undoClosing(id){
           if(i>=cids.length){
             C_CLOSE.doc(id).update({undone:true,undoneBy:ME.email,undoneByName:ME.name,undoneAt:Date.now(),_m:Date.now()})
               .then(function(){logAudit('closing.undo',x.period,refs.length+' عملية رجعت');
-                toast('↩️ رجع كل شي متل ما كان — الإقفال باقي بالسجل معلّم متراجَع عنه','ok');});
+                toast('↩️ رجع كل شي متل ما كان — الإقفال باقي بالسجل معلّم متراجَع عنه','ok');try{wlUnroll(id);}catch(e){}});
             return;}
           var b=db.batch(),n=0;
           while(i<cids.length&&n<300){var cid=cids[i];
@@ -2420,6 +2468,296 @@ function saveCrop(){
 function delQr(id){
   if(!isMgr()||!confirm('حذف صورة الـ QR لهالمحفظة؟'))return;
   C_QR.doc(id).delete().then(function(){QRC[id]='';_shImgs=null;closeModal();toast('انحذفت الصورة','ok');renderView();});
+}
+
+/* ══════════════════════════════════════════════════════════════
+   💰 رقابة المحافظ — قسم منفصل كلياً عن شغل الزبائن
+   • بيقرا عمليات الزبائن قراية بس (من اللي محمّل أصلاً) — ولا كتابة عليها
+   • بياناتو بمجموعة لحالها (mk2_wled): تحويلات، حركات المحلات، تسويات، مطابقات، تدوير
+   • القاعدة: دخول بينحسب من لحظة التسجيل (حتى المعلّق) — خروج بس لما يتأكّد — العمولة ما بتدخل
+   • الرصيد = آخر أساس (مطابقة ✅ أو تدوير إقفال) + كل أثر وقتو بعد الأساس
+   • دولار بس — أي عملية بعملة تانية بيتجاهلها
+   ══════════════════════════════════════════════════════════════ */
+var WLED={};
+var SHOPS=[{id:'daya',name:'محل الضيعه'},{id:'dz',name:'محل ديرزنون'}];
+function shopName(id){var s=SHOPS.filter(function(x){return x.id===id;})[0];return s?s.name:(id||'');}
+function wledList(){return Object.values(WLED).filter(function(e){return !e.deleted;});}
+function wlBase(wid){var b=null;wledList().forEach(function(e){if(e.wid!==wid)return;if((e.kind==='recon'&&e.ok)||e.kind==='roll'){if(!b||e.at>b.at)b=e;}});return b;}
+/* أثر عملية زبون عالمحفظة + وقت احتسابها */
+function wlOpEff(o){
+  if(!o||o.deleted||opCur(o)!=='USD')return null;
+  var a=+o.amount||0;
+  if(o.type==='in')return {d:a,t:o.createdAt||0};
+  if(o.status==='confirmed')return {d:-a,t:o.confirmedAt||o.createdAt||0};
+  return null;
+}
+/* أثر قيد داخلي على محفظة معيّنة */
+function wlEntEff(e,wid){
+  var a=+e.amount||0;
+  if(e.kind==='xfer')return e.from===wid?-a:(e.to===wid?a:0);
+  if(e.kind==='shop'&&e.wid===wid)return e.type==='buy'?a:-a;
+  if(e.kind==='adj'&&e.wid===wid)return a;
+  return 0;
+}
+function _r2(n){return Math.round((+n||0)*100)/100;}
+function wlCalc(wid){
+  var base=wlBase(wid),T=base?base.at:0,bal=base?(+base.bal||0):0,pendOut=0,pendOutN=0,last=null;
+  for(var k in OPS){var o=OPS[k];if(o.deleted||canonWid(o.walletId)!==wid||opCur(o)!=='USD')continue;
+    if(o.status==='pending'&&o.type==='out'){pendOut+=+o.amount||0;pendOutN++;}
+    var ef=wlOpEff(o);if(ef&&ef.t>T)bal+=ef.d;}
+  wledList().forEach(function(e){
+    if(e.kind==='recon'){if(e.wid===wid&&(!last||e.at>last.at))last=e;return;}
+    if(e.kind==='roll')return;
+    if(e.at>T)bal+=wlEntEff(e,wid);
+  });
+  return {bal:_r2(bal),base:base,last:last,pendOut:pendOut,pendOutN:pendOutN};
+}
+function wlTotal(){var t=0,n=0,miss=0;activeWallets().forEach(function(w){var c=wlCalc(w.id);if(c.base){t+=c.bal;n++;}else miss++;});return {total:_r2(t),n:n,miss:miss};}
+function shopCalc(sid){var bal=0,prof=0,n=0;wledList().forEach(function(e){if(e.kind!=='shop'||e.shop!==sid)return;n++;var a=+e.amount||0,c=+e.comm||0;if(e.type==='buy'){bal+=a-c;prof+=c;}else bal-=a;});return {bal:_r2(bal),prof:_r2(prof),n:n};}
+function _wlWho(){return {by:ME?ME.email:'',byName:ME?ME.name:''};}
+function _wlAdd(e){e.at=e.at||Date.now();e.by=ME.email;e.byName=ME.name;e.deleted=false;return C_WLED.doc(uid()).set(e);}
+function _wlFail(e){toast('ما قدر يحفظ — '+((e&&e.message)||'تأكد من الاتصال'),'err');}
+function _wlNum(id){var v=parseFloat(String(($(id)||{}).value||'').replace(/,/g,''));return isNaN(v)?NaN:_r2(v);}
+function _wlWhen(ts){return _ts2d(ts)+' '+t12(ts);}
+function _signed(n){n=_r2(n);return (n>0?'+':'')+fmt(n);}
+/* ── تدوير مع الإقفال الشهري: أساس جديد لكل محفظة إلها أساس — المؤرشف بيصير جوّا الأساس ── */
+function wlRoll(closingId){
+  var b=db.batch(),now=Date.now(),n=0,who=_wlWho();
+  activeWallets().forEach(function(w){var c=wlCalc(w.id);if(!c.base)return;
+    b.set(C_WLED.doc(uid()),{kind:'roll',wid:w.id,bal:c.bal,at:now,closingId:closingId,by:who.by,byName:who.byName,deleted:false});n++;});
+  if(n)b.commit().catch(function(){});
+}
+function wlUnroll(closingId){
+  var b=db.batch(),n=0;
+  Object.values(WLED).forEach(function(e){if(e.kind==='roll'&&e.closingId===closingId){b.delete(C_WLED.doc(e.id));n++;}});
+  if(n)b.commit().catch(function(){});
+}
+/* ── شرائح اختيار محفظة جوّا النوافذ ── */
+var _wl={};
+function wlChips(field,cur,excl){
+  return '<div class="wChips grid" id="wlc_'+field+'">'+activeWallets().filter(function(w){return w.id!==excl;}).map(function(w){
+    return '<button type="button" class="wChip wl'+(cur===w.id?' on':'')+'" data-id="'+w.id+'" style="'+wVars(w.id)+'" onclick="wlPick(\''+field+'\',this)"><span class="wn num">'+wNum(w.name)+'</span></button>';}).join('')+'</div>';
+}
+function wlPick(field,el){_wl[field]=el.getAttribute('data-id');var box=$('wlc_'+field);if(box)box.querySelectorAll('.wChip').forEach(function(b){b.classList.toggle('on',b===el);});}
+/* ── 🎯 المطابقة (للمدير): ✅ كبسة وحدة — ⚠️ بتكتب الحقيقي وبيطلع الفرق وسببو المحتمل ── */
+function openWlRecon(wid){
+  if(!isMgr()){toast('المطابقة عند المدير','inf');return;}
+  var w=WL[wid];if(!w)return;var c=wlCalc(wid);_wl={wid:wid,exp:c.bal,first:!c.base};
+  if(!c.base){
+    openModal('<h3>🎯 أول مطابقة — '+wBadge(wid,w.name,true)+'</h3>'
+      +'<div class="cfWarn" style="text-align:start">افتح المحفظة عالتلفون واكتب رصيدها الحقيقي هلّق. من هاللحظة البرنامج بيمشي معها: كل دخول بيزيد، وكل خروج مؤكّد بينقص.</div>'
+      +'<div class="fRow"><label>الرصيد الحقيقي بالدولار</label><input id="wlReal" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left;font-size:1.4rem;font-weight:900" placeholder="0.00"></div>'
+      +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="doWlFirst()">🎯 اعتماد الرصيد الحقيقي</button>');
+    setTimeout(function(){var i=$('wlReal');if(i)i.focus();},50);return;
+  }
+  openModal('<h3>🤝 مطابقة — '+wBadge(wid,w.name,true)+'</h3>'
+    +'<div class="cfCard"><div class="k" style="font-size:.72rem;color:var(--ink3);font-weight:800">المفروض يكون عالمحفظة هلّق</div><div class="cfAmt num" style="color:var(--seal)">'+fmt(c.bal)+'</div>'
+    +(c.pendOutN?'<div style="font-size:.72rem;color:var(--pend);font-weight:800">⏳ خروج معلّق '+fmt(c.pendOut)+' ('+c.pendOutN+') — لسا ما انحسب لأنو ما تأكّد</div>':'')
+    +'<div style="font-size:.7rem;color:var(--ink3);font-weight:700;margin-top:.3rem">آخر أساس: '+_wlWhen(c.base.at)+(c.base.kind==='roll'?' (تدوير إقفال)':' — '+esc(c.base.byName||''))+'</div></div>'
+    +'<button class="btn btnSeal" style="width:100%;justify-content:center;padding:.8rem;font-size:1rem" onclick="doWlReconOk()">✅ مطابق — نفس الرقم عالتلفون</button>'
+    +'<div style="text-align:center;font-size:.75rem;color:var(--ink3);font-weight:800;margin:.6rem 0 .3rem">— أو —</div>'
+    +'<div class="fRow"><label>⚠️ مش مطابق — اكتب الرصيد اللي عالتلفون</label><input id="wlReal" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left;font-size:1.3rem;font-weight:900" placeholder="0.00" oninput="wlDiffLive()"></div>'
+    +'<div id="wlDiffBox"></div>'
+    +'<button class="btn" id="wlDiffBtn" style="width:100%;justify-content:center;display:none;border-color:var(--out);color:var(--out)" onclick="doWlReconDiff()">⚠️ سجّل الفرق</button>');
+}
+function wlDiffLive(){
+  var real=_wlNum('wlReal'),box=$('wlDiffBox'),btn=$('wlDiffBtn');if(!box)return;
+  if(isNaN(real)){box.innerHTML='';btn.style.display='none';return;}
+  var diff=_r2(real-_wl.exp);btn.style.display='';
+  box.innerHTML=(diff===0?'<div class="wlDiff num" style="color:var(--ok)">✅ نفس الرقم — اكبس «مطابق» فوق</div>'
+    :'<div class="wlDiff num" style="color:var(--out)">الفرق: '+_signed(diff)+'</div><div style="text-align:center;font-size:.72rem;color:var(--ink2);font-weight:700">'+(diff<0?'عالتلفون أقل من المفروض':'عالتلفون أكتر من المفروض')+'</div>'+wlHints(_wl.wid,diff));
+  if(diff===0)btn.style.display='none';
+}
+/* مساعد الفروقات: بيدوّر بعمليات آخر يومين عن سبب بنفس المبلغ */
+function wlHints(wid,diff){
+  var a=Math.abs(diff),hs=[],since=Date.now()-2*86400000,eq=function(x){return Math.abs(_r2(x)-a)<0.005;};
+  for(var k in OPS){var o=OPS[k];if(o.deleted||opCur(o)!=='USD'||(o.createdAt||0)<since)continue;
+    var ow=canonWid(o.walletId),nm=esc((CL[o.clientId]||{}).name||'؟'),code=padCode(o.code);
+    if(ow===wid){
+      if(o.status==='pending'&&o.type==='out'&&diff<0&&eq(o.amount))hs.push('⏳ خروج معلّق <b>'+fmt(o.amount)+'</b> '+code+' ('+nm+') — إذا انبعت فعلاً، أكّدها وبيختفي الفرق');
+      if(o.status==='pending'&&o.type==='in'&&diff<0&&eq(o.amount))hs.push('⏳ دخول معلّق <b>'+fmt(o.amount)+'</b> '+code+' ('+nm+') — يمكن لسا ما وصل');
+      if(o.type==='in'&&diff<0&&eq(o.amount)&&o.status==='confirmed')hs.push('🔁 دخول <b>'+fmt(o.amount)+'</b> '+code+' ('+nm+') — مسجّل مرتين؟ أو وصل على رقم تاني؟');
+      if(o.type==='out'&&diff>0&&eq(o.amount)&&o.status==='confirmed')hs.push('🔁 خروج <b>'+fmt(o.amount)+'</b> '+code+' ('+nm+') — انبعت فعلاً؟ أو طلع من رقم تاني؟');
+    }else if(ow&&eq(o.amount)){
+      var wrongWay=(o.type==='in'&&diff>0)||(o.type==='out'&&diff<0);
+      if(wrongWay)hs.push('💳 '+(o.type==='in'?'دخول':'خروج')+' <b>'+fmt(o.amount)+'</b> '+code+' ('+nm+') مسجّل على '+wBadge(ow,'')+' — يمكن المحفظة غلط؟ عدّل محفظتها من العملية');
+    }
+  }
+  wledList().forEach(function(e){if(e.kind==='recon'||e.kind==='roll'||(e.at||0)<since)return;
+    if(e.kind==='xfer'&&eq(e.amount)&&e.from!==wid&&e.to!==wid)hs.push('🔁 تحويل <b>'+fmt(e.amount)+'</b> بين محفظتين تانيين بنفس المبلغ — يمكن المحفظة غلط؟');
+    if(e.kind==='shop'&&eq(e.amount)&&e.wid!==wid)hs.push('🏪 حركة '+esc(shopName(e.shop))+' <b>'+fmt(e.amount)+'</b> على محفظة تانية — يمكن المحفظة غلط؟');});
+  return '<div class="wlHint">'+(hs.length?'🔎 احتمالات بنفس المبلغ:<br>'+hs.slice(0,6).join('<br>'):'🔎 ما لقيت عملية بنفس المبلغ بآخر يومين — دوّر على عملية ما انسجّلت، أو اعمل تسوية بسبب مكتوب')+'</div>';
+}
+function doWlFirst(){
+  var real=_wlNum('wlReal');if(isNaN(real)){toast('اكتب الرصيد الحقيقي','err');return;}
+  var wid=_wl.wid;closeModal();
+  _wlAdd({kind:'recon',wid:wid,ok:true,first:true,bal:real,real:real,expected:real,diff:0})
+    .then(function(){logAudit('wallet.recon.first',(WL[wid]||{}).name||'',fmt(real));toast('🎯 انعتمد رصيد '+fmt(real)+' — من هلّق البرنامج ماشي معها','ok');}).catch(_wlFail);
+}
+function doWlReconOk(){
+  var wid=_wl.wid,c=wlCalc(wid);closeModal();
+  _wlAdd({kind:'recon',wid:wid,ok:true,bal:c.bal,real:c.bal,expected:c.bal,diff:0})
+    .then(function(){logAudit('wallet.recon.ok',(WL[wid]||{}).name||'',fmt(c.bal));toast('✅ مطابق — '+fmt(c.bal),'ok');}).catch(_wlFail);
+}
+function doWlReconDiff(){
+  var real=_wlNum('wlReal');if(isNaN(real)){toast('اكتب الرصيد اللي عالتلفون','err');return;}
+  var wid=_wl.wid,c=wlCalc(wid),diff=_r2(real-c.bal);
+  if(diff===0){doWlReconOk();return;}
+  closeModal();
+  /* الأساس ما بيتغيّر — الفرق بيضل ظاهر لحتى تنسجّل العملية الناقصة (وبعدها مطابقة ✅) أو تنعمل تسوية */
+  _wlAdd({kind:'recon',wid:wid,ok:false,bal:c.bal,real:real,expected:c.bal,diff:diff})
+    .then(function(){logAudit('wallet.recon.diff',(WL[wid]||{}).name||'','الحقيقي '+fmt(real)+' / المفروض '+fmt(c.bal)+' / فرق '+_signed(diff));toast('⚠️ انسجّل فرق '+_signed(diff)+' — بيضل ظاهر لحتى يتصلّح','err');}).catch(_wlFail);
+}
+/* ── ⚖️ تسوية (للمدير): بتصلّح الرصيد بسبب مكتوب — لما ما ينلاقى سبب الفرق ── */
+function openWlAdj(wid){
+  if(!isMgr()){toast('التسوية عند المدير','inf');return;}
+  var w=WL[wid];if(!w)return;var c=wlCalc(wid);_wl={wid:wid};
+  var sug=(c.last&&!c.last.ok)?_r2(c.last.real-c.bal):0;
+  openModal('<h3>⚖️ تسوية — '+wBadge(wid,w.name,true)+'</h3>'
+    +'<div class="cfWarn" style="text-align:start">المفروض هلّق <b class="num">'+fmt(c.bal)+'</b>'+(c.last&&!c.last.ok?' — وآخر مطابقة الحقيقي كان <b class="num">'+fmt(c.last.real)+'</b>':'')+'. التسوية بتزيد (+) أو بتنقّص (−) الرصيد المحسوب، وبتنحفظ بالسجل باسمك.</div>'
+    +'<div class="fRow"><label>المبلغ (+ زيادة / − نقصان)</label><input id="wlAdjAmt" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left;font-size:1.3rem;font-weight:900" value="'+(sug?sug:'')+'" placeholder="-100"></div>'
+    +'<div class="fRow"><label>السبب (إجباري)</label><input id="wlAdjNote" placeholder="مثلاً: عملية قديمة ما انسجّلت"></div>'
+    +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="doWlAdj()">⚖️ حفظ التسوية</button>');
+}
+function doWlAdj(){
+  var a=_wlNum('wlAdjAmt'),note=($('wlAdjNote').value||'').trim(),wid=_wl.wid;
+  if(isNaN(a)||a===0){toast('اكتب مبلغ التسوية','err');return;}
+  if(!note){toast('السبب إجباري','err');return;}
+  closeModal();
+  _wlAdd({kind:'adj',wid:wid,amount:a,note:note}).then(function(){logAudit('wallet.adj',(WL[wid]||{}).name||'',_signed(a)+' — '+note);toast('⚖️ انحفظت التسوية '+_signed(a),'ok');}).catch(_wlFail);
+}
+/* ── 🔁 تحويل بين محفظتين (للكل) ── */
+function openWlXfer(id){
+  var e=id?WLED[id]:null;_wl={id:id||'',from:e?e.from:'',to:e?e.to:''};
+  openModal('<h3>🔁 '+(e?'تعديل تحويل':'تحويل بين المحافظ')+'</h3>'
+    +'<div class="fRow"><label>من محفظة</label>'+wlChips('from',_wl.from)+'</div>'
+    +'<div class="fRow"><label>إلى محفظة</label>'+wlChips('to',_wl.to)+'</div>'
+    +'<div class="grid2"><div class="fRow"><label>المبلغ $</label><input id="wlXAmt" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left;font-size:1.3rem;font-weight:900" value="'+(e?e.amount:'')+'"></div>'
+    +'<div class="fRow"><label>ملاحظة (اختياري)</label><input id="wlXNote" value="'+esc(e?e.note||'':'')+'"></div></div>'
+    +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="doWlXfer()">'+(e?'💾 حفظ التعديل':'🔁 نفّذ التحويل')+'</button>');
+}
+function doWlXfer(){
+  var a=_wlNum('wlXAmt'),note=($('wlXNote').value||'').trim();
+  if(!_wl.from||!_wl.to){toast('اختار المحفظتين','err');return;}
+  if(_wl.from===_wl.to){toast('نفس المحفظة — اختار محفظة تانية','err');return;}
+  if(isNaN(a)||a<=0){toast('اكتب المبلغ','err');return;}
+  var id=_wl.id;closeModal();
+  var p=id?C_WLED.doc(id).update({from:_wl.from,to:_wl.to,amount:a,note:note,editedBy:ME.email,editedByName:ME.name,editedAt:Date.now()})
+         :_wlAdd({kind:'xfer',from:_wl.from,to:_wl.to,amount:a,note:note});
+  p.then(function(){logAudit(id?'wallet.xfer.edit':'wallet.xfer','',(WL[_wl.from]||{}).name+' → '+(WL[_wl.to]||{}).name+' '+fmt(a));toast('🔁 '+fmt(a)+' من '+wDigits(WL[_wl.from])+' لـ '+wDigits(WL[_wl.to]),'ok');}).catch(_wlFail);
+}
+/* ── 🏪 حركات المحلات (للكل): شراء ← بتفوت عالمحفظة (عمولة يدوية ربحنا) — بيع ← بتطلع من المحفظة بلا عمولة ── */
+var _shopType='buy';
+function openWlShop(sid,id){
+  var e=id?WLED[id]:null;_wl={id:id||'',shop:sid,wid:e?e.wid:''};_shopType=e?e.type:'buy';
+  openModal('<h3>🏪 '+esc(shopName(sid))+(e?' — تعديل حركة':'')+'</h3>'
+    +'<div class="segRow" style="margin-bottom:.7rem"><button type="button" class="'+(_shopType==='buy'?'onIn':'')+'" onclick="wlShopType(\'buy\')"><span class="ic">↙</span> شراء — بتفوت عالمحفظة</button>'
+    +'<button type="button" class="'+(_shopType==='sell'?'onOut':'')+'" onclick="wlShopType(\'sell\')"><span class="ic">↗</span> بيع — بتطلع من المحفظة</button></div>'
+    +'<div class="fRow"><label>المحفظة</label>'+wlChips('wid',_wl.wid)+'</div>'
+    +'<div class="grid2"><div class="fRow"><label>المبلغ $</label><input id="wlSAmt" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left;font-size:1.3rem;font-weight:900" value="'+(e?e.amount:'')+'" oninput="wlShopLive()"></div>'
+    +'<div class="fRow" id="wlSCommRow"><label>عمولتنا $ <small>(الشراء بس)</small></label><input id="wlSComm" type="number" inputmode="decimal" step="0.01" dir="ltr" style="text-align:left" value="'+(e&&e.comm?e.comm:'')+'" placeholder="0" oninput="wlShopLive()"></div></div>'
+    +'<div class="fRow"><label>ملاحظة (اختياري)</label><input id="wlSNote" value="'+esc(e?e.note||'':'')+'"></div>'
+    +'<div id="wlSLive" style="font-size:.78rem;font-weight:800;color:var(--ink2);text-align:center;margin-bottom:.6rem"></div>'
+    +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="doWlShop()">'+(e?'💾 حفظ التعديل':'✓ تسجيل الحركة')+'</button>');
+  wlShopType(_shopType);
+}
+function wlShopType(t){_shopType=t;var btns=document.querySelectorAll('#modalBox .segRow button');if(btns[0]){btns[0].className=t==='buy'?'onIn':'';btns[1].className=t==='sell'?'onOut':'';}
+  var r=$('wlSCommRow');if(r)r.style.visibility=t==='buy'?'':'hidden';wlShopLive();}
+function wlShopLive(){
+  var a=_wlNum('wlSAmt'),c=_shopType==='buy'?(_wlNum('wlSComm')||0):0,el=$('wlSLive');if(!el)return;
+  if(isNaN(a)||a<=0){el.textContent='';return;}
+  el.innerHTML=_shopType==='buy'?('المحفظة <b class="num" style="color:var(--in)">+'+fmt(a)+'</b> • '+esc(shopName(_wl.shop))+' لكم <b class="num">'+fmt(a-c)+'</b>'+(c?' • ربحنا <b class="num" style="color:var(--ok)">'+fmt(c)+'</b>':''))
+    :('المحفظة <b class="num" style="color:var(--out)">−'+fmt(a)+'</b> • '+esc(shopName(_wl.shop))+' لنا <b class="num">'+fmt(a)+'</b> • بلا عمولة');
+}
+function doWlShop(){
+  var a=_wlNum('wlSAmt'),c=_shopType==='buy'?(_wlNum('wlSComm')||0):0,note=($('wlSNote').value||'').trim();
+  if(!_wl.wid){toast('اختار المحفظة','err');return;}
+  if(isNaN(a)||a<=0){toast('اكتب المبلغ','err');return;}
+  if(c<0||c>a){toast('العمولة غلط','err');return;}
+  var id=_wl.id,sid=_wl.shop;closeModal();
+  var data={shop:sid,type:_shopType,wid:_wl.wid,amount:a,comm:c,note:note};
+  var p=id?C_WLED.doc(id).update(Object.assign(data,{editedBy:ME.email,editedByName:ME.name,editedAt:Date.now()})):_wlAdd(Object.assign({kind:'shop'},data));
+  p.then(function(){logAudit(id?'shop.edit':'shop.op',shopName(sid),(_shopType==='buy'?'شراء ':'بيع ')+fmt(a)+(c?' عمولة '+fmt(c):'')+' عبر '+wDigits(WL[_wl.wid]));toast('🏪 '+(_shopType==='buy'?'شراء':'بيع')+' '+fmt(a)+' — '+shopName(sid),'ok');}).catch(_wlFail);
+}
+function delWlEntry(id){
+  var e=WLED[id];if(!e)return;
+  var what=e.kind==='xfer'?'التحويل':(e.kind==='shop'?'حركة '+shopName(e.shop):'التسوية');
+  if(!confirm('حذف '+what+' '+fmt(e.amount)+'؟ بيطلع من الحساب وبيضل بالسجل مشطوب'))return;
+  C_WLED.doc(id).update({deleted:true,deletedBy:ME.email,deletedByName:ME.name,deletedAt:Date.now()})
+    .then(function(){logAudit('wled.del',e.kind,fmt(e.amount));toast('انحذف — باقي بالسجل مشطوب','ok');var m=$('modalBk');if(m.classList.contains('open'))closeModal();}).catch(_wlFail);
+}
+/* ── 📒 كشف محفظة: كل شي حرّكها من آخر أساس، مع الرصيد الجاري ── */
+function openWlStmt(wid){
+  var w=WL[wid];if(!w)return;var c=wlCalc(wid),T=c.base?c.base.at:0,rows=[];
+  for(var k in OPS){var o=OPS[k];if(o.deleted||canonWid(o.walletId)!==wid||opCur(o)!=='USD')continue;var ef=wlOpEff(o);
+    if(ef&&ef.t>T)rows.push({t:ef.t,d:ef.d,l:(o.type==='in'?'↙ دخول':'↗ خروج')+' '+padCode(o.code)+' — '+esc((CL[o.clientId]||{}).name||'؟'),s:o.status==='pending'?'⏳ معلّق':''});
+    else if(!ef&&o.status==='pending'&&o.type==='out'&&(o.createdAt||0)>T-86400000*3)rows.push({t:o.createdAt||0,d:0,l:'↗ خروج معلّق '+padCode(o.code)+' — '+esc((CL[o.clientId]||{}).name||'؟')+' <small>(ما بينحسب لحتى يتأكّد)</small>',s:fmt(o.amount),skip:true});}
+  wledList().forEach(function(e){if(e.kind==='recon'||e.kind==='roll'||e.at<=T)return;var d=wlEntEff(e,wid);if(!d)return;
+    rows.push({t:e.at,d:d,l:(e.kind==='xfer'?'🔁 تحويل '+(e.from===wid?'إلى ':'من ')+wBadge(e.from===wid?e.to:e.from,''):e.kind==='shop'?'🏪 '+(e.type==='buy'?'شراء من ':'بيع لـ ')+esc(shopName(e.shop)):'⚖️ تسوية — '+esc(e.note||''))+' <small>'+esc(e.byName||'')+'</small>',s:''});});
+  rows.sort(function(a,b){return a.t-b.t;});
+  var run=c.base?(+c.base.bal||0):0,html=rows.map(function(r){if(!r.skip)run=_r2(run+r.d);r.run=run;return r;}).reverse().slice(0,80).map(function(r){
+    return '<div class="wlRow"><div><div>'+r.l+'</div><div class="t">'+_wlWhen(r.t)+(r.s?' • '+r.s:'')+'</div></div><div class="d '+(r.d>0?'p':(r.d<0?'n':''))+' num">'+(r.skip?'—':_signed(r.d))+'</div><div class="r num">'+fmt(r.run)+'</div></div>';}).join('');
+  openModal('<h3>📒 كشف — '+wBadge(wid,w.name,true)+'</h3>'
+    +'<div class="cfCard" style="padding:.6rem"><div style="font-size:.7rem;color:var(--ink3);font-weight:800">الرصيد هلّق</div><div class="cfAmt num" style="font-size:1.8rem;color:var(--seal)">'+(c.base?fmt(c.bal):'—')+'</div>'
+    +'<div style="font-size:.7rem;color:var(--ink3);font-weight:700">'+(c.base?'من أساس '+fmt(c.base.bal)+' بتاريخ '+_wlWhen(c.base.at):'بانتظار أول مطابقة')+'</div></div>'
+    +'<div class="wlRows">'+(html||'<div class="wlRow"><span>ما في حركات بعد الأساس</span></div>')+'</div>'
+    +'<button class="btn" style="width:100%;justify-content:center;margin-top:.6rem" onclick="closeModal()">إغلاق</button>');
+}
+/* ── 🏪 كشف محل: كل الحركات مع تعديل وحذف ── */
+function openShopStmt(sid){
+  var c=shopCalc(sid),list=Object.values(WLED).filter(function(e){return e.kind==='shop'&&e.shop===sid;}).sort(function(a,b){return a.at-b.at;});
+  var run=0,rows=list.map(function(e){var a=+e.amount||0,cm=+e.comm||0,d=e.type==='buy'?(a-cm):-a;if(!e.deleted)run=_r2(run+d);return {e:e,d:d,run:run};}).reverse().slice(0,100).map(function(r){var e=r.e;
+    return '<div class="wlRow'+(e.deleted?' del':'')+'"><div><div>'+(e.type==='buy'?'↙ شراء':'↗ بيع')+' '+fmt(e.amount)+(e.comm?' <small>(عمولة '+fmt(e.comm)+')</small>':'')+' عبر '+wBadge(e.wid,'')+(e.note?' — '+esc(e.note):'')+'</div><div class="t">'+_wlWhen(e.at)+' • '+esc(e.byName||'')+(e.editedAt?' • عدّلها '+esc(e.editedByName||''):'')+(e.deleted?' • حذفها '+esc(e.deletedByName||''):'')+'</div></div>'
+      +'<div><div class="d '+(r.d>0?'p':'n')+' num">'+_signed(r.d)+'</div><div class="r num">'+fmt(r.run)+'</div></div>'
+      +'<div class="ic">'+(e.deleted?'':'<button class="iBtn" title="تعديل" onclick="openWlShop(\''+sid+'\',\''+e.id+'\')">✏️</button><button class="iBtn" title="حذف" onclick="delWlEntry(\''+e.id+'\')">🗑</button>')+'</div></div>';}).join('');
+  openModal('<h3>🏪 '+esc(shopName(sid))+'</h3>'
+    +'<div class="cfCard" style="padding:.6rem"><div class="cfAmt num" style="font-size:1.8rem;color:'+(c.bal>0?'var(--in)':(c.bal<0?'var(--out)':'var(--ink)'))+'">'+fmt(Math.abs(c.bal))+' <small style="font-size:.85rem">'+(c.bal>0?'لكم':(c.bal<0?'لنا':'متساوي'))+'</small></div>'
+    +'<div style="font-size:.72rem;color:var(--ink3);font-weight:700">'+c.n+' حركة • ربحنا من العمولات <b class="num" style="color:var(--ok)">'+fmt(c.prof)+'</b></div></div>'
+    +'<div class="wlActs" style="margin:0 0 .6rem"><button class="btn btnSeal" onclick="openWlShop(\''+sid+'\')">＋ حركة جديدة</button></div>'
+    +'<div class="wlRows">'+(rows||'<div class="wlRow"><span>ما في حركات بعد</span></div>')+'</div>'
+    +'<button class="btn" style="width:100%;justify-content:center;margin-top:.6rem" onclick="closeModal()">إغلاق</button>');
+}
+/* ── 📖 سجل القسم: مطابقات، تحويلات، تسويات ── */
+function openWlLog(){
+  var list=Object.values(WLED).filter(function(e){return e.kind!=='shop';}).sort(function(a,b){return b.at-a.at;}).slice(0,60);
+  var rows=list.map(function(e){var l='',d='';
+    if(e.kind==='recon')l=(e.first?'🎯 أول مطابقة ':(e.ok?'✅ مطابق ':'⚠️ فرق '+_signed(e.diff)+' '))+wBadge(e.wid,'')+(e.ok?' — '+fmt(e.bal):' — الحقيقي '+fmt(e.real)+' / المفروض '+fmt(e.expected));
+    else if(e.kind==='roll')l='🔒 تدوير إقفال '+wBadge(e.wid,'')+' — '+fmt(e.bal);
+    else if(e.kind==='xfer'){l='🔁 تحويل '+wBadge(e.from,'')+' ← '+wBadge(e.to,'')+(e.note?' — '+esc(e.note):'');d=fmt(e.amount);}
+    else if(e.kind==='adj'){l='⚖️ تسوية '+wBadge(e.wid,'')+' — '+esc(e.note||'');d=_signed(e.amount);}
+    return '<div class="wlRow'+(e.deleted?' del':'')+'"><div><div>'+l+'</div><div class="t">'+_wlWhen(e.at)+' • '+esc(e.byName||'')+(e.deleted?' • محذوف':'')+'</div></div><div class="d num">'+d+'</div>'
+      +'<div class="ic">'+(!e.deleted&&e.kind==='xfer'?'<button class="iBtn" title="تعديل" onclick="openWlXfer(\''+e.id+'\')">✏️</button><button class="iBtn" title="حذف" onclick="delWlEntry(\''+e.id+'\')">🗑</button>':(!e.deleted&&e.kind==='adj'&&isMgr()?'<button class="iBtn" title="حذف" onclick="delWlEntry(\''+e.id+'\')">🗑</button>':''))+'</div></div>';}).join('');
+  openModal('<h3>📖 سجل المحافظ</h3><div class="wlRows">'+(rows||'<div class="wlRow"><span>ما في شي بعد</span></div>')+'</div>'
+    +'<button class="btn" style="width:100%;justify-content:center;margin-top:.6rem" onclick="closeModal()">إغلاق</button>');
+}
+/* ── أجزاء الصفحة ── */
+function rWlSummary(){
+  var t=wlTotal();
+  return '<div class="wlSum noPrint"><div><div class="k">💰 مجموع المحافظ بالدولار'+(t.miss?' <span style="color:var(--pend)">('+t.miss+' بانتظار أول مطابقة)</span>':'')+'</div><div class="v num">'+fmt(t.total)+'</div>'
+    +'<div class="sub">'+t.n+' محفظة محسوبة • الدخول بينحسب فوراً، والخروج لما يتأكّد، والعمولة بره</div></div>'
+    +'<div class="acts"><button class="btn btnSeal" onclick="openWlXfer()">🔁 تحويل</button>'
+    +SHOPS.map(function(s){return '<button class="btn" onclick="openWlShop(\''+s.id+'\')">🏪 '+esc(s.name.replace('محل ',''))+'</button>';}).join('')
+    +'<button class="btn btnGhost" onclick="openWlLog()">📖 السجل</button></div></div>';
+}
+function rWlShops(){
+  return '<div class="panel noPrint"><h3>🏪 المحلات — شراء وبيع داخلي عبر المحافظ</h3><div class="shopGrid">'+SHOPS.map(function(s){var c=shopCalc(s.id);
+    return '<div class="shopCard"><h4>'+esc(s.name)+'</h4><div class="bal num" style="color:'+(c.bal>0?'var(--in)':(c.bal<0?'var(--out)':'var(--ink)'))+'">'+fmt(Math.abs(c.bal))+'<small>'+(c.bal>0?'لكم (منطلعلن)':(c.bal<0?'لنا (بيطلعلنا)':'متساوي'))+'</small></div>'
+      +'<div class="meta">'+c.n+' حركة • ربح العمولات '+fmt(c.prof)+'</div>'
+      +'<div class="wlActs"><button class="btn btnSeal" onclick="openWlShop(\''+s.id+'\')">＋ شراء / بيع</button><button class="btn" onclick="openShopStmt(\''+s.id+'\')">📒 كشف</button></div></div>';}).join('')+'</div></div>';
+}
+function rWlCardBlock(wid){
+  var c=wlCalc(wid),h='<div class="wlBal">';
+  if(!c.base)h+='<div class="k">الرصيد</div><div class="v" style="color:var(--ink3);font-size:1.1rem">بانتظار أول مطابقة</div>';
+  else h+='<div class="k">المفروض عالمحفظة هلّق</div><div class="v num'+(c.bal<0?' neg':'')+'">'+fmt(c.bal)+'</div>'+(c.pendOutN?'<div class="pOut">⏳ خروج معلّق '+fmt(c.pendOut)+' ما انحسب بعد</div>':'');
+  h+='</div>';
+  var L=c.last;
+  if(L)h+='<div class="wlLast '+(L.ok?'ok':'bad')+'">'+(L.ok?'✅ مطابق':'⚠️ فرق '+_signed(L.diff)+' — الحقيقي '+fmt(L.real)+' / المفروض كان '+fmt(L.expected))+' <span style="opacity:.8">• '+_wlWhen(L.at)+' • '+esc(L.byName||'')+'</span></div>';
+  else if(c.base)h+='<div class="wlLast none">⏰ ما انطابقت بعد</div>';
+  h+='<div class="wlActs noPrint">'
+    +(isMgr()?(c.base?'<button class="btn btnSeal" onclick="openWlRecon(\''+wid+'\')">🤝 مطابقة</button>':'<button class="btn btnSeal" onclick="openWlRecon(\''+wid+'\')">🎯 أول مطابقة</button>'):'')
+    +(isMgr()&&L&&!L.ok?'<button class="btn" style="border-color:var(--out);color:var(--out)" onclick="openWlAdj(\''+wid+'\')">⚖️ تسوية</button>':'')
+    +'<button class="btn" onclick="openWlStmt(\''+wid+'\')">📒 كشف</button></div>';
+  return h;
 }
 
 /* ── المحافظ ── */
