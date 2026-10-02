@@ -375,6 +375,12 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
 .wlSum .k{font-size:.72rem;font-weight:800;color:var(--ink3)}
 .wlSum .v{font-size:clamp(1.5rem,4vw,2rem);font-weight:900;color:var(--seal);line-height:1.1;white-space:nowrap}
 .wlSum .sub{font-size:.72rem;font-weight:700;color:var(--ink2);margin-top:.15rem}
+.wlSum .wlPends{display:flex;flex-wrap:wrap;gap:.3rem;margin-top:.35rem}
+.wlSum .wlPend{display:inline-block;font-size:.76rem;font-weight:800;color:var(--pend);background:var(--pendT);border-radius:8px;padding:.25rem .6rem}
+.wlSum .wlPend.in{color:var(--in);background:var(--inT)}
+.wlBal .pOut.in{color:var(--in)}
+.wlSum .wlPend b{color:var(--ink)}
+.wlSum .wlPend.ok{color:var(--ok);background:var(--okT)}
 .wlSum .acts{display:flex;gap:.4rem;flex-wrap:wrap;justify-content:flex-end}
 .wlSum .acts .btn{padding:.45rem .7rem;font-size:.8rem;white-space:nowrap}
 @media(max-width:640px){.wlSum{grid-template-columns:1fr}.wlSum .acts{justify-content:flex-start}}
@@ -540,7 +546,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=240;
+var APP_BUILD=242;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -2501,18 +2507,18 @@ function wlEntEff(e,wid){
 }
 function _r2(n){return Math.round((+n||0)*100)/100;}
 function wlCalc(wid){
-  var base=wlBase(wid),T=base?base.at:0,bal=base?(+base.bal||0):0,pendOut=0,pendOutN=0,last=null;
+  var base=wlBase(wid),T=base?base.at:0,bal=base?(+base.bal||0):0,pendOut=0,pendOutN=0,pendIn=0,pendInN=0,last=null;
   for(var k in OPS){var o=OPS[k];if(o.deleted||canonWid(o.walletId)!==wid||opCur(o)!=='USD')continue;
-    if(o.status==='pending'&&o.type==='out'){pendOut+=+o.amount||0;pendOutN++;}
+    if(o.status==='pending'){if(o.type==='out'){pendOut+=+o.amount||0;pendOutN++;}else{pendIn+=+o.amount||0;pendInN++;}}
     var ef=wlOpEff(o);if(ef&&ef.t>T)bal+=ef.d;}
   wledList().forEach(function(e){
     if(e.kind==='recon'){if(e.wid===wid&&(!last||e.at>last.at))last=e;return;}
     if(e.kind==='roll')return;
     if(e.at>T)bal+=wlEntEff(e,wid);
   });
-  return {bal:_r2(bal),base:base,last:last,pendOut:pendOut,pendOutN:pendOutN};
+  return {bal:_r2(bal),base:base,last:last,pendOut:_r2(pendOut),pendOutN:pendOutN,pendIn:_r2(pendIn),pendInN:pendInN};
 }
-function wlTotal(){var t=0,n=0,miss=0;activeWallets().forEach(function(w){var c=wlCalc(w.id);if(c.base){t+=c.bal;n++;}else miss++;});return {total:_r2(t),n:n,miss:miss};}
+function wlTotal(){var t=0,n=0,miss=0,po=0,pon=0,pi=0,pin=0;activeWallets().forEach(function(w){var c=wlCalc(w.id);po+=c.pendOut;pon+=c.pendOutN;pi+=c.pendIn;pin+=c.pendInN;if(c.base){t+=c.bal;n++;}else miss++;});return {total:_r2(t),n:n,miss:miss,pendOut:_r2(po),pendOutN:pon,pendIn:_r2(pi),pendInN:pin,after:_r2(t-po)};}
 function shopCalc(sid){var bal=0,prof=0,n=0;wledList().forEach(function(e){if(e.kind!=='shop'||e.shop!==sid)return;n++;var a=+e.amount||0,c=+e.comm||0;if(e.type==='buy'){bal+=a-c;prof+=c;}else bal-=a;});return {bal:_r2(bal),prof:_r2(prof),n:n};}
 function _wlWho(){return {by:ME?ME.email:'',byName:ME?ME.name:''};}
 function _wlAdd(e){e.at=e.at||Date.now();e.by=ME.email;e.byName=ME.name;e.deleted=false;return C_WLED.doc(uid()).set(e);}
@@ -2734,6 +2740,10 @@ function openWlLog(){
 function rWlSummary(){
   var t=wlTotal();
   return '<div class="wlSum noPrint"><div><div class="k">💰 مجموع المحافظ بالدولار'+(t.miss?' <span style="color:var(--pend)">('+t.miss+' بانتظار أول مطابقة)</span>':'')+'</div><div class="v num">'+fmt(t.total)+'</div>'
+    +'<div class="wlPends">'
+    +(t.pendInN?'<div class="wlPend in num">↙ دخول معلّق: <b>'+fmt(t.pendIn)+'</b> ('+t.pendInN+') — محسوب بالمجموع</div>':'')
+    +(t.pendOutN?'<div class="wlPend num">↗ خروج معلّق ما انحسب بعد: <b>'+fmt(t.pendOut)+'</b> ('+t.pendOutN+') — بعد تأكيده المجموع بيصير <b>'+fmt(t.after)+'</b></div>':'')
+    +(!t.pendInN&&!t.pendOutN?'<div class="wlPend ok">✅ ما في معلّق — المجموع نهائي</div>':'')+'</div>'
     +'<div class="sub">'+t.n+' محفظة محسوبة • الدخول بينحسب فوراً، والخروج لما يتأكّد، والعمولة بره</div></div>'
     +'<div class="acts"><button class="btn btnSeal" onclick="openWlXfer()">🔁 تحويل</button>'
     +SHOPS.map(function(s){return '<button class="btn" onclick="openWlShop(\''+s.id+'\')">🏪 '+esc(s.name.replace('محل ',''))+'</button>';}).join('')
@@ -2748,7 +2758,7 @@ function rWlShops(){
 function rWlCardBlock(wid){
   var c=wlCalc(wid),h='<div class="wlBal">';
   if(!c.base)h+='<div class="k">الرصيد</div><div class="v" style="color:var(--ink3);font-size:1.1rem">بانتظار أول مطابقة</div>';
-  else h+='<div class="k">المفروض عالمحفظة هلّق</div><div class="v num'+(c.bal<0?' neg':'')+'">'+fmt(c.bal)+'</div>'+(c.pendOutN?'<div class="pOut">⏳ خروج معلّق '+fmt(c.pendOut)+' ما انحسب بعد</div>':'');
+  else h+='<div class="k">المفروض عالمحفظة هلّق</div><div class="v num'+(c.bal<0?' neg':'')+'">'+fmt(c.bal)+'</div>'+(c.pendInN?'<div class="pOut in">↙ دخول معلّق '+fmt(c.pendIn)+' — محسوب</div>':'')+(c.pendOutN?'<div class="pOut">↗ خروج معلّق '+fmt(c.pendOut)+' ما انحسب بعد</div>':'');
   h+='</div>';
   var L=c.last;
   if(L)h+='<div class="wlLast '+(L.ok?'ok':'bad')+'">'+(L.ok?'✅ مطابق':'⚠️ فرق '+_signed(L.diff)+' — الحقيقي '+fmt(L.real)+' / المفروض كان '+fmt(L.expected))+' <span style="opacity:.8">• '+_wlWhen(L.at)+' • '+esc(L.byName||'')+'</span></div>';
