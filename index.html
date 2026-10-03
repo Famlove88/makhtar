@@ -546,7 +546,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=243;
+var APP_BUILD=244;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -707,7 +707,7 @@ var _quotaHit=0;
 /* ترجمة أخطاء Firebase لكلام مفهوم — و«Quota exceeded» بالذات: خلصت حصة الخطة المجانية لليوم */
 function fbErr(e){
   var c=(e&&e.code)||'',m=(e&&e.message)||'';
-  if(c==='resource-exhausted'||/quota/i.test(m)){_quotaHit=Date.now();setJewel();return 'خلصت حصة Firebase اليومية (الخطة المجانية) — بترجع حوالي الساعة 10 الصبح';}
+  if(c==='resource-exhausted'||/quota/i.test(m)){_quotaHit=Date.now();setJewel();return 'Firebase رفض الطلب: خلصت حصة القراءات اليومية — بترجع حوالي الساعة 10 الصبح. إذا الخطة Blaze، تأكد من حساب الفوترة (Account & budgets)';}
   if(c==='permission-denied')return 'ما في صلاحية — قواعد Firebase';
   if(c==='unavailable'||c==='deadline-exceeded')return 'ما في اتصال بالسيرفر';
   return m||'تأكد من الاتصال';
