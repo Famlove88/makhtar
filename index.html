@@ -546,7 +546,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=242;
+var APP_BUILD=243;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -703,10 +703,20 @@ function derive(){
 }
 
 /* ── جوهرة المزامنة: مؤشر صادق — أخضر=لحظي، عنبري=بيحفظ/مش محدّث، رمادي=أوفلاين ── */
+var _quotaHit=0;
+/* ترجمة أخطاء Firebase لكلام مفهوم — و«Quota exceeded» بالذات: خلصت حصة الخطة المجانية لليوم */
+function fbErr(e){
+  var c=(e&&e.code)||'',m=(e&&e.message)||'';
+  if(c==='resource-exhausted'||/quota/i.test(m)){_quotaHit=Date.now();setJewel();return 'خلصت حصة Firebase اليومية (الخطة المجانية) — بترجع حوالي الساعة 10 الصبح';}
+  if(c==='permission-denied')return 'ما في صلاحية — قواعد Firebase';
+  if(c==='unavailable'||c==='deadline-exceeded')return 'ما في اتصال بالسيرفر';
+  return m||'تأكد من الاتصال';
+}
 function setJewel(){
   var j=$('syncJewel'),t=$('syncTxt');if(!j)return;
   j.className='';
   if(!navigator.onLine){j.classList.add('off');t.textContent='أوفلاين — محفوظ محلياً';return;}
+  if(_quotaHit&&Date.now()-_quotaHit<3600000){j.classList.add('stale');t.textContent='⛔ خلصت حصة اليوم — بترجع ~10:00 ص';return;}
   if(_pendWrites>0){j.classList.add('busy');t.textContent='بيحفظ… ('+_pendWrites+')';return;}
   if(_fromCache&&Date.now()-_lastSnap>25000){j.classList.add('stale');t.textContent='⚠️ مش محدّث';return;}
   j.classList.add('live');t.textContent='متزامن لحظياً';
@@ -717,7 +727,7 @@ window.addEventListener('offline',setJewel);
 function reviveSync(){ // 🩺 إحياء الاتصال يدوياً — فصل كل المستمعين وإعادة وصلهم
   detachAll();attachAll();toast('🔌 عم يعيد الاتصال بالسيرفر…','inf');
 }
-function detachAll(){_unsubs.forEach(function(u){try{u();}catch(e){}});_unsubs=[];}
+function detachAll(){_unsubs.forEach(function(u){try{u();}catch(e){}});_unsubs=[];presWatch(false);}
 
 /* ── المستمعون اللحظيون — قلب المحرّك الجديد ── */
 function attachAll(){
@@ -726,6 +736,7 @@ function attachAll(){
   var qOps=_archOn?C_OPS.where('arch','==',''):C_OPS;
   _unsubs.push(qOps.onSnapshot({includeMetadataChanges:true},function(s){
     _lastSnap=Date.now();_fromCache=s.metadata.fromCache;
+    if(!_fromCache&&_quotaHit)_quotaHit=0;   /* وصل شي من السيرفر ← الحصة رجعت */
     var pw=0;
     s.docChanges().forEach(function(ch){
       if(ch.type==='removed'){delete OPS[ch.doc.id];}
@@ -733,7 +744,7 @@ function attachAll(){
     });
     s.forEach(function(doc){if(doc.metadata.hasPendingWrites)pw++;});
     _pendWrites=pw;setJewel();derive();renderAll();
-  },function(err){console.warn('ops listener:',err);setJewel();}));
+  },function(err){console.warn('ops listener:',err);fbErr(err);setJewel();}));
   _unsubs.push(C_CL.onSnapshot(function(s){
     s.docChanges().forEach(function(ch){
       if(ch.type==='removed')delete CL[ch.doc.id];
@@ -754,10 +765,6 @@ function attachAll(){
         if(changed&&!was)toast('🎫 تحدّثت صلاحياتك: '+(ME.role==='manager'?'مدير':'صندوق'),'inf');
         return;}}
     if(curView==='team'||curView==='admin')renderView();
-  }));
-  _unsubs.push(C_PRES.onSnapshot(function(s){
-    PRES={};s.forEach(function(doc){PRES[doc.id]=doc.data();});
-    if(curView==='team')renderView();
   }));
   _unsubs.push(C_META.doc('app').onSnapshot(function(doc){
     var d=doc.exists?doc.data():{};
@@ -803,8 +810,19 @@ function runArchMig(){
 }
 
 /* ── الحضور: 🟢 مين أونلاين ── */
-function presBeat(){if(!ME)return;try{C_PRES.doc(ME.uid).set({name:ME.name,at:Date.now()});}catch(e){}}
-setInterval(presBeat,90000);
+/* 💸 الحضور كان أكبر مستهلك للقراءات: كل نبضة من أي جهاز = قراءة على كل الأجهزة التانية.
+   صار: نبضة كل 5 دقايق (بس لما الصفحة ظاهرة)، والمستمع بيشتغل بس وإنت على صفحة الفريق */
+function presBeat(){if(!ME||document.hidden)return;try{C_PRES.doc(ME.uid).set({name:ME.name,at:Date.now()});}catch(e){}}
+setInterval(presBeat,300000);
+var _presUnsub=null;
+function presWatch(on){
+  if(!on){if(_presUnsub){try{_presUnsub();}catch(e){}_presUnsub=null;}return;}
+  if(_presUnsub||!ME)return;
+  _presUnsub=C_PRES.onSnapshot(function(s){
+    PRES={};s.forEach(function(doc){PRES[doc.id]=doc.data();});
+    if(curView==='team')renderView();
+  },function(err){console.warn('presence listener:',err);});
+}
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible'){presBeat();setJewel();}});
 
 /* ── الدخول الرسمي (Firebase Auth) + بطاقة الدور ── */
@@ -864,7 +882,7 @@ function applyRole(){
 /* ── التنقل ── */
 function go(v){
   if((v==='reports'||v==='admin')&&!isMgr()){toast('صفحة للمدير فقط','inf');return;}
-  curView=v;
+  curView=v;presWatch(v==='team');
   document.querySelectorAll('.tabb,.bnav button[data-v]').forEach(function(b){b.classList.toggle('on',b.dataset.v===v);});
   document.querySelectorAll('.main section').forEach(function(s){s.style.display=(s.id==='v-'+v)?'':'none';});
   renderView();window.scrollTo({top:0});
@@ -1529,7 +1547,7 @@ function rTeam(){
   var h='<div class="pgTitle"><h2>👥 الفريق</h2></div><div class="grid2">';
   var now=Date.now(),tS=todayStr();
   h+=Object.values(TEAM).map(function(t){
-    var p=PRES[t.uid],on=p&&(now-p.at<200000);
+    var p=PRES[t.uid],on=p&&(now-p.at<660000);   /* نبضة كل 5 دقايق ← أونلاين = آخر 11 دقيقة */
     var add=0,conf=0;
     for(var k in OPS){var op=OPS[k];if(op.deleted)continue;
       if(op.date===tS){if(op.by===t.email)add++;if(op.confirmedBy===t.email)conf++;}}
@@ -1972,7 +1990,7 @@ function saveRecon(){
     closeModal();
     copyText(waReconMsg(c,entry));   /* 📋 بتنسخ حالها فوراً — جاهزة تنبعت عالواتساب */
     toast((diffs.length?'🤝 اعتُمدت — الفروقات انسوّت بعمليات ظاهرة ('+diffs.length+')':'🤝 اعتُمدت — مطابقة تامة')+' + 📋 انتسخت رسالة المطابقة','ok');
-  }).catch(function(e){toast('ما قدر يحفظ المطابقة — '+((e&&e.message)||''),'err');});
+  }).catch(function(e){toast('ما قدر يحفظ المطابقة — '+fbErr(e),'err');});
 }
 function openReconHist(cid){
   var c=CL[cid];if(!c||!c.recons||!c.recons.length)return;
@@ -2026,7 +2044,7 @@ function doClosing(){
   var doc={period:period,at:Date.now(),by:ME.email,byName:ME.name,phase:'pending',undone:false,
            opCount:opCount,totIn:totIn,totOut:totOut,profit:profit,clients:snap};
   C_CLOSE.doc(id).set(doc).then(function(){doc.id=id;try{wlRoll(id);}catch(e){}applyClosing(doc);})   /* 💰 تدوير أرصدة المحافظ — مستقل، وما بيوقف الإقفال لو فشل */
-    .catch(function(e){toast('ما قدر يبلّش الإقفال — '+((e&&e.message)||''),'err');});
+    .catch(function(e){toast('ما قدر يبلّش الإقفال — '+fbErr(e),'err');});
 }
 function resumeClosing(id){var x=CLS[id];if(!x)return;applyClosing(x);}
 function applyClosing(cl){
@@ -2217,7 +2235,9 @@ function inServiceWallets(){ /* ترتيب ثابت بالرقم — حتى يك
 function t12(ts){var p=tzParts(ts),h=+p.hour,ap=h>=12?'PM':'AM';h=h%12;if(h===0)h=12;return '\u200E'+h+':'+p.minute+' '+ap+'\u200E';}
 function shiftActive(){return SHIFT&&SHIFT.to&&Date.now()<SHIFT.to;}
 /* رسالة الكروب — نص المختار نفسه (كلماتو)، بإملاء مصحّح، سطر ورا سطر بلا فراغات */
-var SHIFT_NOTE='ملاحظة: لا يوجد إلغاء حتى لو أصبح في أي خطأ وتحولوا على الاسم بدل محفظة، على مسؤوليتكم الكاملة';
+var SHIFT_NOTE='ملاحظة: لا يوجد إلغاء حتى لو أصبح في أي خطأ وتحولوا على الاسم بدل محفظة، على مسؤوليتكم الكاملة.'
+  +'\nولا تكتبوا في الملاحظات أي شيء، مثلاً: (إلى أبو حسن)، شام كاش، إلخ.'
+  +'\nوأيضاً عدم الاتصال بهذه الأرقام، هي للمحافظ فقط.';
 function shiftMsg(s){
   s=s||SHIFT;if(!s)return '';
   return '🟢 الأرقام المعتمدة\n⏰ '+shiftSpan(s)+'\n'+(s.nums||[]).map(function(n){return '📱 '+n;}).join('\n')+'\n'+SHIFT_NOTE;
@@ -2281,7 +2301,7 @@ function newShift(){
     if(res.nums.length<shiftN)toast('⚠️ بالخدمة '+res.nums.length+' بس — نزلوا كلهن','inf');
     else toast('🔄 وردية جديدة: '+res.nums.length+' أرقام لـ '+t12(res.to),'ok');
     _shImgs=null;renderView();
-  }).catch(function(e){toast('ما قدر ينشر الوردية — '+((e&&e.message)||''),'err');});
+  }).catch(function(e){toast('ما قدر ينشر الوردية — '+fbErr(e),'err');});
 }
 function toggleWalletOff(id){
   if(!isMgr())return;var w=WL[id];if(!w)return;
@@ -2469,7 +2489,7 @@ function saveCrop(){
   var url=c.toDataURL('image/jpeg',0.92),id=_crop.id;
   C_QR.doc(id).set({img:url,at:Date.now(),by:ME.email}).then(function(){
     QRC[id]=url;_shImgs=null;logAudit('wallet.qr','',(WL[id]||{}).name||'');closeModal();toast('📷 انحفظ الـ QR','ok');renderView();
-  }).catch(function(e){toast('ما قدر يحفظ الصورة — '+((e&&e.message)||''),'err');});
+  }).catch(function(e){toast('ما قدر يحفظ الصورة — '+fbErr(e),'err');});
 }
 function delQr(id){
   if(!isMgr()||!confirm('حذف صورة الـ QR لهالمحفظة؟'))return;
@@ -2522,7 +2542,7 @@ function wlTotal(){var t=0,n=0,miss=0,po=0,pon=0,pi=0,pin=0;activeWallets().forE
 function shopCalc(sid){var bal=0,prof=0,n=0;wledList().forEach(function(e){if(e.kind!=='shop'||e.shop!==sid)return;n++;var a=+e.amount||0,c=+e.comm||0;if(e.type==='buy'){bal+=a-c;prof+=c;}else bal-=a;});return {bal:_r2(bal),prof:_r2(prof),n:n};}
 function _wlWho(){return {by:ME?ME.email:'',byName:ME?ME.name:''};}
 function _wlAdd(e){e.at=e.at||Date.now();e.by=ME.email;e.byName=ME.name;e.deleted=false;return C_WLED.doc(uid()).set(e);}
-function _wlFail(e){toast('ما قدر يحفظ — '+((e&&e.message)||'تأكد من الاتصال'),'err');}
+function _wlFail(e){toast('ما قدر يحفظ — '+fbErr(e),'err');}
 function _wlNum(id){var v=parseFloat(String(($(id)||{}).value||'').replace(/,/g,''));return isNaN(v)?NaN:_r2(v);}
 function _wlWhen(ts){return _ts2d(ts)+' '+t12(ts);}
 function _signed(n){n=_r2(n);return (n>0?'+':'')+fmt(n);}
