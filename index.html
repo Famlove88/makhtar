@@ -546,7 +546,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=244;
+var APP_BUILD=245;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -1175,6 +1175,7 @@ function opRowsHtml(ops,compact,showClient){
       +'<span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
       +'<div class="mid"><div class="amt num '+(o.type==='in'?'pos':'neg')+'">'+fmtA(o)+(comm?' <small style="font-size:.68rem;color:var(--pend)">+'+comm+' عمولة</small>':'')
       +(pend?' <span class="pillPend">⏳ معلّقة</span>':'')
+      +(opLastMove(o)?' <span class="pillPend" title="نقلها '+esc(opLastMove(o).byName||'')+'">↪ منقولة من '+esc(opLastMove(o).fromName||'')+'</span>':'')
       +(showClient?' <span style="font-size:.78rem;font-weight:800;color:var(--seal)">— '+esc((CL[o.clientId]||{}).name||'؟')+'</span>':'')+'</div>'
       +'<div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')
       +(o.phone?' • 📞 '+esc(o.phone):'')
@@ -1229,7 +1230,7 @@ function pendCardsHtml(list){
     return '<div class="pCard" id="pc_'+o.id+'">'
       +'<span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
       +'<div class="amtBig num '+(o.type==='in'?'pos':'neg')+'">'+fmtA(o)+'</div>'
-      +'<div class="cName">'+esc(c.name)+'</div>'
+      +'<div class="cName">'+esc(c.name)+(opLastMove(o)?' <span class="pillPend">↪ منقولة من '+esc(opLastMove(o).fromName||'')+'</span>':'')+'</div>'
       +'<div class="who num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' '+esc(o.time||'')+'</div>'
       +(o.walletName?'<div style="margin-top:.35rem">'+wBadge(o.walletId,o.walletName,true)+'</div>':'')
       +'<div class="who">👤 فتحها: <b>'+esc(o.byName||o.by||'؟')+'</b></div>'
@@ -1260,7 +1261,10 @@ function stmtOps(){
   if(!words.length&&!c)return {list:[],allClients:false,need:true};
   var list=[];
   for(var k in OPS){var o=OPS[k];if(o.arch)continue;
-    if(!allClients&&o.clientId!==c.id)continue;
+    if(!allClients&&o.clientId!==c.id){
+      /* ↪ انتقلت من هالزبون لغيرو — بتبيّن مشطوبة للأثر بس، وما بتنحسب */
+      if(c&&!o.deleted&&opMoves(o).some(function(m){return m.from===c.id;})&&(!words.length||opMatch(o,words))&&(stmtFilter==='all'||o.type===stmtFilter))list.push(Object.assign({},o,{_away:true}));
+      continue;}
     if(o.deleted&&!(isMgr()&&stmtShowDel))continue;
     if(stmtFilter!=='all'&&o.type!==stmtFilter)continue;
     if(words.length&&!opMatch(o,words))continue;
@@ -1273,12 +1277,14 @@ function stmtListHtml(){
   if(r.need)return '<div class="emptyBox"><span>🔍</span>اختار عميل حتى يطلع كشفو — أو اكتب بالبحث فوق لتفتّش بكل العمليات</div>';
   var arr=r.list, shown=stmtShowAll?arr:arr.slice(0,400);
   var sum={inN:0,inV:0,outN:0,outV:0};
-  arr.forEach(function(o){if(o.deleted)return;if(o.type==='in'){sum.inN++;sum.inV+=o.amount;}else{sum.outN++;sum.outV+=o.amount;}});
+  arr.forEach(function(o){if(o.deleted||o._away)return;if(o.type==='in'){sum.inN++;sum.inV+=o.amount;}else{sum.outN++;sum.outV+=o.amount;}});
   var h='<div class="panel"><h3>'+(r.allClients?'🔍 نتائج البحث بكل الزبائن':esc(c?c.name:''))
-    +' <span style="color:var(--ink3);font-weight:600;font-size:.75rem">'+arr.length+' حركة'
+    +' <span style="color:var(--ink3);font-weight:600;font-size:.75rem">'+arr.filter(function(o){return !o._away;}).length+' حركة'
     +(arr.length?' • ↙ '+sum.inN+' ('+fmt(sum.inV)+') • ↗ '+sum.outN+' ('+fmt(sum.outV)+')':'')+'</span></h3>'
-    +shown.map(function(o){return o.deleted?'<div class="opRow isDel"><span class="tBadge">محذوفة</span><div class="mid"><div class="amt num">'+fmtA(o)+(r.allClients?' — '+esc((CL[o.clientId]||{}).name||'؟'):'')+'</div><div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+(o.note?' • '+esc(o.note):'')+'</div></div></div>':'';}).join('')
-    +opRowsHtml(shown.filter(function(o){return !o.deleted;}),false,r.allClients)
+    +shown.map(function(o){
+      if(o._away){var m=opLastMove(o)||{};return '<div class="opRow isDel" title="ما بتنحسب على '+esc(c?c.name:'')+'"><span class="tBadge">↪ انتقلت</span><div class="mid"><div class="amt num">'+fmtA(o)+' — صارت عند '+esc(m.toName||(CL[o.clientId]||{}).name||'؟')+'</div><div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+' • نقلها '+esc(m.byName||'')+(m.at?' '+_ts2d(m.at)+' '+t12(m.at):'')+'</div></div></div>';}
+      return o.deleted?'<div class="opRow isDel"><span class="tBadge">محذوفة</span><div class="mid"><div class="amt num">'+fmtA(o)+(r.allClients?' — '+esc((CL[o.clientId]||{}).name||'؟'):'')+'</div><div class="meta num">'+esc(padCode(o.code))+' • '+esc(o.date||'')+(o.note?' • '+esc(o.note):'')+'</div></div></div>':'';}).join('')
+    +opRowsHtml(shown.filter(function(o){return !o.deleted&&!o._away;}),false,r.allClients)
     +(!stmtShowAll&&arr.length>400?'<button class="btn noPrint" style="width:100%;justify-content:center" onclick="stmtShowAll=true;renderStmtList()">عرض كل الـ'+arr.length+' حركة</button>':'')
     +'</div>';
   return h;
@@ -1748,8 +1754,66 @@ function openOpEdit(id){
     +'<button class="btn btnSeal" style="flex:1;justify-content:center" onclick="saveOpEdit(\''+id+'\')">حفظ التعديل</button>'
     +(o.type==='in'?'<button class="btn" onclick="copyOpMsg(\''+id+'\')">📋</button>':'')
     +'<button class="btn btnDanger" onclick="askDelOp(\''+id+'\')">🗑 حذف</button></div>'
+    +'<button class="btn btnGhost" style="width:100%;justify-content:center;margin-top:.5rem;border:1.5px solid var(--line)" onclick="openOpMove(\''+id+'\')">👤 نقل لزبون تاني — العملية انكتبت عالغلط</button>'
     +(o.status==='confirmed'&&canUnconfirm(o)?'<button class="btn btnGhost" style="width:100%;justify-content:center;margin-top:.5rem" onclick="askUnconfirm(\''+id+'\')">↩️ رجّعها بانتظار التأكيد</button>':''));
   eHint();
+}
+/* ══ 👤 نقل عملية لزبون تاني — بدل الحذف وإعادة التسجيل ══
+   العملية نفسها بكل تفاصيلها (مبلغ، نوع، محفظة، وقت، كود، تأكيد) بتنتقل لصاحبها الصح.
+   القديم بيرجع رصيدو، الجديد بتنحسب عليه، والمحافظ ما بتتأثّر (نفس المحفظة ونفس المبلغ). */
+var _mv={id:'',q:'',to:''};
+function opMoves(o){return (o&&Array.isArray(o.moves))?o.moves:[];}
+function opLastMove(o){var m=opMoves(o);return m.length?m[m.length-1]:null;}
+function openOpMove(id,to){
+  var o=OPS[id];if(!o)return;
+  if(!isMgr()&&!(o.status==='pending'&&o.by===ME.email)){toast('النقل لصاحب العملية المعلّقة أو المدير','inf');return;}
+  var from=CL[o.clientId]||{name:'؟',id:o.clientId};
+  _mv={id:id,q:(to===undefined?'':_mv.q),to:to||''};
+  var h='<h3>👤 نقل '+esc(padCode(o.code))+' لزبون تاني</h3>'
+    +'<div class="cfCard" style="padding:.55rem .8rem;margin:.3rem 0 .6rem"><span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span> <b class="num" style="font-size:1.2rem">'+fmtA(o)+'</b>'
+    +'<div style="font-size:.75rem;color:var(--ink2);font-weight:700;margin-top:.2rem">عند <b>'+esc(from.name)+'</b> • '+esc(o.date||'')+' '+esc(o.time||'')+(o.walletName?' • '+wBadge(o.walletId,o.walletName):'')+(o.status==='confirmed'?' • مؤكدة':' • معلّقة')+'</div></div>';
+  if(!_mv.to){
+    h+='<div class="fRow"><label>لمين بتنتقل؟</label><div class="srchRow"><input id="mvQ" class="srchIn" value="'+esc(_mv.q)+'" placeholder="🔍 اكتب اسم الزبون…" oninput="_mv.q=this.value;mvList()"></div></div>'
+      +'<div id="mvList" class="wlRows" style="max-height:50vh"></div>';
+  }else{
+    var t=CL[_mv.to]||{name:'؟'};
+    var warn=(from.recons||[]).some(function(r){return (r.at||0)>(o.createdAt||0);});
+    h+='<div class="cfCard"><div style="font-size:.8rem;font-weight:800;color:var(--ink2)">من</div><div class="cfNm" style="margin:0">'+esc(from.name)+'</div>'
+      +'<div style="font-size:1.4rem;margin:.1rem 0">⬇️</div>'
+      +'<div style="font-size:.8rem;font-weight:800;color:var(--ink2)">إلى</div><div class="cfNm" style="margin:0;color:var(--seal)">'+esc(t.name)+(t.sub?' <small style="color:var(--ink3)">'+esc(t.sub)+'</small>':'')+'</div></div>'
+      +'<div style="font-size:.78rem;color:var(--ink2);font-weight:700;text-align:center;margin:.3rem 0 .5rem">'+esc(from.name)+' بيرجع رصيدو متل ما كان، و'+esc(t.name)+' بتنحسب عليه فوراً'+(o.status==='confirmed'?' وبتضل مؤكدة':' وبتضل معلّقة')+'. المحافظ ما بتتأثّر.</div>'
+      +(warn?'<div class="cfWarn" style="text-align:start">⚠️ '+esc(from.name)+' عندو مطابقة معتمدة بعد تاريخ هالعملية — رصيدو رح يتغيّر بعد المطابقة. كمّل إذا متأكد.</div>':'')
+      +'<div style="display:flex;gap:.5rem"><button class="btn" style="flex:1;justify-content:center" onclick="openOpMove(\''+id+'\',\'\')">↩ غيّر الزبون</button>'
+      +'<button class="btn btnSeal" style="flex:2;justify-content:center" onclick="doOpMove()">👤 نقل العملية</button></div>';
+  }
+  openModal(h);
+  if(!_mv.to){mvList();setTimeout(function(){var i=$('mvQ');if(i)i.focus();},50);}
+}
+function mvList(){
+  var box=$('mvList'),o=OPS[_mv.id];if(!box||!o)return;
+  var nq=_nq(_mv.q);
+  var arr=Object.values(CL).filter(function(c){return c.active!==false&&c.id!==o.clientId&&(!nq||_nq(c.name).indexOf(nq)>-1||_nq(c.sub).indexOf(nq)>-1);})
+    .sort(function(a,b){return (a.name||'').localeCompare(b.name||'','ar');}).slice(0,80);
+  box.innerHTML=arr.length?arr.map(function(c){return '<button type="button" class="wlRow" style="width:100%;text-align:start;font:inherit;cursor:pointer;grid-template-columns:1fr auto" onclick="openOpMove(\''+_mv.id+'\',\''+c.id+'\')"><div><div style="font-weight:800">'+esc(c.name)+'</div>'+(c.sub?'<div class="t">'+esc(c.sub)+'</div>':'')+'</div><div class="r">اختار ←</div></button>';}).join('')
+    :'<div class="wlRow"><span>ما في زبون بهالاسم</span></div>';
+}
+function doOpMove(){
+  var o=OPS[_mv.id],to=CL[_mv.to];if(!o||!to)return;
+  if(!isMgr()&&!(o.status==='pending'&&o.by===ME.email)){toast('النقل لصاحب العملية المعلّقة أو المدير','inf');return;}
+  var from=CL[o.clientId]||{name:'؟'},id=_mv.id,toId=_mv.to;
+  var mv={from:o.clientId,fromName:from.name||'',to:toId,toName:to.name||'',by:ME.email,byName:ME.name,at:Date.now()};
+  closeModal();
+  /* عملة مش بملف الزبون الجديد؟ منضيفها لحالها حتى يبيّن رصيدها */
+  var k=opCur(o),extra=null;
+  if(k==='LBP'&&!usesLbp(to))extra={useLbp:true};
+  else if(k!=='USD'&&k!=='LBP'&&clientCurList(to).indexOf(k)===-1)extra={cur:firebase.firestore.FieldValue.arrayUnion({c:k,v:0})};
+  var p=extra?C_CL.doc(toId).update(Object.assign(extra,{_m:Date.now()})).catch(function(){}):Promise.resolve();
+  return p.then(function(){return C_OPS.doc(id).update({clientId:toId,moves:firebase.firestore.FieldValue.arrayUnion(mv),updatedAt:Date.now(),_m:Date.now()});})
+    .then(function(){
+      o.clientId=toId;o.moves=opMoves(o).concat([mv]);derive();renderAll();
+      logAudit('op.move',to.name||'',padCode(o.code)+' '+fmtA(o)+' — من '+(from.name||'')+' ← '+(to.name||''));
+      toast('👤 انتقلت '+fmtA(o)+' من '+(from.name||'')+' لـ '+(to.name||''),'ok');
+    }).catch(function(e){toast('ما قدر ينقل — '+fbErr(e),'err');});
 }
 function eSetType(t){_e.type=t;var seg=$('eSeg');if(seg){seg.children[0].className=(t==='in'?'onIn':'');seg.children[1].className=(t==='out'?'onOut':'');}eHint();}
 function eSetCur(k){_e.cur=k;document.querySelectorAll('#eCurs .wChip').forEach(function(b){b.classList.toggle('on',b.dataset.k===k);});var l=$('eAmtCur');if(l)l.textContent=(k==='USD'?'$':k);eHint();}
@@ -2169,7 +2233,7 @@ function expClosing(id){
 }
 function expStmt(){
   var r=stmtOps(),c=CL[sel];
-  var list=r.list.slice().sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0);});
+  var list=r.list.filter(function(o){return !o._away;}).sort(function(a,b){return (a.createdAt||0)-(b.createdAt||0);});
   if(!list.length){toast('ما في حركات للتصدير','inf');return;}
   dlFile('makhtar-كشف-'+(r.allClients?'بحث':(c?c.name:'الكل'))+'-'+todayStr()+'.csv',
     _opsCsv(list,function(cid){return (CL[cid]&&CL[cid].name)||'؟';}));
