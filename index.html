@@ -546,7 +546,7 @@ td{padding:.45rem .5rem;border-bottom:1px solid var(--line);font-weight:600}
    البيانات على مجموعات mk2_* — منفصلة تماماً عن بيانات النسخة القديمة
    ═══════════════════════════════════════════════════════════════ */
 'use strict';
-var APP_BUILD=245;
+var APP_BUILD=246;
 var MIN_BUILD=201;
 
 /* ── Firebase — نفس المشروع (نفس حسابات الدخول الرسمية)، مجموعات جديدة ── */
@@ -579,7 +579,9 @@ var C_CL=db.collection('mk2_clients'),
 var CL={}, OPS={}, WL={}, TEAM={}, PRES={}, CLS={};
 var _archOn=false;   // لما بيصير true: مستمع العمليات بيجيب الحيّة فقط (arch=='') — الأرشيف بينقرا عالطلب
 var ME=null;               // {uid,email,name,role}
-var SET={commission:0.5,plan:'spark'};  // إعدادات المكتب (تتزامن) — plan: spark مجاني / blaze مدفوع
+var SET={commission:0.5,commissionIn:0.5,plan:'spark'};  // إعدادات المكتب (تتزامن) — commission: خروج عبر محفظة، commissionIn: دخول عبر محفظة
+/* 💰 قاعدة العمولة الوحيدة بالبرنامج: عبر محفظة وبالدولار بس — خروج بتنضاف عالمخصوم، دخول بتنقص من المقيّد. بلا محفظة أو بغير الدولار = 0 */
+function commFor(type,wid,cur){if(!wid||(cur||'USD')!=='USD')return 0;return type==='out'?(+SET.commission||0):(+SET.commissionIn||0);}
 var DRV=null;              // المشتقات المحسوبة محلياً — الأرقام ما منوثق فيها من السلك، منشتقها (قاعدة Build 92)
 var sel=localStorage.getItem('mk2_sel')||'';
 var curView='board', opType='in';
@@ -687,10 +689,10 @@ function derive(){
       continue;}
     d.confCount++;
     if((o.date||'').slice(0,7)===mS)d.monthOps++;
-    if(o.type==='in'){d.inCount++;if(isU)d.inVol+=o.amount;applyBal(o.amount);}
-    else{d.outCount++;if(isU)d.outVol+=o.amount;applyBal(-(o.amount+(isU?(+o.commission||0):0)));
-      var pr=isU?(+o.commission||0):0;
-      if((o.date||'').slice(0,7)===mS)d.profitMonth+=pr;
+    var pr=isU?(+o.commission||0):0;   /* 💰 العمولة ربح — خروج بتنضاف عالمخصوم، دخول بتنقص من المقيّد (الدخول القديم عمولتو 0 فما بيتغيّر) */
+    if(o.type==='in'){d.inCount++;if(isU)d.inVol+=o.amount;applyBal(o.amount-pr);}
+    else{d.outCount++;if(isU)d.outVol+=o.amount;applyBal(-(o.amount+pr));}
+    if(pr){if((o.date||'').slice(0,7)===mS)d.profitMonth+=pr;
       if(o.date===tS){d.profitToday+=pr;if(cc)cc.tProf+=pr;}}
   }
   for(var id in d.clients){var b=d.clients[id];if(b.hidden)continue;   /* المخفي بره مجاميع المكتب */
@@ -772,6 +774,7 @@ function attachAll(){
     if((d.build||0)>APP_BUILD)$('updateBanner').style.display='block';
     else if(APP_BUILD>(d.build||0))C_META.doc('app').set({build:APP_BUILD,minBuild:MIN_BUILD,at:Date.now()},{merge:true}).catch(function(){});
     if(d.commission!=null)SET.commission=+d.commission;
+    if(d.commissionIn!=null)SET.commissionIn=+d.commissionIn;
     SET.plan=(d.plan==='blaze')?'blaze':'spark';
     /* ترحيل الأرشفة: مرة وحدة — بيضيف arch:'' للعمليات القديمة، وبعدها كل الأجهزة بتنتقل للمستمع الحيّ */
     if(d.archMig===2&&!_archOn){_archOn=true;attachAll();return;}
@@ -1058,7 +1061,7 @@ function wChipsHtml(){
   var chips='<button type="button" class="wChip'+(selWallet===''?' on':'')+'" onclick="pickWChip(\'\')">بدون<small>محفظة</small></button>'
     +arr.map(function(w){
       return '<button type="button" class="wChip wl'+(selWallet===w.id?' on':'')+'" style="'+wVars(w.id)+'" onclick="pickWChip(\''+w.id+'\')"><span class="wn num">'+wNum(w.name)+'</span>'
-        +'<small>'+((opType==='out'&&opCurSel==='USD')?'+'+fmt(SET.commission)+' عمولة':'بلا عمولة')+'</small></button>';
+        +'<small>'+(commFor(opType,w.id,opCurSel)?'+'+fmt(commFor(opType,w.id,opCurSel))+' عمولة':'بلا عمولة')+'</small></button>';
     }).join('');
   var selW=(selWallet&&WL[selWallet])?WL[selWallet]:null;
   return '<div class="fRow" style="margin-bottom:.75rem"><label>المحفظة — كبسة وحدة'+(selW?' &nbsp;'+wBadge(selW.id,selW.name):' &nbsp;<span style="color:var(--ink3)">بدون محفظة</span>')+'</label><div class="wChips">'+chips+'</div></div>';
@@ -1069,10 +1072,10 @@ function opPrev(){
   var el=$('opPrev');if(!el)return;
   var a=parseFloat(($('opAmt')||{}).value)||0,k=opCurSel||'USD';
   var w=(selWallet&&WL[selWallet])?WL[selWallet]:null;
-  var comm=(opType==='out'&&w&&k==='USD')?SET.commission:0;
+  var comm=commFor(opType,w?w.id:'',k);
   var fv=function(v){return k==='USD'?fmt(v):(k==='LBP'?fmtN(v)+' ل.ل':fmtW(v)+' '+k);};
-  if(!a){el.innerHTML='<span style="color:var(--ink3)">'+(opType==='out'?'اكتب المبلغ — خروج'+(w?' عبر المحفظة (+'+fmt(SET.commission)+' عمولة)':' بلا محفظة، بلا عمولة'):'اكتب المبلغ — دخول'+(w?' عبر المحفظة':''))+'</span>';return;}
-  if(opType==='in')el.innerHTML='➕ بينضاف للزبون <b>'+fv(a)+'</b>';
+  if(!a){el.innerHTML='<span style="color:var(--ink3)">'+(opType==='out'?'اكتب المبلغ — خروج':'اكتب المبلغ — دخول')+(w?' عبر المحفظة'+(comm?' (+'+fmt(comm)+' عمولة)':''):' بلا محفظة، بلا عمولة')+'</span>';return;}
+  if(opType==='in')el.innerHTML='➕ بينضاف للزبون <b>'+fv(a-comm)+'</b>'+(comm?' <small>('+fv(a)+' − '+fmt(comm)+' عمولة)</small>':'');
   else el.innerHTML='➖ بينخصم من الزبون <b>'+fv(a+comm)+'</b>'+(comm?' <small>('+fv(a)+' + '+fmt(comm)+' عمولة)</small>':'');
 }
 function rClient(){
@@ -1127,7 +1130,7 @@ function rClient(){
     +'<button class="'+(opType==='in'?'onIn':'')+'" onclick="opType=\'in\';renderView()"><span class="ic">↙</span> دخول</button>'
     +'<button class="'+(opType==='out'?'onOut':'')+'" onclick="opType=\'out\';renderView()"><span class="ic">↗</span> خروج</button></div>'
     +curChipsHtml(c)
-    +'<div class="group"><div class="gl">💳 المحفظة — كبسة وحدة &nbsp;'+(selW?wBadge(selW.id,selW.name):'<span>بدون</span>')+(opType==='out'?' &nbsp;• عمولة الخروج عبر محفظة '+fmt(SET.commission):'')+'</div>'
+    +'<div class="group"><div class="gl">💳 المحفظة — كبسة وحدة &nbsp;'+(selW?wBadge(selW.id,selW.name):'<span>بدون</span>')+' &nbsp;• عمولة '+(opType==='out'?'الخروج':'الدخول')+' عبر محفظة '+fmt(opType==='out'?SET.commission:SET.commissionIn)+'</div>'
     +'<div class="wChips grid">'
     +'<button type="button" class="wChip'+(selWallet===''?' on':'')+'" onclick="pickWChip(\'\')">بدون<small>محفظة</small></button>'
     +activeWallets().map(function(w){return '<button type="button" class="wChip wl'+(selWallet===w.id?' on':'')+'" style="'+wVars(w.id)+'" onclick="pickWChip(\''+w.id+'\')"><span class="wn num">'+wNum(w.name)+'</span></button>';}).join('')
@@ -1351,7 +1354,7 @@ function openStatementPdf(){
 }
 function buildStatement(c,all,from,to,offline){
   var fromTs=dayStart(from), toTs=dayEnd(to);   /* أيام بيروت */
-  var eff=function(o){return o.type==='in'?o.amount:-(o.amount+(opCur(o)==='USD'?(+o.commission||0):0));};
+  var eff=function(o){var cm=opCur(o)==='USD'?(+o.commission||0):0;return o.type==='in'?(o.amount-cm):-(o.amount+cm);};
   /* عملات الزبون: قائمتو + أي عملة صارت فيها عمليات */
   var curList=clientCurList(c);
   all.forEach(function(o){var k=opCur(o);if(curList.indexOf(k)===-1)curList.push(k);});
@@ -1369,7 +1372,8 @@ function buildStatement(c,all,from,to,offline){
     conf.forEach(function(o){if(opCur(o)!==k)return;var ts=_opTs(o);
       if(ts<fromTs){opening+=eff(o);return;}
       if(ts>toTs)return;
-      if(o.type==='in'){inN++;inV+=o.amount;}else{outN++;outV+=o.amount;if(k==='USD')commV+=(+o.commission||0);}
+      if(o.type==='in'){inN++;inV+=o.amount;}else{outN++;outV+=o.amount;}
+      if(k==='USD')commV+=(+o.commission||0);
       rows.push({o:o,ts:ts});});
     if(k!=='USD'&&!rows.length&&clientCurList(c).indexOf(k)===-1)return;   /* عملة بلا حركات ومش من عملاتو — ما منطبعها */
     var run=opening;
@@ -1473,10 +1477,10 @@ function rWallets(){
 function rReports(){
   var d=DRV,o=d.office;
   var h='<div class="pgTitle"><h2>📊 التقارير</h2></div>';
-  h+='<div class="panel"><h3>💰 الأرباح — عمولات الخروج المؤكد (منحسبها محلياً من العمليات نفسها)</h3>'
+  h+='<div class="panel"><h3>💰 الأرباح — عمولات الدخول والخروج المؤكدة (منحسبها محلياً من العمليات نفسها)</h3>'
     +'<div class="grid3 num"><div class="statCell"><div class="v" style="color:var(--ok)">'+fmt(d.profitToday)+'</div><div class="l">ربح اليوم</div></div>'
     +'<div class="statCell"><div class="v" style="color:var(--ok)">'+fmt(d.profitMonth)+'</div><div class="l">ربح هالشهر</div></div>'
-    +'<div class="statCell"><div class="v">'+fmt(SET.commission)+'</div><div class="l">العمولة الحالية</div></div></div></div>';
+    +'<div class="statCell"><div class="v">'+fmt(SET.commission)+' / '+fmt(SET.commissionIn)+'</div><div class="l">عمولة الخروج / الدخول</div></div></div></div>';
   h+='<div class="panel"><h3>🔄 الدخول والخروج</h3>'
     +'<div class="grid3 num"><div class="statCell"><div class="v pos">'+d.inCount+'</div><div class="l">دخول — '+fmtN(Math.round(d.inVol))+' $</div></div>'
     +'<div class="statCell"><div class="v neg">'+d.outCount+'</div><div class="l">خروج — '+fmtN(Math.round(d.outVol))+' $</div></div>'
@@ -1624,12 +1628,14 @@ function rAdmin(){
         +'<option value="cashier"'+(t.role!=='manager'?' selected':'')+'>صندوق</option>'
         +'<option value="manager"'+(t.role==='manager'?' selected':'')+'>مدير</option></select></td></tr>';
     }).join('')+'</table></div>';
-  h+='<div class="panel"><h3>💰 عمولة الخروج عبر محفظة</h3>'
+  h+='<div class="panel"><h3>💰 العمولات عبر محفظة (بالدولار)</h3>'
     +'<div class="fRow" style="margin-bottom:.6rem"><label>☁️ خطة Firebase (متل ما هي بالـ Console)</label><div class="segRow">'
     +'<button type="button" class="'+(SET.plan!=='blaze'?'onIn':'')+'" onclick="savePlan(\'spark\')">Spark — مجاني</button>'
     +'<button type="button" class="'+(SET.plan==='blaze'?'onIn':'')+'" onclick="savePlan(\'blaze\')">🔥 Blaze — مدفوع</button></div></div>'
-    +'<div class="grid2"><input id="setComm" type="number" step="0.1" value="'+SET.commission+'" dir="ltr" style="text-align:left">'
-    +'<button class="btn btnSeal" onclick="saveComm()">حفظ العمولة</button></div></div>';
+    +'<div class="grid2"><div class="fRow"><label>↗ عمولة الخروج $</label><input id="setComm" type="number" step="0.1" value="'+SET.commission+'" dir="ltr" style="text-align:left"></div>'
+    +'<div class="fRow"><label>↙ عمولة الدخول $</label><input id="setCommIn" type="number" step="0.1" value="'+SET.commissionIn+'" dir="ltr" style="text-align:left"></div></div>'
+    +'<div style="font-size:.74rem;color:var(--ink2);font-weight:700;margin-bottom:.5rem">الدخول: الزبون بينقيّدلو المبلغ ناقص العمولة، والكروب بيوصلو المبلغ كامل. بتنطبّق عالعمليات الجديدة بس.</div>'
+    +'<button class="btn btnSeal" style="width:100%;justify-content:center" onclick="saveComm()">حفظ العمولات</button></div>';
   h+='<div class="panel" style="border-color:var(--brass)"><h3>📦 الاستيراد من النسخة القديمة</h3>'
     +'<div style="font-size:.82rem;color:var(--ink2);font-weight:600;margin-bottom:.6rem">بيقرأ عملاء وعمليات ومحافظ النسخة القديمة (قراءة فقط — القديم ما بينلمس أبداً) وبينسخها لهون. آمن تعيدو أكتر من مرة: ما بيكرر شي.</div>'
     +'<button class="btn btnSeal" id="impBtn" onclick="importOld()">📦 ابدأ الاستيراد</button>'
@@ -1671,7 +1677,7 @@ function addOp(){
     var op={clientId:c.id,code:code,type:opType,amount:amt,cur:opCurSel||'USD',date:date,time:time,
       phone:phone,note:note,status:'pending',timeManual:manual,
       walletId:wid||'',walletName:w?w.name:'',
-      commission:(opType==='out'&&wid&&(opCurSel||'USD')==='USD')?SET.commission:0,arch:'',
+      commission:commFor(opType,wid,opCurSel||'USD'),arch:'',
       by:ME.email,byName:ME.name,createdAt:Date.now(),updatedAt:Date.now(),_m:Date.now()};
     C_OPS.doc(id).set(op).catch(function(e){toast('ما قدر يحفظ — '+e.message,'err');});
     logAudit('op.add',c.name,padCode(code)+' • '+(opType==='in'?'دخول':'خروج')+' '+amt.toFixed(2)+' '+(opCurSel||'USD'));
@@ -1693,6 +1699,7 @@ function opSummaryHtml(o){
   return '<div class="cfCard"><span class="tBadge '+(o.type==='in'?'tIn':'tOut')+'">'+(o.type==='in'?'↙ دخول':'↗ خروج')+'</span>'
     +'<div class="cfAmt num '+(o.type==='in'?'pos':'neg')+'">'+fmtA(o)+'</div>'
     +(o.type==='out'&&comm?'<div style="font-size:.73rem;color:var(--pend);font-weight:800">المخصوم من الزبون: '+fmt(o.amount+comm)+' (المبلغ + العمولة)</div>':'')
+    +(o.type==='in'&&comm?'<div style="font-size:.73rem;color:var(--pend);font-weight:800">المقيّد للزبون: '+fmt(o.amount-comm)+' (المبلغ − العمولة)</div>':'')
     +'<div class="cfNm">'+esc(c.name)+'</div><div class="cfRows">'+rows+'</div></div>';
 }
 
@@ -1732,7 +1739,7 @@ function openOpEdit(id){
   var o=OPS[id];if(!o)return;
   if(!isMgr()&&!(o.status==='pending'&&o.by===ME.email)){toast('التعديل لصاحب العملية المعلّقة أو المدير','inf');return;}
   var c=CL[o.clientId]||{};
-  _e={type:o.type,cur:opCur(o),wid:(o.walletId&&WL[o.walletId])?o.walletId:''};
+  _e={id:id,type:o.type,cur:opCur(o),wid:(o.walletId&&WL[o.walletId])?o.walletId:''};
   var curs=clientCurList(c);if(curs.indexOf(_e.cur)===-1)curs.push(_e.cur);
   openModal('<h3>✏️ تعديل '+esc(padCode(o.code))+' <small style="color:var(--ink3);font-weight:600;font-size:.75rem">— '+esc(c.name||'')+(o.status==='confirmed'?' • مؤكدة':' • معلّقة')+'</small></h3>'
     /* النوع — دخول ↔ خروج بكبسة، بلا حذف */
@@ -1818,7 +1825,10 @@ function doOpMove(){
 function eSetType(t){_e.type=t;var seg=$('eSeg');if(seg){seg.children[0].className=(t==='in'?'onIn':'');seg.children[1].className=(t==='out'?'onOut':'');}eHint();}
 function eSetCur(k){_e.cur=k;document.querySelectorAll('#eCurs .wChip').forEach(function(b){b.classList.toggle('on',b.dataset.k===k);});var l=$('eAmtCur');if(l)l.textContent=(k==='USD'?'$':k);eHint();}
 function eSetWallet(w){_e.wid=w;document.querySelectorAll('#eWl .wChip').forEach(function(b){b.classList.toggle('on',(b.dataset.w||'')===w);});eHint();}
-function eHint(){var h=$('eCommHint');if(!h)return;h.textContent=(_e.type==='out'&&_e.wid&&_e.cur==='USD')?('— بتنحسب عمولة '+fmt(SET.commission)):'— بلا عمولة';}
+function eHint(){var h=$('eCommHint');if(!h)return;var o=OPS[_e.id]||{};
+  var same=(o.type===_e.type&&(o.walletId||'')===(_e.wid||'')&&opCur(o)===(_e.cur||'USD'));
+  var cm=same?(+o.commission||0):commFor(_e.type,_e.wid,_e.cur||'USD');
+  h.textContent=cm?('— '+(same?'العمولة المسجّلة ':'بتنحسب عمولة ')+fmt(cm)):'— بلا عمولة';}
 function saveOpEdit(id){
   var o=OPS[id];if(!o)return;
   var amt=parseFloat($('eAmt').value);
@@ -1827,7 +1837,7 @@ function saveOpEdit(id){
   var upd={amount:amt,type:_e.type,cur:_e.cur||'USD',date:$('eDate').value,time:$('eTime').value,
     phone:$('ePhone').value.trim(),note:$('eNote').value.trim(),
     walletId:w?w.id:'',walletName:w?w.name:'',
-    commission:(_e.type==='out'&&w&&(_e.cur||'USD')==='USD')?SET.commission:0,
+    commission:(o.type!==_e.type||(o.walletId||'')!==(w?w.id:'')||opCur(o)!==(_e.cur||'USD'))?commFor(_e.type,w?w.id:'',_e.cur||'USD'):(+o.commission||0),
     editedBy:ME.email,editedByName:ME.name,editedAt:Date.now(),updatedAt:Date.now(),_m:Date.now()};
   var chg=[];
   if(o.type!==upd.type)chg.push((o.type==='in'?'دخول':'خروج')+'→'+(upd.type==='in'?'دخول':'خروج'));
@@ -2091,13 +2101,13 @@ function openClosing(){
     +'<button class="btn" style="flex:1;justify-content:center" onclick="closeModal()">رجوع</button>'
     +'<button class="btn btnSeal" style="flex:2;justify-content:center" onclick="doClosing()">🔒 أقفل وأرشف</button></div>');
 }
-function _livePeriodProfit(){var p=0;for(var k in OPS){var o=OPS[k];if(!o.arch&&!o.deleted&&o.status==='confirmed'&&o.type==='out')p+=(+o.commission||0);}return p;}
+function _livePeriodProfit(){var p=0;for(var k in OPS){var o=OPS[k];if(!o.arch&&!o.deleted&&o.status==='confirmed'&&opCur(o)==='USD')p+=(+o.commission||0);}return p;}
 function doClosing(){
   var period=($('clPeriod').value||'').trim()||todayStr().slice(0,7);
   closeModal();
   var snap={},totIn=0,totOut=0,profit=0,opCount=0;
   for(var k in OPS){var o=OPS[k];if(o.arch)continue;opCount++;
-    if(!o.deleted&&o.status==='confirmed'&&opCur(o)==='USD'){if(o.type==='in')totIn+=o.amount;else{totOut+=o.amount;profit+=(+o.commission||0);}}}
+    if(!o.deleted&&o.status==='confirmed'&&opCur(o)==='USD'){if(o.type==='in')totIn+=o.amount;else totOut+=o.amount;profit+=(+o.commission||0);}}
   derive();   /* صورة طازة — كل الزبائن (حتى المخفيين) بكل عملاتهن */
   for(var cid in CL){var c=CL[cid];
     var b=DRV.clients[cid]||{bal:0,lbp:+c.lbp||0,cur:{}};
@@ -2886,8 +2896,9 @@ function setTeamRole(u,role){C_TEAM.doc(u).update({role:role}).then(function(){l
 function setTeamName(u,name){name=name.trim();if(!name)return;C_TEAM.doc(u).update({name:name});}
 function savePlan(p){C_META.doc('app').set({plan:p},{merge:true}).then(function(){SET.plan=p;toast(p==='blaze'?'🔥 الخطة Blaze — ما في انقطاع بعد اليوم':'الخطة Spark — انتبهوا للحصة اليومية','ok');renderView();});}
 function saveComm(){
-  var v=parseFloat($('setComm').value);if(isNaN(v)||v<0){toast('قيمة غير صحيحة','err');return;}
-  C_META.doc('app').set({commission:v},{merge:true}).then(function(){toast('💰 انحفظت العمولة — عالكل فوراً','ok');});
+  var v=parseFloat($('setComm').value),vi=parseFloat(($('setCommIn')||{}).value);
+  if(isNaN(v)||v<0||isNaN(vi)||vi<0){toast('قيمة غير صحيحة','err');return;}
+  C_META.doc('app').set({commission:v,commissionIn:vi},{merge:true}).then(function(){SET.commission=v;SET.commissionIn=vi;logAudit('set.comm','',fmt(v)+' / '+fmt(vi));toast('💰 انحفظت العمولات — عالكل فوراً','ok');});
 }
 
 /* ── 📦 الاستيراد من النسخة القديمة — قراءة فقط، آمن الإعادة، بيحترم شواهد الحذف ── */
